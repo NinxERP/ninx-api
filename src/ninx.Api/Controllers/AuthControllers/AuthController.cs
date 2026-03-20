@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Interfaces.Services.Login;
-using ninx.Application.Services.Login;
 using ninx.Communication.Request;
-using ninx.Domain.Interfaces.Repositories.Usuario;
-using ninx.Domain.Interfaces.Services.JwtToken;
 
 namespace ninx.Api.Controllers.AuthControllers
 {

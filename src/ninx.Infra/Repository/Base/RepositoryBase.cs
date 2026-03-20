@@ -1,5 +1,4 @@
 ﻿using ninx.Domain.Interfaces.Repositories.Base;
-using ninx.Data.Context.;
 using ninx.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using ninx.Domain.Entities;

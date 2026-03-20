@@ -18,7 +18,7 @@ namespace ninx.Application.Services.Login
 
         public async Task<string?> LoginAsync(LoginRequest request)
         {
-            var usuario = await _usuarioRepository.GetUsuarioAndUsurioComercioByEmail(request.Email);
+            var usuario = await _usuarioRepository.GetUsuarioAndUsuarioComercioByEmail(request.Email);
             if (usuario == null)
             {
                 return null;
