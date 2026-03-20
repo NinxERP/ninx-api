@@ -19,7 +19,7 @@ namespace ninx.Application.Services.SwitchComercio
             _jwtTokenService = jwtTokenService;
         }
 
-        public async Task<string?> TrocarAsync (SwitchRequest request)
+        public async Task<string?> TrocarAsync (SwitchComercioRequest request)
         {
             var usuario = await _usuarioRepository.GetUsuarioAndUsuarioComercioById(request.UsuarioId);
             if (usuario == null)
