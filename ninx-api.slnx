@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="src/ninx.Api/ninx.Api.csproj" />
+  <Project Path="src/ninx.Application/ninx.Application.csproj" />
+  <Project Path="src/ninx.Communication/ninx.Communication.csproj" />
+  <Project Path="src/ninx.Data/ninx.Data.csproj" />
+  <Project Path="src/ninx.Domain/ninx.Domain.csproj" />
+  <Project Path="src/ninx.Infra/ninx.Infra.csproj" />
+  <Project Path="src/ninx.Ioc/ninx.Ioc.csproj" />
+</Solution>
