@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Interfaces.Services.Login;
 using ninx.Communication.Request;
 
@@ -6,10 +7,10 @@ namespace ninx.Api.Controllers.AuthControllers
 {
     [ApiController]
     [Route("api/auth/[controller]")]
-    public class AuthController : ControllerBase
+    public class LoginController : ControllerBase
     {
             private readonly ILoginService _loginService;
-            public AuthController(ILoginService loginService)
+            public LoginController(ILoginService loginService)
             {
                 _loginService = loginService;
             }
