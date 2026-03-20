@@ -22,10 +22,11 @@ namespace ninx.Domain.Entities
         [EnumDataType(typeof(Permissao), ErrorMessage = "Permissão inválida")]
         public Permissao Permissao { get; set; }
 
+        [Required(ErrorMessage = "Email é obrigatório")]
+        public string Email { get; set; }
         public bool Ativo { get; set; } = true;
         public DateTime CriadoEm { get; set; } = DateTime.Now;
         public DateTime? AtualizadoEm { get; set; }
-
         public ICollection<UsuarioComercio> UsuarioComercios { get; set; } = [];
         public ICollection<Venda> Vendas { get; set; } = [];
         public ICollection<PagamentoFiado> PagamentosFiado { get; set; } = [];
