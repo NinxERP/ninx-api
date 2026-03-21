@@ -1,0 +1,24 @@
+﻿using Microsoft.Extensions.DependencyInjection;
+using ninx.Domain.Interfaces.Repositories;
+using ninx.Domain.Interfaces.Repositories.Comercio;
+using ninx.Domain.Interfaces.Repositories.Usuario;
+using ninx.Infra.Repository;
+using ninx.Infra.Repository.Comercio;
+using ninx.Infra.Repository.Usuario;
+
+namespace ninx.Ioc.Extensions
+{
+    public static class RepositoryExtension
+    {
+        public static IServiceCollection AddRepositories(
+            this IServiceCollection services)
+        {
+            services.AddScoped<IProdutoRepository, ProdutoRepository>();
+            services.AddScoped<IComercioRepository, ComercioRepository>();
+            services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+            services.AddScoped<IUsuarioComercioRepository, UsuarioComercioRepository>();
+
+            return services;
+        }
+    }
+}

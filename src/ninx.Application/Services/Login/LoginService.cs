@@ -1,9 +1,9 @@
-﻿using ninx.Communication.Request;
+﻿using ninx.Application.Interfaces.Services.Login;
+using ninx.Communication.Request.Login;
+using ninx.Communication.Response.Login;
+using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories.Usuario;
 using ninx.Domain.Interfaces.Services.JwtToken;
-using BCrypt.Net;
-using ninx.Domain.Interfaces.Services;
-using ninx.Application.Interfaces.Services.Login;
 namespace ninx.Application.Services.Login
 {
     public class LoginService : ILoginService
@@ -16,23 +16,48 @@ namespace ninx.Application.Services.Login
             _usuarioRepository = usuarioRepository;
         }
 
-        public async Task<string?> LoginAsync(LoginRequest request)
+        public async Task<LoginResponse?> LoginAsync(LoginRequest request)
         {
             var usuario = await _usuarioRepository.GetUsuarioAndUsuarioComercioByEmail(request.Email);
-            if (usuario == null)
+
+            if (usuario == null || !BCrypt.Net.BCrypt.Verify(request.Senha, usuario.SenhaHash))
             {
-                return null;
+                throw new BadRequestException("E-mail ou senha incorretos");
             }
-            if (!BCrypt.Net.BCrypt.Verify(request.Senha, usuario.SenhaHash))
+
+            if (request.ComercioID != null && request.ComercioID > 0)
             {
-                return null;
+                var temAcesso = usuario.UsuarioComercios.Any(x => x.ComercioID == request.ComercioID);
+                if (!temAcesso)
+                {
+                    throw new UnauthorizedException("Usuário não tem comercios vinculados");
+                }
+                return new LoginResponse
+                {
+                    Token = _jwtTokenService.GerarToken(usuario, request.ComercioID)
+                };
             }
-            var uComercio = usuario.UsuarioComercios.FirstOrDefault(x => x.ComercioID == request.ComercioID);
-            if (uComercio == null)
+
+            if (usuario.UsuarioComercios.Count == 1)
             {
-                return null; 
+                return new LoginResponse
+                {
+                    Token = _jwtTokenService.GerarToken(usuario, usuario.UsuarioComercios.First().ComercioID)
+                };
             }
-            return _jwtTokenService.GerarToken(usuario, request.ComercioID);
+
+            if (usuario.UsuarioComercios.Count > 1)
+            {
+                return new LoginResponse
+                {
+                    Comercios = usuario.UsuarioComercios.Select(x => new ComercioSimplificado
+                    {
+                        ComercioID = x.ComercioID,
+                        Nome = x.Comercio.Nome
+                    }).ToList()
+                };
+            }
+            return null;
         }
     }
 }

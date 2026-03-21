@@ -31,7 +31,7 @@ namespace ninx.Infra.Repository.Base
             return entity;
         }
 
-        public async Task<TEntity> Update(TEntity entity)
+        public async Task<TEntity> UpdateAsync(TEntity entity)
         {
             _dbSet.Update(entity);
             await _context.SaveChangesAsync();

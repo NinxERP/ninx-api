@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ninx.Api.Controllers
+namespace ninx.Api.Controllers.Ping
 {
     [Route("api/[controller]")]
     [ApiController]

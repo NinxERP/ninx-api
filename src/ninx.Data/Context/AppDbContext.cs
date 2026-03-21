@@ -25,5 +25,10 @@ namespace ninx.Data.Context
         public DbSet<UsuarioComercio> UsuarioComercio { get; set; }
         public DbSet<Venda> Vendas { get; set; }
         public DbSet<VendaFiado> VendaFiados { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        }
     }
 }

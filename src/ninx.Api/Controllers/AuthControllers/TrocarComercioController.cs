@@ -1,23 +1,23 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ninx.Application.Interfaces.Services.SwitchComercio;
-using ninx.Communication.Request;
+using ninx.Application.Interfaces.Services.Login;
+using ninx.Communication.Request.Login;
 
 namespace ninx.Api.Controllers.AuthControllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class SwitchComercioController : ControllerBase
+    public class TrocarComercioController : ControllerBase
     {   
-        private readonly ISwitchComercioService _switchComercioService;
-        public SwitchComercioController(ISwitchComercioService switchComercioService)
+        private readonly ITrocarComercioService _trocarComercioService;
+        public TrocarComercioController(ITrocarComercioService trocarComercioService)
         {
-            _switchComercioService = switchComercioService;
+            _trocarComercioService = trocarComercioService;
         }
 
         [HttpPost("Switch")]
         public async Task<IActionResult> SwitchComercio([FromBody] SwitchComercioRequest request)
         {
-            var token = await _switchComercioService.TrocarAsync(request);
+            var token = await _trocarComercioService.TrocarAsync(request);
             if (token == null)
             {
                 return BadRequest("Usuário não encontrado ou sem acesso ao comércio.");

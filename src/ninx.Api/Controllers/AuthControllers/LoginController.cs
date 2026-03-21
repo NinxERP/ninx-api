@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Interfaces.Services.Login;
-using ninx.Communication.Request;
+using ninx.Communication.Request.Login;
+using ninx.Communication.Response;
+using ninx.Communication.Response.Login;
+using ninx.Communication.Response.UsuarioComercio;
 
 namespace ninx.Api.Controllers.AuthControllers
 {
@@ -15,16 +18,13 @@ namespace ninx.Api.Controllers.AuthControllers
                 _loginService = loginService;
             }
 
-            [HttpPost("login")]
-            public IActionResult Login([FromBody] LoginRequest request)
-            {
-
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-                var token = _loginService.LoginAsync(request);
-                return Ok(new {Token = token});
-
-            }
+        [HttpPost("login")]
+        [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        {
+            var token = await _loginService.LoginAsync(request);
+            return Ok(token);
         }
+    }
 }

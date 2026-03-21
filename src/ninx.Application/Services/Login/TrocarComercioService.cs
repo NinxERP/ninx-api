@@ -1,15 +1,15 @@
-﻿using ninx.Application.Interfaces.Services.SwitchComercio;
-using ninx.Communication.Request;
+﻿using ninx.Application.Interfaces.Services.Login;
+using ninx.Communication.Request.Login;
 using ninx.Domain.Interfaces.Repositories.Usuario;
 using ninx.Domain.Interfaces.Services.JwtToken;
 
-namespace ninx.Application.Services.SwitchComercio
+namespace ninx.Application.Services.Login
 {
-    public class SwitchComercioService : ISwitchComercioService
+    public class TrocarComercioService : ITrocarComercioService
     {
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IJwtTokenService _jwtTokenService;
-        public SwitchComercioService
+        public TrocarComercioService
         (
         IUsuarioRepository usuarioRepository,
         IJwtTokenService jwtTokenService
