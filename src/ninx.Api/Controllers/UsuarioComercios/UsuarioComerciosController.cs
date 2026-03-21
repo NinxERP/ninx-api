@@ -37,7 +37,6 @@ namespace ninx.Api.Controllers
         }
 
         [HttpPost]
-        [AllowAnonymous]
         [ProducesResponseType(typeof(UsuarioComercioResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Criar([FromBody] CriarUsuarioComercioRequest request)

@@ -46,7 +46,6 @@ namespace ninx.Api.Controllers
         }
 
         [HttpPost]
-        [AllowAnonymous]
         [ProducesResponseType(typeof(ComercioResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Criar([FromBody] ComercioRequest request)
