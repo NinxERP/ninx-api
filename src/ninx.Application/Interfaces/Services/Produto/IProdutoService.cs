@@ -5,7 +5,7 @@ namespace ninx.Domain.Interfaces.Services
 {
     public interface IProdutoService
     {
-        Task<IEnumerable<ProdutoResponse>> GetAllByComercioAsync(int comercioId);
+        Task<IEnumerable<ProdutoResponse>> GetByComercioIdAsync(int comercioId);
         Task<ProdutoResponse?> GetByIdAsync(int id);
         Task<ProdutoResponse?> GetByCodigoBarrasAsync(int comercioId, string codigoBarras);
         Task<IEnumerable<ProdutoResponse>> GetByNomeAsync(int comercioId, string nome);

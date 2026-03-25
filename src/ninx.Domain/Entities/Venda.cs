@@ -7,11 +7,10 @@ namespace ninx.Domain.Entities
         public int VendaID { get; set; }
         public int ComercioID { get; set; }
         public int UsuarioID { get; set; }
-        public DateTime DataHora { get; set; } = DateTime.Now;
         public decimal Total { get; set; }
-        public TipoVenda TipoVenda { get; set; }
         public StatusVenda Status { get; set; } = StatusVenda.Aberta;
         public DateTime CriadoEm { get; set; } = DateTime.Now;
+        public DateTime? AtualizadoEm { get; set; }
 
         public Comercio Comercio { get; set; } = null!;
         public Usuario Usuario { get; set; } = null!;

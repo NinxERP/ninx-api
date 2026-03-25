@@ -23,7 +23,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAllByComercio(int comercioId)
         {
-            var produtos = await _produtoService.GetAllByComercioAsync(comercioId);
+            var produtos = await _produtoService.GetByComercioIdAsync(comercioId);
             if (produtos is null)
             {
                 return NotFound();

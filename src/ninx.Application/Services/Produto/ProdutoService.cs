@@ -16,9 +16,9 @@ namespace ninx.Application.Services
             _produtoRepository = produtoRepository;
         }
 
-        public async Task<IEnumerable<ProdutoResponse>> GetAllByComercioAsync(int comercioId)
+        public async Task<IEnumerable<ProdutoResponse>> GetByComercioIdAsync(int comercioId)
         {
-            var produtos = await _produtoRepository.GetAllByComercioAsync(comercioId);
+            var produtos = await _produtoRepository.GetByComercioIdAsync(comercioId);
             return produtos.Adapt<IEnumerable<ProdutoResponse>>();
         }
 
