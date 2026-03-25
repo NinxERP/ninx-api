@@ -1,5 +1,5 @@
 ﻿using Mapster;
-using ninx.Communication.Response.Produto;
+using ninx.Communication.Response;
 using ninx.Domain.Entities;
 
 public class ProdutoMapper : IRegister

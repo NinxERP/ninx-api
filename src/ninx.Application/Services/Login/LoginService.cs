@@ -1,10 +1,11 @@
-﻿using ninx.Application.Interfaces.Services.Login;
-using ninx.Communication.Request.Login;
-using ninx.Communication.Response.Login;
+﻿using ninx.Application.Interfaces.Services;
+using ninx.Communication.Request;
+using ninx.Communication.Response;
 using ninx.Domain.Exceptions;
-using ninx.Domain.Interfaces.Repositories.Usuario;
-using ninx.Domain.Interfaces.Services.JwtToken;
-namespace ninx.Application.Services.Login
+using ninx.Domain.Interfaces.Repositories;
+using ninx.Domain.Interfaces.Services;
+
+namespace ninx.Application.Services
 {
     public class LoginService : ILoginService
     {

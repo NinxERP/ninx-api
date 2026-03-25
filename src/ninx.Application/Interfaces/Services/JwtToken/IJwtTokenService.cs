@@ -1,7 +1,7 @@
 ﻿
 using ninx.Domain.Entities;
 
-namespace ninx.Domain.Interfaces.Services.JwtToken
+namespace ninx.Domain.Interfaces.Services
 {
     public interface IJwtTokenService
     {

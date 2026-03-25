@@ -1,7 +1,7 @@
-﻿using ninx.Communication.Request.UsuarioComercios;
-using ninx.Communication.Response.UsuarioComercio;
+﻿using ninx.Communication.Request;
+using ninx.Communication.Response;
 
-namespace ninx.Domain.Interfaces.Services
+namespace ninx.Application.Interfaces.Services
 {
     public interface IUsuarioComercioService
     {

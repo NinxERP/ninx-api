@@ -3,9 +3,9 @@ using ninx.Domain.Entities;
 
 namespace ninx.Data.Context
 {
-    public class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
+    public class NinxDB : Microsoft.EntityFrameworkCore.DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options)
+        public NinxDB(DbContextOptions<NinxDB> options)
             : base(options)
         {
         }
@@ -28,7 +28,7 @@ namespace ninx.Data.Context
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(NinxDB).Assembly);
         }
     }
 }

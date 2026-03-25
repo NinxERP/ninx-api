@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ninx.Application.Interfaces.Services.Login;
-using ninx.Communication.Request.Login;
+using ninx.Application.Interfaces.Services;
+using ninx.Communication.Request;
 using ninx.Communication.Response;
-using ninx.Communication.Response.Login;
 
 namespace ninx.Api.Controllers
 {

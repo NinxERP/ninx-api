@@ -1,4 +1,4 @@
-﻿namespace ninx.Communication.Request.UsuarioComercios
+﻿namespace ninx.Communication.Request
 {
     public class CriarUsuarioComercioRequest
     {

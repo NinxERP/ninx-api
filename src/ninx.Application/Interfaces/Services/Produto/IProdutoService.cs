@@ -1,5 +1,5 @@
-﻿using ninx.Communication.Request.Produto;
-using ninx.Communication.Response.Produto;
+﻿using ninx.Communication.Request;
+using ninx.Communication.Response;
 
 namespace ninx.Domain.Interfaces.Services
 {

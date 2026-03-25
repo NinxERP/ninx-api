@@ -2,15 +2,14 @@
 using ninx.Data.Context;
 using ninx.Domain.Entities;
 using ninx.Domain.Interfaces.Repositories;
-using ninx.Infra.Repository.Base;
 
 namespace ninx.Infra.Repository
 {
     public class UsuarioComercioRepository : RepositoryBase<UsuarioComercio>, IUsuarioComercioRepository
     {
-        private readonly AppDbContext _context;
+        private readonly NinxDB _context;
 
-        public UsuarioComercioRepository(AppDbContext context) : base(context)
+        public UsuarioComercioRepository(NinxDB context) : base(context)
         {
             _context = context;
         }

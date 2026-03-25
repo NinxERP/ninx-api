@@ -1,10 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using ninx.Domain.Interfaces.Repositories;
-using ninx.Domain.Interfaces.Repositories.Comercio;
-using ninx.Domain.Interfaces.Repositories.Usuario;
 using ninx.Infra.Repository;
-using ninx.Infra.Repository.Comercio;
-using ninx.Infra.Repository.Usuario;
 
 namespace ninx.Ioc.Extensions
 {

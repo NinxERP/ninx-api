@@ -1,17 +1,15 @@
-﻿using ninx.Domain.Interfaces.Repositories.Base;
+﻿using Microsoft.EntityFrameworkCore;
 using ninx.Data.Context;
-using Microsoft.EntityFrameworkCore;
-using ninx.Domain.Entities;
-using System.Threading.Tasks;
+using ninx.Domain.Interfaces.Repositories;
 
-namespace ninx.Infra.Repository.Base
+namespace ninx.Infra.Repository
 {
     public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : class
     {
-        private readonly AppDbContext _context;
+        private readonly NinxDB _context;
         private readonly DbSet<TEntity> _dbSet;
 
-        public RepositoryBase(AppDbContext context)
+        public RepositoryBase(NinxDB context)
         {
             _context = context;
             _dbSet = _context.Set<TEntity>();

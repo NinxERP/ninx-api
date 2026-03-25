@@ -1,4 +1,4 @@
-﻿namespace ninx.Communication.Response.Login
+﻿namespace ninx.Communication.Response
 {
     public class LoginResponse
     {

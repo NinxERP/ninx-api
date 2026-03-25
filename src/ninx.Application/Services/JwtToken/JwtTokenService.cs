@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using ninx.Domain.Entities;
-using ninx.Domain.Interfaces.Services.JwtToken;
+using ninx.Domain.Interfaces.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace ninx.Application.Services.JwtToken
+namespace ninx.Application.Services
 {
     public class JwtTokenService : IJwtTokenService
     {

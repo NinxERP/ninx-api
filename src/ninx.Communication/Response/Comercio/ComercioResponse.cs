@@ -1,4 +1,4 @@
-﻿namespace ninx.Communication.Response.Comercio
+﻿namespace ninx.Communication.Response
 {
     public class ComercioResponse
     {

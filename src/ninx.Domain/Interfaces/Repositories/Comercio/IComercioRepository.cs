@@ -1,9 +1,9 @@
-﻿using ninx.Domain.Interfaces.Repositories.Base;
+﻿using ninx.Domain.Entities;
 
-namespace ninx.Domain.Interfaces.Repositories.Comercio
+namespace ninx.Domain.Interfaces.Repositories
 {
-    public interface IComercioRepository : IRepositoryBase<Entities.Comercio>
+    public interface IComercioRepository : IRepositoryBase<Comercio>
     {
-        public Task<IEnumerable<Domain.Entities.Comercio>> GetByUsuarioId(int usuarioId);
+        public Task<IEnumerable<Comercio>> GetByUsuarioId(int usuarioId);
     }
 }

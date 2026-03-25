@@ -1,10 +1,10 @@
-﻿using ninx.Domain.Interfaces.Repositories.Base;
+﻿using ninx.Domain.Entities;
 
-namespace ninx.Domain.Interfaces.Repositories.Usuario
+namespace ninx.Domain.Interfaces.Repositories
 {
-    public interface IUsuarioRepository : IRepositoryBase<Entities.Usuario>
+    public interface IUsuarioRepository : IRepositoryBase<Usuario>
     {
-        public Task<Domain.Entities.Usuario?> GetUsuarioAndUsuarioComercioByEmail(string email);
-        public Task<Domain.Entities.Usuario?> GetUsuarioAndUsuarioComercioById(int id);
+        public Task<Usuario?> GetUsuarioAndUsuarioComercioByEmail(string email);
+        public Task<Usuario?> GetUsuarioAndUsuarioComercioById(int id);
     }
 }

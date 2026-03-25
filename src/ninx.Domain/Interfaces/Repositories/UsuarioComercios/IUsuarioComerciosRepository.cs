@@ -1,5 +1,4 @@
 ﻿using ninx.Domain.Entities;
-using ninx.Domain.Interfaces.Repositories.Base;
 
 namespace ninx.Domain.Interfaces.Repositories
 {

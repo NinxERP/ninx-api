@@ -1,7 +1,7 @@
-﻿using ninx.Communication.Request.Login;
-using ninx.Communication.Response.Login;
+﻿using ninx.Communication.Request;
+using ninx.Communication.Response;
 
-namespace ninx.Application.Interfaces.Services.Login
+namespace ninx.Application.Interfaces.Services
 {
     public interface ILoginService
     {

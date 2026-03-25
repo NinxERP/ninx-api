@@ -1,4 +1,4 @@
-﻿namespace ninx.Communication.Request.Login
+﻿namespace ninx.Communication.Request
 {
     public class LoginRequest
     {

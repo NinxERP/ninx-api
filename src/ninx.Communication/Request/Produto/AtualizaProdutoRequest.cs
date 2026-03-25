@@ -1,4 +1,4 @@
-﻿namespace ninx.Communication.Request.Produto
+﻿namespace ninx.Communication.Request
 {
     public class AtualizarProdutoRequest
     {

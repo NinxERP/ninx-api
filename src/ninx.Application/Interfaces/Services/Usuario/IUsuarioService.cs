@@ -1,5 +1,5 @@
-﻿using ninx.Communication.Request.Usuario;
-using ninx.Communication.Response.Usuario;
+﻿using ninx.Communication.Request;
+using ninx.Communication.Response;
 
 namespace ninx.Domain.Interfaces.Services
 {

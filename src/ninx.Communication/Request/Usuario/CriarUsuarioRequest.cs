@@ -1,5 +1,4 @@
-﻿// ninx.Communication/Request/Usuario/CriarUsuarioRequest.cs
-namespace ninx.Communication.Request.Usuario
+﻿namespace ninx.Communication.Request
 {
     public class CriarUsuarioRequest
     {

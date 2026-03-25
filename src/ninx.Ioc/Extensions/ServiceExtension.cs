@@ -1,11 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using ninx.Application.Interfaces.Services.Comercio;
-using ninx.Application.Interfaces.Services.Login;
+using ninx.Application.Interfaces.Services;
 using ninx.Application.Services;
-using ninx.Application.Services.JwtToken;
-using ninx.Application.Services.Login;
 using ninx.Domain.Interfaces.Services;
-using ninx.Domain.Interfaces.Services.JwtToken;
 
 namespace ninx.Ioc.Extensions
 {

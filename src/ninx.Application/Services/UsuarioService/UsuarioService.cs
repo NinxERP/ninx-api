@@ -1,9 +1,9 @@
 ﻿using Mapster;
-using ninx.Communication.Request.Usuario;
-using ninx.Communication.Response.Usuario;
+using ninx.Communication.Request;
+using ninx.Communication.Response;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
-using ninx.Domain.Interfaces.Repositories.Usuario;
+using ninx.Domain.Interfaces.Repositories;
 using ninx.Domain.Interfaces.Services;
 
 namespace ninx.Application.Services

@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ninx.Communication.Request.Produto;
-using ninx.Communication.Response.Produto;
-using ninx.Domain.Entities;
+using ninx.Communication.Request;
+using ninx.Communication.Response;
 using ninx.Domain.Interfaces.Services;
 
 namespace ninx.Api.Controllers

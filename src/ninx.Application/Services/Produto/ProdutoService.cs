@@ -1,8 +1,7 @@
 ﻿using Mapster;
-using ninx.Communication.Request.Produto;
-using ninx.Communication.Response.Produto;
+using ninx.Communication.Request;
+using ninx.Communication.Response;
 using ninx.Domain.Entities;
-using ninx.Domain.Enums;
 using ninx.Domain.Interfaces.Repositories;
 using ninx.Domain.Interfaces.Services;
 

@@ -1,4 +1,4 @@
-﻿namespace ninx.Domain.Interfaces.Repositories.Base
+﻿namespace ninx.Domain.Interfaces.Repositories
 {
         public interface IRepositoryBase<TEntity> where TEntity : class
         {

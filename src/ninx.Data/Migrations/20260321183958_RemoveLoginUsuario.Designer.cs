@@ -11,7 +11,7 @@ using ninx.Data.Context;
 
 namespace ninx.Data.Migrations
 {
-    [DbContext(typeof(AppDbContext))]
+    [DbContext(typeof(NinxDB))]
     [Migration("20260321183958_RemoveLoginUsuario")]
     partial class RemoveLoginUsuario
     {

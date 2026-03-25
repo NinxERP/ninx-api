@@ -1,24 +1,25 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ninx.Data.Context;
-using ninx.Infra.Repository.Base;
+using ninx.Domain.Entities;
+using ninx.Domain.Interfaces.Repositories;
 
-namespace ninx.Infra.Repository.Usuario
+namespace ninx.Infra.Repository
 {
-    public class UsuarioRepository : RepositoryBase<Domain.Entities.Usuario>, Domain.Interfaces.Repositories.Usuario.IUsuarioRepository
+    public class UsuarioRepository : RepositoryBase<Usuario>, IUsuarioRepository
     {
-        private readonly AppDbContext _context;
-        public UsuarioRepository(AppDbContext context) : base(context)
+        private readonly NinxDB _context;
+        public UsuarioRepository(NinxDB context) : base(context)
         { 
             _context = context;
         }
 
-        public async Task<Domain.Entities.Usuario?> GetUsuarioAndUsuarioComercioByEmail(string email)
+        public async Task<Usuario?> GetUsuarioAndUsuarioComercioByEmail(string email)
         {
             return await _context.Usuarios.Include(u => u.UsuarioComercios)
                                           .FirstOrDefaultAsync(u => u.Email == email);
         }
 
-        public async Task<Domain.Entities.Usuario?> GetUsuarioAndUsuarioComercioById(int id)
+        public async Task<Usuario?> GetUsuarioAndUsuarioComercioById(int id)
         {
             return await _context.Usuarios.Include(u => u.UsuarioComercios)
                                           .FirstOrDefaultAsync(u => u.UsuarioID == id);

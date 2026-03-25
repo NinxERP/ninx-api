@@ -1,12 +1,10 @@
 ﻿using Mapster;
-using ninx.Communication.Request.UsuarioComercios;
-using ninx.Communication.Response.UsuarioComercio;
+using ninx.Application.Interfaces.Services;
+using ninx.Communication.Request;
+using ninx.Communication.Response;
 using ninx.Domain.Entities;
-using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
-using ninx.Domain.Interfaces.Repositories.Usuario;
-using ninx.Domain.Interfaces.Services;
 
 namespace ninx.Application.Services
 {
