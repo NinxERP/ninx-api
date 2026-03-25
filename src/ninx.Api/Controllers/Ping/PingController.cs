@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ninx.Api.Controllers.Ping
+namespace ninx.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

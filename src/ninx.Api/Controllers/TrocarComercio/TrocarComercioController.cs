@@ -2,10 +2,10 @@
 using ninx.Application.Interfaces.Services.Login;
 using ninx.Communication.Request.Login;
 
-namespace ninx.Api.Controllers.AuthControllers
+namespace ninx.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/TrocarComercio/[controller]")]
     public class TrocarComercioController : ControllerBase
     {   
         private readonly ITrocarComercioService _trocarComercioService;
@@ -14,8 +14,8 @@ namespace ninx.Api.Controllers.AuthControllers
             _trocarComercioService = trocarComercioService;
         }
 
-        [HttpPost("Switch")]
-        public async Task<IActionResult> SwitchComercio([FromBody] SwitchComercioRequest request)
+        [HttpPost]
+        public async Task<IActionResult> TrocarComercio([FromBody] TrocarComercioRequest request)
         {
             var token = await _trocarComercioService.TrocarAsync(request);
             if (token == null)

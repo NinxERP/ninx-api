@@ -30,7 +30,7 @@ namespace ninx.Application.Services.Login
                 var temAcesso = usuario.UsuarioComercios.Any(x => x.ComercioID == request.ComercioID);
                 if (!temAcesso)
                 {
-                    throw new UnauthorizedException("Usuário não tem comercios vinculados");
+                    throw new BadRequestException("Usuário não tem comercios vinculados");
                 }
                 return new LoginResponse
                 {
