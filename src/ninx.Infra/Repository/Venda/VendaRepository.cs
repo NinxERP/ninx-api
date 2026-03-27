@@ -45,6 +45,14 @@ namespace ninx.Infra.Repository
                 .OrderByDescending(v => v.CriadoEm)
                 .ToListAsync();
         }
+        public async Task<Venda?> GetByIdAsync(int id)
+        {
+            return await _context.Vendas
+                .Include(v => v.ItensVenda)        
+                .Include(v => v.PagamentosVenda)    
+                .Include(v => v.VendaFiado)         
+                .FirstOrDefaultAsync(v => v.VendaID == id);
+        }
 
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Mapster;
 using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
+using ninx.Communication.Request.Alt;
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
@@ -40,18 +41,14 @@ namespace ninx.Application.Services
         }
 
 
-        public async Task<IEnumerable<VendaResponse>> GetVendasFiltroAsync(
-                DateTime? inicio = null,
-                DateTime? fim = null,
-                int? comercioID = null,
-                int? usuarioID = null)
+        public async Task<IEnumerable<VendaResponse>> GetVendasFiltroAsync(FiltroRequest request)
         {
-            if (inicio is null && fim is null && comercioID is null && usuarioID is null)
+            if (request is null)
             {
                 throw new BadRequestException("Pelo menos um filtro deve ser fornecido.");
             }
 
-            var vendas = await _vendaRepository.GetVendasFiltroAsync(inicio, fim, comercioID, usuarioID);
+            var vendas = await _vendaRepository.GetVendasFiltroAsync(request.inicio, request.fim, request.comercioID, request.usuarioID);
 
             if (vendas is null || !vendas.Any())
             {
@@ -215,6 +212,61 @@ namespace ninx.Application.Services
                 }
             }
             throw new BadRequestException("Não foi possível processar a venda devido a múltiplas tentativas de estoque.");
+        }
+
+        public async Task EstornarAsync(int vendaId, int usuarioId)
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                var venda = await _vendaRepository.GetByIdAsync(vendaId);
+                if (venda == null) throw new NotFoundException("Venda não encontrada.");
+
+                if (venda.Status == StatusVenda.Cancelada)
+                    throw new BadRequestException("Esta venda já foi estornada.");
+
+                foreach (var item in venda.ItensVenda)
+                {
+                    var estoque = await _estoqueRepository.GetByProdutoIdAsync(item.ProdutoID, venda.ComercioID);
+
+                    if (estoque != null)
+                    {
+                        estoque.Quantidade += item.Quantidade;
+                        estoque.AtualizadoEm = DateTime.UtcNow;
+                        await _estoqueRepository.UpdateAsync(estoque);
+
+                        await _movimentacaoEstoqueRepository.AddAsync(new MovimentacaoEstoque
+                        {
+                            ComercioID = venda.ComercioID,
+                            ProdutoID = item.ProdutoID,
+                            UsuarioID = usuarioId, 
+                            VendaID = venda.VendaID,
+                            Tipo = "ENTRADA_ESTORNO",
+                            Quantidade = item.Quantidade,
+                            DataHora = DateTime.UtcNow,
+                            Observacao = $"Estorno da Venda #{venda.VendaID}"
+                        });
+                    }
+                }
+
+                if (venda.TipoVenda == TipoVenda.Fiado && venda.VendaFiado != null)
+                {
+                    venda.VendaFiado.Status = StatusFiado.Cancelado;
+                }
+
+                venda.Status = StatusVenda.Cancelada;
+                venda.AtualizadoEm = DateTime.UtcNow;
+
+                await _vendaRepository.UpdateAsync(venda);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await _unitOfWork.RollbackAsync();
+                throw;
+            }
         }
         private void ValidarVenda(Produto? produto, Estoque? estoque, ItemVendaRequest item)
         {

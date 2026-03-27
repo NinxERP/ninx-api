@@ -3,6 +3,7 @@
     public enum StatusFiado
     {
         Pendente,
-        Pago
+        Pago,
+        Cancelado
     }
 }
