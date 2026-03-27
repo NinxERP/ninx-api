@@ -18,10 +18,10 @@ namespace ninx.Infra.Repository
             return await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
         }
 
-        public async Task<Usuario?> GetUsuarioAndUsuarioComercioById(int id)
+        public async Task<Usuario?> GetUsuarioById(int usuarioID)
         {
-            return await _context.Usuarios.Include(u => u.UsuarioComercios)
-                                          .FirstOrDefaultAsync(u => u.UsuarioID == id);
+            return await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.UsuarioID == usuarioID);
         }
     }
 }

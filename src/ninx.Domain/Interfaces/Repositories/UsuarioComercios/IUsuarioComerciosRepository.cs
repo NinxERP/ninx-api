@@ -6,6 +6,5 @@ namespace ninx.Domain.Interfaces.Repositories
     {
         Task<IEnumerable<UsuarioComercio>> GetByUsuarioIdAsync(int usuarioId);
         Task<IEnumerable<UsuarioComercio>> GetByComercioIdAsync(int comercioId);
-        Task<UsuarioComercio?> GetByUsuarioIdAndComercioIdAsync(int usuarioId, int comercioId);
     }
 }

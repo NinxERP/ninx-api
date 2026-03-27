@@ -226,6 +226,10 @@ namespace ninx.Application.Services
                 if (venda.Status == StatusVenda.Cancelada)
                     throw new BadRequestException("Esta venda já foi estornada.");
 
+                var usuarioC = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
+                if (!usuarioC.Any(x => x.ComercioID == venda.ComercioID))
+                    throw new BadRequestException("O usuário não possui permissão nesse comercio.");
+
                 foreach (var item in venda.ItensVenda)
                 {
                     var estoque = await _estoqueRepository.GetByProdutoIdAsync(item.ProdutoID, venda.ComercioID);

@@ -24,4 +24,5 @@ namespace ninx.Infra.Repository
                 .Where(e => produtoIds.Contains(e.ProdutoID) && e.ComercioID == comercioId)
                 .ToListAsync();
         }
+    }
 }

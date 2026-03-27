@@ -14,7 +14,11 @@ namespace ninx.Infra.Repository
         }
             public async Task<IEnumerable<Comercio>> GetByUsuarioId(int usuarioId)
         {
-            return await _context.Comercio.Include(c => c.UsuarioComercios).Where(c => c.UsuarioComercios.Any(uc => uc.UsuarioID == usuarioId)).ToListAsync();
+            return await _context.Comercio
+                .Include(c => c.UsuarioComercios)
+                .Where(c => c.UsuarioComercios
+                .Any(uc => uc.UsuarioID == usuarioId))
+                .ToListAsync();
         }
     }
 }

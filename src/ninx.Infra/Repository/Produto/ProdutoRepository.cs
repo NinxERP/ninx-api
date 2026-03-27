@@ -18,16 +18,13 @@ namespace ninx.Infra.Repository
         {
             return await _context.Produtos
                 .AsNoTracking()
-                .Include(x => x.Categoria)
                 .Where(x => x.ComercioID == comercioId)
                 .ToListAsync();
         }
-        public async Task<Produto?> GetProdutoEstoqueByIdAsync(int produtoId)
+        public async Task<Produto?> GetProdutoByIdAsync(int produtoId)
         {
             return await _context.Produtos
                 .AsNoTracking()
-                .Include(x => x.Estoque)
-                .Include(x => x.Categoria)
                 .Where(x => x.ProdutoID == produtoId)
                 .FirstOrDefaultAsync();
 
@@ -36,7 +33,6 @@ namespace ninx.Infra.Repository
         {
             return await _context.Produtos
                 .AsNoTracking()
-                .Include(x => x.Categoria)
                 .FirstOrDefaultAsync(x => x.ComercioID == comercioId && x.CodigoBarras == codigoBarras);
         }
 
@@ -44,7 +40,6 @@ namespace ninx.Infra.Repository
         {
             return await _context.Produtos
                 .AsNoTracking()
-                .Include(x => x.Categoria)
                 .Where(x => x.ComercioID == comercioId && x.Nome.Contains(nome))
                 .ToListAsync();
         }
@@ -56,7 +51,6 @@ namespace ninx.Infra.Repository
         public async Task<IEnumerable<Produto>> GetProdutosById(IEnumerable<int> produtoIds)
         {
             return await _context.Produtos
-                .Include(x => x.Categoria)
                 .Include(x => x.Estoque)
                 .Where(x => produtoIds.Contains(x.ProdutoID))
                 .ToListAsync();
