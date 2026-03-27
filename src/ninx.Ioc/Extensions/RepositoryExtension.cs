@@ -13,6 +13,7 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IComercioRepository, ComercioRepository>();
             services.AddScoped<IUsuarioRepository, UsuarioRepository>();
             services.AddScoped<IUsuarioComercioRepository, UsuarioComercioRepository>();
+            services.AddScoped<IEstoqueRepository, EstoqueRepository>();
 
             return services;
         }

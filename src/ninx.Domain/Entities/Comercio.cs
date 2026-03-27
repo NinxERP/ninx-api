@@ -3,11 +3,11 @@
     public class Comercio
     {
         public int ComercioID { get; set; }
-        public string Nome { get; set; } = null!;
+        public string NomeComercio { get; set; } = null!;
         public string? Endereco { get; set; }
         public string? CNPJ { get; set; }
         public bool Ativo { get; set; } = true;
-        public DateTime CriadoEm { get; set; } = DateTime.Now;
+        public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
 
         public ICollection<UsuarioComercio> UsuarioComercios { get; set; } = [];

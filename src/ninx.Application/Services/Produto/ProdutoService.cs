@@ -2,72 +2,69 @@
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
+using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
 using ninx.Domain.Interfaces.Services;
 
-namespace ninx.Application.Services
+public class ProdutoService : IProdutoService
 {
-    public class ProdutoService : IProdutoService
+    private readonly IProdutoRepository _produtoRepository;
+    private readonly IEstoqueRepository _estoqueRepository; 
+    private readonly IUnitOfWork _unitOfWork; 
+
+    public ProdutoService(IProdutoRepository produtoRepository, IEstoqueRepository estoqueRepository, IUnitOfWork unitOfWork)
     {
-        private readonly IProdutoRepository _produtoRepository;
+        _produtoRepository = produtoRepository;
+        _estoqueRepository = estoqueRepository;
+        _unitOfWork = unitOfWork;
+    }
 
-        public ProdutoService(IProdutoRepository produtoRepository)
+    public async Task<ProdutoResponse> CriarAsync(CriarProdutoRequest request, int comercioId)
+    {
+        var produto = request.Adapt<Produto>();
+        produto.ComercioID = comercioId; 
+        produto.CriadoEm = DateTime.UtcNow;
+
+        await _produtoRepository.AddAsync(produto);
+
+        if (request.EstoqueInicial > 0)
         {
-            _produtoRepository = produtoRepository;
+            var estoque = new Estoque
+            {
+                Produto = produto,
+                Quantidade = request.EstoqueInicial,
+                ComercioID = comercioId
+            };
+            await _estoqueRepository.AddAsync(estoque);
         }
 
-        public async Task<IEnumerable<ProdutoResponse>> GetByComercioIdAsync(int comercioId)
-        {
-            var produtos = await _produtoRepository.GetByComercioIdAsync(comercioId);
-            return produtos.Adapt<IEnumerable<ProdutoResponse>>();
-        }
+        await _unitOfWork.SaveChangesAsync();
+        return produto.Adapt<ProdutoResponse>();
+    }
 
-        public async Task<ProdutoResponse?> GetByCodigoBarrasAsync(int comercioId, string codigoBarras)
-        {
-            var produto = await _produtoRepository.GetByCodigoBarrasAsync(comercioId, codigoBarras);
-            return produto.Adapt<ProdutoResponse>();
-        }
+    public async Task<ProdutoResponse> AtualizarAsync(int id, int comercioId, AtualizarProdutoRequest request)
+    {
+        var produto = await _produtoRepository.GetByIdAndComercioAsync(id, comercioId)
+            ?? throw new NotFoundException("Produto não encontrado ou acesso negado.");
 
-        public async Task<IEnumerable<ProdutoResponse>> GetByNomeAsync(int comercioId, string nome)
-        {
-            var produtos = await _produtoRepository.GetByNomeAsync(comercioId, nome);
-            return produtos.Adapt<IEnumerable<ProdutoResponse>>();
-        }
-        public async Task<ProdutoResponse?> GetByIdAsync(int id)
-        {
-            var produto = await _produtoRepository.GetByIdAsync(id);
-            if (produto is null) return null;
-            return produto.Adapt<ProdutoResponse>();
-        }
+        request.Adapt(produto);
+        produto.AtualizadoEm = DateTime.UtcNow;
 
-        public async Task<ProdutoResponse> CriarAsync(CriarProdutoRequest request)
-        {
-            var produto = request.Adapt<Produto>();
-  
-            await _produtoRepository.AddAsync(produto);
-            return produto.Adapt<ProdutoResponse>();
-        }
+        await _produtoRepository.UpdateAsync(produto);
+        await _unitOfWork.SaveChangesAsync();
 
-        public async Task<ProdutoResponse> AtualizarAsync(int id, AtualizarProdutoRequest request)
-        {
-            var produto = await _produtoRepository.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException("Produto não encontrado.");
+        return produto.Adapt<ProdutoResponse>();
+    }
 
-            request.Adapt(produto);
-            produto.AtualizadoEm = DateTime.Now;
+    public async Task DesativarAsync(int id, int comercioId)
+    {
+        var produto = await _produtoRepository.GetByIdAndComercioAsync(id, comercioId)
+            ?? throw new NotFoundException("Produto não encontrado.");
 
-            await _produtoRepository.UpdateAsync(produto);
-            return produto.Adapt<ProdutoResponse>();
-        }
+        produto.Ativo = false;
+        produto.AtualizadoEm = DateTime.UtcNow;
 
-        public async Task DesativarAsync(int id)
-        {
-            var produto = await _produtoRepository.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException("Produto não encontrado.");
-
-            produto.Ativo = false;
-            produto.AtualizadoEm = DateTime.Now;
-            await _produtoRepository.UpdateAsync(produto);
-        }
+        await _produtoRepository.UpdateAsync(produto);
+        await _unitOfWork.SaveChangesAsync();
     }
 }

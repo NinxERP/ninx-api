@@ -2,9 +2,9 @@
 {
     public enum StatusVenda
     {
-        Aberta,
-        Finalizada,
-        Cancelada,
-        Estornada
+        Aberta = 1,
+        Finalizada = 2,
+        Cancelada = 3,
+        Estornada = 4
     }
 }

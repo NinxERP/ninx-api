@@ -24,14 +24,17 @@ namespace ninx.Api.Middlewares
             {
                 var exception = ex.InnerException ?? ex;
 
-                if (exception is BadRequestException)
-                    await HandleExceptionAsync(context, HttpStatusCode.BadRequest, exception.Message);
-                else if (exception is NotFoundException)
-                    await HandleExceptionAsync(context, HttpStatusCode.NotFound, exception.Message);
-                else if (exception is UnauthorizedException)
-                    await HandleExceptionAsync(context, HttpStatusCode.Unauthorized, exception.Message);
-                else
-                    await HandleExceptionAsync(context, HttpStatusCode.InternalServerError, "Erro interno do servidor.");
+                var (statusCode, message) = exception switch
+                {
+                    BadRequestException => (HttpStatusCode.BadRequest, exception.Message),
+                    NotFoundException => (HttpStatusCode.NotFound, exception.Message),
+                    UnauthorizedException => (HttpStatusCode.Unauthorized, exception.Message),
+                    ConcurrencyException => (HttpStatusCode.Conflict, exception.Message),
+                    ForbiddenException => (HttpStatusCode.Forbidden, exception.Message),
+                    _ => (HttpStatusCode.InternalServerError, "Erro interno do servidor.")
+                };
+
+                await HandleExceptionAsync(context, statusCode, message);
             }
         }
 

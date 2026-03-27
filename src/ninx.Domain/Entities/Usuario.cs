@@ -10,7 +10,7 @@ namespace ninx.Domain.Entities
         public string Email { get; set; } = null!;
         public Permissao Permissao { get; set; }
         public bool Ativo { get; set; } = true;
-        public DateTime CriadoEm { get; set; } = DateTime.Now;
+        public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
 
         public ICollection<UsuarioComercio> UsuarioComercios { get; set; } = [];

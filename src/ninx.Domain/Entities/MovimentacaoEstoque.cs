@@ -1,6 +1,4 @@
-﻿using ninx.Domain.Enums;
-
-namespace ninx.Domain.Entities
+﻿namespace ninx.Domain.Entities
 {
     public class MovimentacaoEstoque
     {
@@ -8,14 +6,12 @@ namespace ninx.Domain.Entities
         public int ComercioID { get; set; }
         public int ProdutoID { get; set; }
         public int UsuarioID { get; set; }
-        public TipoMovimentacao Tipo { get; set; }
+        public string Tipo { get; set; } = null!;
         public decimal Quantidade { get; set; }
-        public int? ReferenciaID { get; set; }
+        public int? VendaID { get; set; } 
         public string? Observacao { get; set; }
-        public DateTime DataHora { get; set; } = DateTime.Now;
+        public DateTime DataHora { get; set; } = DateTime.UtcNow;
 
-        public Comercio Comercio { get; set; } = null!;
         public Produto Produto { get; set; } = null!;
-        public Usuario Usuario { get; set; } = null!;
     }
 }

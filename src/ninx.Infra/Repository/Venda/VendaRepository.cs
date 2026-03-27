@@ -16,7 +16,10 @@ namespace ninx.Infra.Repository
 
         public async Task<IEnumerable<Venda>> GetVendasFiltroAsync(DateTime? inicio, DateTime? fim, int? comercioID, int? usuarioID)
         {
-            var query = _context.Vendas.AsQueryable();
+            var query = _context.Vendas
+                .AsNoTracking()
+                .Include(v => v.ItensVenda) 
+                .AsQueryable();
 
             if (inicio.HasValue)
                 query = query.Where(v => v.CriadoEm >= inicio.Value);
@@ -30,14 +33,16 @@ namespace ninx.Infra.Repository
             if (comercioID.HasValue)
                 query = query.Where(v => v.ComercioID == comercioID.Value);
 
-            return await query.ToListAsync();
+            return await query.OrderByDescending(v => v.CriadoEm).ToListAsync();
         }
 
         public async Task<IEnumerable<Venda>> GetVendasByUsuarioIdAsync(int usuarioId)
         {
             return await _context.Vendas
                 .AsNoTracking()
+                .Include(v => v.ItensVenda) 
                 .Where(v => v.UsuarioID == usuarioId)
+                .OrderByDescending(v => v.CriadoEm)
                 .ToListAsync();
         }
 

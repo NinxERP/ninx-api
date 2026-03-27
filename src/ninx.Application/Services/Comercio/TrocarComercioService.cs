@@ -1,5 +1,6 @@
 ﻿using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
+using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
 using ninx.Domain.Interfaces.Services;
 
@@ -9,31 +10,36 @@ namespace ninx.Application.Services
     {
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IJwtTokenService _jwtTokenService;
-        public TrocarComercioService
-        (
-        IUsuarioRepository usuarioRepository,
-        IJwtTokenService jwtTokenService
-        )
+        private readonly IUsuarioComercioRepository _usuarioComercioRepository;
+        public TrocarComercioService (IUsuarioRepository usuarioRepository, IJwtTokenService jwtTokenService, IUsuarioComercioRepository usuarioComercioRepository)
         {
             _usuarioRepository = usuarioRepository;
             _jwtTokenService = jwtTokenService;
+            _usuarioComercioRepository = usuarioComercioRepository;
         }
 
-        public async Task<string?> TrocarAsync (TrocarComercioRequest request)
+        public async Task<string> TrocarAsync(TrocarComercioRequest request, int usuarioLogadoId)
         {
-            var usuario = await _usuarioRepository.GetUsuarioAndUsuarioComercioById(request.UsuarioId);
+            if (request.UsuarioId != usuarioLogadoId)
+            {
+                throw new UnauthorizedException("Você não pode trocar o contexto de outro usuário.");
+            }
+
+            var usuario = await _usuarioRepository.GetByIdAsync(request.UsuarioId);
             if (usuario == null)
+                throw new NotFoundException("Usuário não encontrado.");
+
+            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuario.UsuarioID);
+
+            var vinculoNoNovoComercio = usuarioComercio
+                .FirstOrDefault(x => x.ComercioID == request.NovoComercioId);
+
+            if (vinculoNoNovoComercio == null)
             {
-                return null;
+                throw new UnauthorizedException("Você não tem acesso a este comércio.");
             }
 
-            var temAcesso = usuario.UsuarioComercios.Any(x => x.ComercioID == request.NovoComercioId);
-            if (!temAcesso)
-            {
-                return null;
-            }
-
-            return _jwtTokenService.GerarToken(usuario, request.NovoComercioId);
+            return _jwtTokenService.GerarToken(usuario, vinculoNoNovoComercio.ComercioID);
         }
     }
 }

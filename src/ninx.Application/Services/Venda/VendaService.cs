@@ -3,6 +3,7 @@ using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
+using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
 
@@ -13,14 +14,29 @@ namespace ninx.Application.Services
         private readonly IVendaRepository _vendaRepository;
         private readonly IProdutoRepository _produtoRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEstoqueRepository _estoqueRepository;
+        private readonly IMovimentacaoEstoqueRepository _movimentacaoEstoqueRepository;
+        private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IComercioRepository _comercioRepository;
+        private readonly IUsuarioComercioRepository _usuarioComercioRepository;
         public VendaService(
             IVendaRepository vendaRepository,
             IProdutoRepository produtoRepository,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            IEstoqueRepository estoqueRepository,
+            IMovimentacaoEstoqueRepository movimentacaoEstoqueRepository,
+            IUsuarioRepository usuarioRepository,
+            IComercioRepository comercioRepository,
+            IUsuarioComercioRepository usuarioComercioRepository)
         {
             _vendaRepository = vendaRepository;
             _produtoRepository = produtoRepository;
             _unitOfWork = unitOfWork;
+            _estoqueRepository = estoqueRepository;
+            _movimentacaoEstoqueRepository = movimentacaoEstoqueRepository;
+            _usuarioRepository = usuarioRepository;
+            _comercioRepository = comercioRepository;
+            _usuarioComercioRepository = usuarioComercioRepository;
         }
 
 
@@ -70,83 +86,159 @@ namespace ninx.Application.Services
 
         public async Task<VendaResponse> CriarAsync(CriarVendaRequest request)
         {
-            if (request.ItensVenda == null || !request.ItensVenda.Any())
+            var usuario = await _usuarioRepository.GetByIdAsync(request.UsuarioID);
+            if (usuario == null || !usuario.Ativo)
+                throw new BadRequestException("Usuário inválido ou inativo.");
+            var comercio = await _comercioRepository.GetByIdAsync(request.ComercioID);
+            if (comercio == null)
+                throw new BadRequestException("Comércio inválido ou não encontrado.");
+            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(request.UsuarioID);
+            if (!usuarioComercio.Any(x => x.ComercioID == request.ComercioID))
+                throw new BadRequestException("Este usuário não tem permissão para vender neste comércio.");
+
+            int tentativas = 0;
+            while (tentativas < 10)
             {
-                throw new BadRequestException("A venda deve conter pelo menos um item.");
-            }
-
-            var itensVendas = new List<ItemVenda>();
-            var produtosAtt = new List<Produto>();
-            decimal total = 0;
-
-            foreach (var item in request.ItensVenda)
-            {
-                Produto? produto = await _produtoRepository.GetProdutoEstoqueByIdAsync(item.ProdutoID);
-                ValidarVenda(produto, item);
-
-                var precoUnitario = item.PrecoUnitario ?? produto.PrecoVenda;
-                var subtotal = item.Quantidade * precoUnitario;
-                total += subtotal;
-
-                itensVendas.Add(new ItemVenda
+                try
                 {
-                    ProdutoID = produto.ProdutoID,
-                    ProdutoNome = produto.Nome,
-                    ProdutoCodigoBarras = produto.CodigoBarras,
-                    UnidadeMedida = produto.UnidadeMedida,
-                    Quantidade = item.Quantidade,
-                    PrecoUnitario = precoUnitario,
-                    Subtotal = subtotal
-                });
+                    await _unitOfWork.BeginTransactionAsync();
 
-                produto.Estoque.Quantidade -= item.Quantidade;
-                produtosAtt.Add(produto);
-            }
+                    var produtoIds = request.ItensVenda.Select(i => i.ProdutoID).ToList();
+                    var produtosDb = await _produtoRepository.GetProdutosById(produtoIds);
+                    var estoquesDb = await _estoqueRepository.GetByProdutosIdsAsync(produtoIds, request.ComercioID);
 
-            var venda = new Venda
-            {
-                ComercioID = request.ComercioID,
-                UsuarioID = request.UsuarioID,
-                Total = total,
-                ItensVenda = itensVendas,
-                CriadoEm = DateTime.UtcNow
-            };
+                    decimal totalVenda = 0;
+                    var itensParaInserir = new List<ItemVenda>();
+                    var movimentacoesEstoque = new List<MovimentacaoEstoque>();
 
-            await _unitOfWork.BeginTransactionAsync();
-            try
-            {
-                foreach (var produto in produtosAtt)
-                {
-                    await _produtoRepository.UpdateAsync(produto);
+                    foreach (var itemReq in request.ItensVenda)
+                    {
+                        var produto = produtosDb.FirstOrDefault(p => p.ProdutoID == itemReq.ProdutoID);
+                        var estoque = estoquesDb.FirstOrDefault(e => e.ProdutoID == itemReq.ProdutoID);
+
+                        ValidarVenda(produto, estoque, itemReq);
+
+                        var subtotal = itemReq.Quantidade * produto!.PrecoVenda;
+                        totalVenda += subtotal;
+
+                        itensParaInserir.Add(new ItemVenda
+                        {
+                            ProdutoID = produto.ProdutoID,
+                            ProdutoNome = produto.Nome,
+                            ProdutoCodigoBarras = produto.CodigoBarras,
+                            UnidadeMedida = produto.UnidadeMedida,
+                            Quantidade = itemReq.Quantidade,
+                            PrecoUnitario = produto.PrecoVenda,
+                            Subtotal = subtotal
+                        });
+
+                        estoque!.Quantidade -= itemReq.Quantidade;
+                        estoque.AtualizadoEm = DateTime.UtcNow;
+                        await _estoqueRepository.UpdateAsync(estoque);
+
+                        movimentacoesEstoque.Add(new MovimentacaoEstoque
+                        {
+                            ComercioID = request.ComercioID,
+                            ProdutoID = produto.ProdutoID,
+                            UsuarioID = request.UsuarioID,
+                            Tipo = "VENDA",
+                            Quantidade = itemReq.Quantidade,
+                            DataHora = DateTime.UtcNow
+                        });
+                    }
+
+                    decimal totalPago = request.Pagamentos?.Sum(p => p.Valor) ?? 0;
+                    bool ehFiado = request.TipoVenda == 2;
+                    if (ehFiado)
+                    {
+                        if (!request.ClienteID.HasValue)
+                            throw new BadRequestException("Para vendas fiado, é obrigatório selecionar um cliente.");
+                        if (totalPago >= totalVenda)
+                            throw new BadRequestException("Uma venda fiado não pode estar totalmente paga no ato da criação.");
+
+                        // preciso adicionar o limite de crédido aq...
+                    }
+
+                    var novaVenda = new Venda
+                    {
+                        ComercioID = request.ComercioID,
+                        UsuarioID = request.UsuarioID,
+                        Total = totalVenda,
+                        TipoVenda = ehFiado ? TipoVenda.Fiado : TipoVenda.Normal,
+                        Status = StatusVenda.Finalizada,
+                        ItensVenda = itensParaInserir, 
+                        CriadoEm = DateTime.UtcNow,
+                        PagamentosVenda = request.Pagamentos?.Select(p => new PagamentoVenda
+                        {
+                            FormaPagamento = (FormaPagamento)p.FormaPagamento,
+                            Valor = p.Valor,
+                            DataHora = DateTime.UtcNow
+                        }).ToList() 
+                        ?? new List<PagamentoVenda>()
+                    };
+
+                    if (ehFiado)
+                    {
+                        novaVenda.VendaFiado = new VendaFiado
+                        {
+                            ClienteID = request.ClienteID!.Value,
+                            Status = StatusFiado.Pendente,
+                            CriadoEm = DateTime.UtcNow
+                        };
+                    }
+
+                    await _vendaRepository.AddAsync(novaVenda);
+                    await _unitOfWork.SaveChangesAsync();
+
+                    foreach (var mov in movimentacoesEstoque)
+                    {
+                        mov.VendaID = novaVenda.VendaID;
+                        await _movimentacaoEstoqueRepository.AddAsync(mov);
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitAsync();
+
+                    return novaVenda.Adapt<VendaResponse>();
                 }
-                await _vendaRepository.AddAsync(venda);
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitAsync();
-
-                return venda.Adapt<VendaResponse>();
+                catch (ConcurrencyException)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    tentativas++;
+                    if (tentativas >= 10) throw;
+                    await Task.Delay(50);
+                }
+                catch (Exception)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    throw;
+                }
             }
-            catch
-            {
-                await _unitOfWork.RollbackAsync();
-                throw new BadRequestException("Erro ao realizar venda.");
-            }
+            throw new BadRequestException("Não foi possível processar a venda devido a múltiplas tentativas de estoque.");
         }
-
-        private void ValidarVenda(Produto? produto, ItemVendaRequest item)
+        private void ValidarVenda(Produto? produto, Estoque? estoque, ItemVendaRequest item)
         {
             if (produto is null)
             {
-                throw new NotFoundException($"Produto {item.ProdutoID} não encontrado.");
-            }
-            if (produto.Estoque == null)
-            {
-                throw new NotFoundException($"Estoque do produto {produto.Nome} não encontrado.");
-            }
-            if (produto.Estoque.Quantidade < item.Quantidade)
-            {
-                throw new BadRequestException($"Produto {produto.Nome} não tem estoque suficiente.");
+                throw new NotFoundException($"Produto ID {item.ProdutoID} não encontrado no catálogo.");
             }
 
+            if (estoque is null)
+            {
+                throw new NotFoundException($"Registro de estoque não encontrado para o produto {produto.Nome}.");
+            }
+
+            if (item.Quantidade <= 0)
+            {
+                throw new BadRequestException($"A quantidade para o produto {produto.Nome} deve ser maior que zero.");
+            }
+
+            if (estoque.Quantidade < item.Quantidade)
+            {
+                throw new BadRequestException(
+                    $"Estoque insuficiente para {produto.Nome}. " +
+                    $"Solicitado: {item.Quantidade:N3}, Disponível: {estoque.Quantidade:N3}.");
+            }
         }
     }
 }

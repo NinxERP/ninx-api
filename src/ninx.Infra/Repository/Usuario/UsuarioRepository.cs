@@ -13,10 +13,9 @@ namespace ninx.Infra.Repository
             _context = context;
         }
 
-        public async Task<Usuario?> GetUsuarioAndUsuarioComercioByEmail(string email)
+        public async Task<Usuario?> GetUsuarioByEmail(string email)
         {
-            return await _context.Usuarios.Include(u => u.UsuarioComercios)
-                                          .FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<Usuario?> GetUsuarioAndUsuarioComercioById(int id)

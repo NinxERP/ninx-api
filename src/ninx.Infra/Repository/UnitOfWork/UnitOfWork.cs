@@ -21,7 +21,17 @@ namespace ninx.Infra.Repository
 
         public async Task CommitAsync()
         {
-            await _transaction!.CommitAsync();
+            try
+            {
+                if (_transaction != null)
+                {
+                    await _transaction.CommitAsync();
+                }
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+            {
+                throw new ninx.Domain.Exceptions.ConcurrencyException("Erro de concorrência ao finalizar a transação.");
+            }
         }
 
         public async Task RollbackAsync()
@@ -32,7 +42,14 @@ namespace ninx.Infra.Repository
 
         public async Task SaveChangesAsync()
         {
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+            {
+                throw new ninx.Domain.Exceptions.ConcurrencyException("O estoque foi alterado por outro usuário. Tente novamente.");
+            }
         }
     }
 }

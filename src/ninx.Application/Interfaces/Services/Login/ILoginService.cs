@@ -5,6 +5,6 @@ namespace ninx.Application.Interfaces.Services
 {
     public interface ILoginService
     {
-        public Task<LoginResponse?> LoginAsync(LoginRequest request);
+        public Task<LoginResponse> LoginAsync(LoginRequest request);
     }
 }

@@ -2,7 +2,7 @@
 {
     public enum TipoVenda
     {
-        Normal,
-        Fiado
+        Normal = 1,
+        Fiado = 2
     }
 }

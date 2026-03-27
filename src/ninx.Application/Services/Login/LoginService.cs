@@ -1,6 +1,7 @@
 ﻿using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
+using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
 using ninx.Domain.Interfaces.Services;
@@ -11,54 +12,53 @@ namespace ninx.Application.Services
     {
         private readonly IJwtTokenService _jwtTokenService;
         private readonly IUsuarioRepository _usuarioRepository;
-        public LoginService(IJwtTokenService jwtTokenService, IUsuarioRepository usuarioRepository)
+        private readonly IUsuarioComercioRepository _usuarioComercioRepository;
+        public LoginService(IJwtTokenService jwtTokenService, IUsuarioRepository usuarioRepository, IUsuarioComercioRepository usuarioComercioRepository)
         {
             _jwtTokenService = jwtTokenService;
             _usuarioRepository = usuarioRepository;
+            _usuarioComercioRepository = usuarioComercioRepository;
         }
 
-        public async Task<LoginResponse?> LoginAsync(LoginRequest request)
+        public async Task<LoginResponse> LoginAsync(LoginRequest request)
         {
-            var usuario = await _usuarioRepository.GetUsuarioAndUsuarioComercioByEmail(request.Email);
+            var usuario = await _usuarioRepository.GetUsuarioByEmail(request.Email);
 
             if (usuario == null || !BCrypt.Net.BCrypt.Verify(request.Senha, usuario.SenhaHash))
             {
                 throw new BadRequestException("E-mail ou senha incorretos");
             }
 
-            if (request.ComercioID != null && request.ComercioID > 0)
+            var usuarioComercios = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuario.UsuarioID);
+
+            if (usuarioComercios == null || !usuarioComercios.Any())
             {
-                var temAcesso = usuario.UsuarioComercios.Any(x => x.ComercioID == request.ComercioID);
-                if (!temAcesso)
-                {
-                    throw new BadRequestException("Usuário não tem comercios vinculados");
-                }
-                return new LoginResponse
-                {
-                    Token = _jwtTokenService.GerarToken(usuario, request.ComercioID)
-                };
+                throw new ForbiddenException("Este usuário não possui nenhum comércio vinculado.");
             }
 
-            if (usuario.UsuarioComercios.Count == 1)
+            if (request.ComercioID.HasValue && request.ComercioID > 0)
             {
-                return new LoginResponse
-                {
-                    Token = _jwtTokenService.GerarToken(usuario, usuario.UsuarioComercios.First().ComercioID)
-                };
+                var usuarioC = usuarioComercios.FirstOrDefault(x => x.ComercioID == request.ComercioID);
+                if (usuarioC == null)
+                    throw new UnauthorizedException("Acesso negado ao comércio selecionado.");
+
+                return new LoginResponse { Token = _jwtTokenService.GerarToken(usuario, usuarioC.ComercioID, usuarioC.Permissao) };
             }
 
-            if (usuario.UsuarioComercios.Count > 1)
+            if (usuarioComercios.Count() == 1)
             {
-                return new LoginResponse
-                {
-                    Comercios = usuario.UsuarioComercios.Select(x => new ComercioSimplificado
-                    {
-                        ComercioID = x.ComercioID,
-                        Nome = x.Comercio.Nome
-                    }).ToList()
-                };
+                var unico = usuarioComercios.First();
+                return new LoginResponse { Token = _jwtTokenService.GerarToken(usuario, unico.ComercioID, unico.Permissao) };
             }
-            return null;
+
+            return new LoginResponse
+            {
+                Comercios = usuarioComercios.Select(x => new ComercioSimplificado
+                {
+                    ComercioID = x.ComercioID,
+                    Nome = x.
+                }).ToList()
+            };
         }
     }
 }

@@ -10,5 +10,6 @@
         public decimal? PrecoCusto { get; set; }
         public string UnidadeMedida { get; set; } = "UN";
         public DateTime? Validade { get; set; }
+        public int EstoqueInicial { get; set; } = 0;
     }
 }

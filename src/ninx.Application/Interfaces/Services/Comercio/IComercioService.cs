@@ -9,7 +9,7 @@ namespace ninx.Application.Interfaces.Services
         public Task<IEnumerable<ComercioResponse>> GetByUsuarioId(int usuarioId);
         public Task<ComercioResponse> GetByIdAsync(int id);
         public Task<ComercioResponse> CriarAsync(ComercioRequest request);
-        public Task<ComercioResponse> AtualizarAsync(int id, ComercioRequest request);
+        public Task<ComercioResponse> AtualizarAsync(int id, int usuarioLogadoId, ComercioRequest request);
         public Task DesativarAsync(int id);
     }
 }

@@ -9,7 +9,7 @@ namespace ninx.Domain.Entities
         public int ComercioID { get; set; }
         public Permissao Permissao { get; set; }
         public bool Ativo { get; set; } = true;
-
+        public string NomeComercio { get; set; } = null!;
         public Usuario Usuario { get; set; } = null!;
         public Comercio Comercio { get; set; } = null!;
     }
