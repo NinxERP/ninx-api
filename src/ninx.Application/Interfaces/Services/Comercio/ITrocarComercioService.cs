@@ -4,6 +4,6 @@ namespace ninx.Application.Interfaces.Services
 {
     public interface ITrocarComercioService
     {
-        Task<string?> TrocarAsync (TrocarComercioRequest request);
+        Task<string> TrocarAsync(int comercioID, int usuarioLogadoId);
     }
 }

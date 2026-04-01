@@ -10,7 +10,7 @@ namespace ninx.Domain.Entities
         public DateTime DataInicio { get; set; }
         public DateTime DataFim { get; set; }
         public StatusAssinatura Status { get; set; } = StatusAssinatura.Ativa;
-        public DateTime CriadoEm { get; set; } = DateTime.Now;
+        public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
         public Comercio Comercio { get; set; } = null!;
     }

@@ -25,25 +25,18 @@ namespace ninx.Infra.Repository
         public async Task<TEntity> AddAsync(TEntity entity)
         {
             await _dbSet.AddAsync(entity);
-            await _context.SaveChangesAsync();
             return entity;
         }
 
         public async Task<TEntity> UpdateAsync(TEntity entity)
         {
             _dbSet.Update(entity);
-            await _context.SaveChangesAsync();
             return entity;
         }
         public void Delete(TEntity entity)
         {
             _dbSet.Remove(entity);
             _context.SaveChanges();
-        }
-
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
         }
 
     }

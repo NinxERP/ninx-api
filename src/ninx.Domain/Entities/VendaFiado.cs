@@ -10,7 +10,7 @@ namespace ninx.Domain.Entities
         public StatusFiado Status { get; set; } = StatusFiado.Pendente;
         public byte[]? Assinatura { get; set; }
         public byte[]? DocumentoPDF { get; set; }
-        public DateTime CriadoEm { get; set; } = DateTime.Now;
+        public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
         public Venda Venda { get; set; } = null!;
         public Cliente Cliente { get; set; } = null!;

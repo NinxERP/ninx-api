@@ -9,7 +9,7 @@ namespace ninx.Domain.Entities
         public string NumeroCelular { get; set; } = null!;
         public EtapaWhatsapp Etapa { get; set; } = EtapaWhatsapp.Menu;
         public string? DadosTemporarios { get; set; }
-        public DateTime UltimaInteracao { get; set; } = DateTime.Now;
+        public DateTime UltimaInteracao { get; set; } = DateTime.UtcNow;
 
         public Comercio Comercio { get; set; } = null!;
     }

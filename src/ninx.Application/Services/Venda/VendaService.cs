@@ -1,7 +1,6 @@
 ﻿using Mapster;
 using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
-using ninx.Communication.Request.Alt;
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
@@ -138,7 +137,7 @@ namespace ninx.Application.Services
                             ComercioID = request.ComercioID,
                             ProdutoID = produto.ProdutoID,
                             UsuarioID = request.UsuarioID,
-                            Tipo = "VENDA",
+                            Tipo = TipoMovimentacao.Venda,
                             Quantidade = itemReq.Quantidade,
                             DataHora = DateTime.UtcNow
                         });
@@ -246,7 +245,7 @@ namespace ninx.Application.Services
                             ProdutoID = item.ProdutoID,
                             UsuarioID = usuarioId, 
                             VendaID = venda.VendaID,
-                            Tipo = "ENTRADA_ESTORNO",
+                            Tipo = TipoMovimentacao.Estorno,
                             Quantidade = item.Quantidade,
                             DataHora = DateTime.UtcNow,
                             Observacao = $"Estorno da Venda #{venda.VendaID}"

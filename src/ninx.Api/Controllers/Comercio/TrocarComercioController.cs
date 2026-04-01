@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
+using System.Security.Claims;
 
 namespace ninx.Api.Controllers
 {
     [ApiController]
-    [Route("api/TrocarComercio/[controller]")]
-    public class TrocarComercioController : ControllerBase
+    [Route("api/[controller]")]
+    public class TrocarComercioController : NinxControllerBase
     {   
         private readonly ITrocarComercioService _trocarComercioService;
         public TrocarComercioController(ITrocarComercioService trocarComercioService)
@@ -15,13 +16,10 @@ namespace ninx.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> TrocarComercio([FromBody] TrocarComercioRequest request)
+        public async Task<IActionResult> TrocarComercio([FromBody] int comercioID)
         {
-            var token = await _trocarComercioService.TrocarAsync(request);
-            if (token == null)
-            {
-                return BadRequest("Usuário não encontrado ou sem acesso ao comércio.");
-            }
+            var usuarioId = GetUsuarioId();
+            var token = await _trocarComercioService.TrocarAsync(comercioID, usuarioId);
             return Ok(new {Token = token});
         }
     }

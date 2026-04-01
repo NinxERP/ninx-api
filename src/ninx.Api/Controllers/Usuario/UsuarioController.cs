@@ -10,7 +10,7 @@ namespace ninx.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    public class UsuarioController : ControllerBase
+    public class UsuarioController : NinxControllerBase
     {
         private readonly IUsuarioService _usuarioService;
 
@@ -25,10 +25,6 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var usuario = await _usuarioService.GetByIdAsync(id);
-            if (usuario is null)
-            {
-                return NotFound();
-            }
             return Ok(usuario);
         }
 
@@ -37,7 +33,11 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Criar([FromBody] CriarUsuarioRequest request)
         {
-            var usuario = await _usuarioService.CriarAsync(request);
+            var usuarioId = GetUsuarioId();
+            var comercioId = GetComercioId();
+            var permissao = GetPermissao();
+
+            var usuario = await _usuarioService.CriarAsync(request, usuarioId, permissao, comercioId);
             return CreatedAtAction(nameof(GetById), new { id = usuario.UsuarioID }, usuario);
         }
 

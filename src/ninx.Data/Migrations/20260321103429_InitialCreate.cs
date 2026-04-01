@@ -34,7 +34,7 @@ namespace ninx.Data.Migrations
                     Endereco = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     CNPJ = table.Column<string>(type: "nvarchar(18)", maxLength: 18, nullable: true),
                     Ativo = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     AtualizadoEm = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -54,7 +54,7 @@ namespace ninx.Data.Migrations
                     Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Permissao = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Ativo = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     AtualizadoEm = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -73,7 +73,7 @@ namespace ninx.Data.Migrations
                     DataInicio = table.Column<DateTime>(type: "date", nullable: false),
                     DataFim = table.Column<DateTime>(type: "date", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false, defaultValue: "Ativa"),
-                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     AtualizadoEm = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -98,7 +98,7 @@ namespace ninx.Data.Migrations
                     Telefone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     LimiteCredito = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
                     Ativo = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     AtualizadoEm = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -127,7 +127,7 @@ namespace ninx.Data.Migrations
                     UnidadeMedida = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false, defaultValue: "UN"),
                     Validade = table.Column<DateTime>(type: "date", nullable: true),
                     Ativo = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     AtualizadoEm = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -156,7 +156,7 @@ namespace ninx.Data.Migrations
                     NumeroCelular = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Etapa = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     DadosTemporarios = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    UltimaInteracao = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                    UltimaInteracao = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -205,11 +205,11 @@ namespace ninx.Data.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ComercioID = table.Column<int>(type: "int", nullable: false),
                     UsuarioID = table.Column<int>(type: "int", nullable: false),
-                    DataHora = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    DataHora = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     Total = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
                     TipoVenda = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false, defaultValue: "Aberta"),
-                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -238,7 +238,7 @@ namespace ninx.Data.Migrations
                     ComercioID = table.Column<int>(type: "int", nullable: false),
                     Quantidade = table.Column<decimal>(type: "decimal(10,3)", nullable: false, defaultValue: 0m),
                     QuantidadeMinima = table.Column<decimal>(type: "decimal(10,3)", nullable: false, defaultValue: 0m),
-                    UltimaAtualizacao = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    UltimaAtualizacao = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     AtualizadoEm = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -271,7 +271,7 @@ namespace ninx.Data.Migrations
                     Quantidade = table.Column<decimal>(type: "decimal(10,3)", nullable: false),
                     ReferenciaID = table.Column<int>(type: "int", nullable: true),
                     Observacao = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    DataHora = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                    DataHora = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -337,7 +337,7 @@ namespace ninx.Data.Migrations
                     VendaID = table.Column<int>(type: "int", nullable: false),
                     FormaPagamento = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Valor = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
-                    DataHora = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                    DataHora = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -361,7 +361,7 @@ namespace ninx.Data.Migrations
                     Status = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false, defaultValue: "Pendente"),
                     Assinatura = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
                     DocumentoPDF = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
-                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                    CriadoEm = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -389,7 +389,7 @@ namespace ninx.Data.Migrations
                     VendaFiadoID = table.Column<int>(type: "int", nullable: false),
                     UsuarioID = table.Column<int>(type: "int", nullable: false),
                     Valor = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
-                    DataHora = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    DataHora = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     Observacao = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>

@@ -23,7 +23,7 @@ public class PagamentoVendaMapping : IEntityTypeConfiguration<PagamentoVenda>
             .HasColumnType("decimal(10,2)");
 
         builder.Property(x => x.DataHora)
-            .HasDefaultValueSql("GETDATE()");
+            .HasDefaultValueSql("GETUTCDATE()");
 
         builder.HasOne(x => x.Venda)
             .WithMany(x => x.PagamentosVenda)

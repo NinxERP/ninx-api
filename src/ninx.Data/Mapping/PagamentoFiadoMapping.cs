@@ -18,7 +18,7 @@ public class PagamentoFiadoMapping : IEntityTypeConfiguration<PagamentoFiado>
             .HasColumnType("decimal(10,2)");
 
         builder.Property(x => x.DataHora)
-            .HasDefaultValueSql("GETDATE()");
+            .HasDefaultValueSql("GETUTCDATE()");
 
         builder.Property(x => x.Observacao)
             .IsRequired(false)
@@ -26,26 +26,11 @@ public class PagamentoFiadoMapping : IEntityTypeConfiguration<PagamentoFiado>
 
         builder.HasOne(x => x.VendaFiado)
             .WithMany(x => x.PagamentosFiado)
-            .HasForeignKey(x => x.VendaFiadoID)
-            .OnDelete(DeleteBehavior.Restrict);
-
-
-        builder.HasOne(x => x.Usuario)
-            .WithMany()
-            .HasForeignKey(x => x.UsuarioID)
-            .OnDelete(DeleteBehavior.Restrict);
-
-
-        builder.HasOne(x => x.VendaFiado)
-            .WithMany(x => x.PagamentosFiado)
-            .HasForeignKey(x => x.VendaFiadoID)
-            .OnDelete(DeleteBehavior.Restrict);
-
+            .HasForeignKey(x => x.VendaFiadoID);
 
         builder.HasOne(x => x.Usuario)
             .WithMany(x => x.PagamentosFiado)
             .HasForeignKey(x => x.UsuarioID)
             .OnDelete(DeleteBehavior.Restrict);
-
     }
 }

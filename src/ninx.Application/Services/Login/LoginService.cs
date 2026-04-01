@@ -56,7 +56,7 @@ namespace ninx.Application.Services
                 Comercios = usuarioComercios.Select(x => new ComercioSimplificado
                 {
                     ComercioID = x.ComercioID,
-                    Nome = x.
+                    Nome = x.NomeComercio
                 }).ToList()
             };
         }

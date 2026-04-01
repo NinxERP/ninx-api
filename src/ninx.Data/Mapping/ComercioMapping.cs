@@ -13,7 +13,7 @@ public class ComercioMapping : IEntityTypeConfiguration<Comercio>
         builder.Property(x => x.ComercioID)
             .ValueGeneratedOnAdd();
 
-        builder.Property(x => x.Nome)
+        builder.Property(x => x.NomeComercio)
             .IsRequired()
             .HasMaxLength(100);
 
@@ -32,7 +32,7 @@ public class ComercioMapping : IEntityTypeConfiguration<Comercio>
             .HasDefaultValue(true);
 
         builder.Property(x => x.CriadoEm)
-            .HasDefaultValueSql("GETDATE()");
+            .HasDefaultValueSql("GETUTCDATE()");
 
         builder.Property(x => x.AtualizadoEm)
             .IsRequired(false);

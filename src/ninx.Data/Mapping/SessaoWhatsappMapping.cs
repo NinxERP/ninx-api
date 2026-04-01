@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ninx.Domain.Entities;
+using ninx.Domain.Enums;
 
 public class SessaoWhatsappMapping : IEntityTypeConfiguration<SessaoWhatsapp>
 {
@@ -19,15 +20,18 @@ public class SessaoWhatsappMapping : IEntityTypeConfiguration<SessaoWhatsapp>
 
         builder.Property(x => x.Etapa)
             .IsRequired()
-            .HasMaxLength(50)
-            .HasConversion<string>();
+            .HasMaxLength(20)
+            .HasConversion<string>()
+            .HasDefaultValue(EtapaWhatsapp.Menu);
 
         builder.Property(x => x.DadosTemporarios)
-            .IsRequired(false)
-            .HasMaxLength(500);
+            .IsRequired(false);
 
         builder.Property(x => x.UltimaInteracao)
-            .HasDefaultValueSql("GETDATE()");
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.HasIndex(x => new { x.ComercioID, x.NumeroCelular })
+            .IsUnique();
 
         builder.HasOne(x => x.Comercio)
             .WithMany()

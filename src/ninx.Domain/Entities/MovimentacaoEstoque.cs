@@ -1,4 +1,6 @@
-﻿namespace ninx.Domain.Entities
+﻿using ninx.Domain.Enums;
+
+namespace ninx.Domain.Entities
 {
     public class MovimentacaoEstoque
     {
@@ -6,7 +8,7 @@
         public int ComercioID { get; set; }
         public int ProdutoID { get; set; }
         public int UsuarioID { get; set; }
-        public string Tipo { get; set; } = null!;
+        public TipoMovimentacao Tipo { get; set; }
         public decimal Quantidade { get; set; }
         public int? VendaID { get; set; } 
         public string? Observacao { get; set; }

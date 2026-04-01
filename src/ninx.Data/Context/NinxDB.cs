@@ -3,7 +3,7 @@ using ninx.Domain.Entities;
 
 namespace ninx.Data.Context
 {
-    public class NinxDB : Microsoft.EntityFrameworkCore.DbContext
+    public class NinxDB : DbContext
     {
         public NinxDB(DbContextOptions<NinxDB> options)
             : base(options)

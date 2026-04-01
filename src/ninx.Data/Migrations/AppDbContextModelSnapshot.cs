@@ -39,7 +39,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("CriadoEm")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime>("DataFim")
                         .HasColumnType("date");
@@ -106,7 +106,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("CriadoEm")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<decimal?>("LimiteCredito")
                         .HasColumnType("decimal(10,2)");
@@ -150,7 +150,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("CriadoEm")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Endereco")
                         .HasMaxLength(200)
@@ -200,7 +200,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("UltimaAtualizacao")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.HasKey("EstoqueID");
 
@@ -275,7 +275,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("DataHora")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Observacao")
                         .HasMaxLength(200)
@@ -320,7 +320,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("DataHora")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Observacao")
                         .HasMaxLength(200)
@@ -355,7 +355,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("DataHora")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("FormaPagamento")
                         .IsRequired()
@@ -404,7 +404,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("CriadoEm")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -466,7 +466,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("UltimaInteracao")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.HasKey("SessaoID");
 
@@ -494,7 +494,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("CriadoEm")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -571,12 +571,12 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("CriadoEm")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime>("DataHora")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -622,7 +622,7 @@ namespace ninx.Data.Migrations
                     b.Property<DateTime>("CriadoEm")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<byte[]>("DocumentoPDF")
                         .HasColumnType("varbinary(max)");

@@ -11,21 +11,13 @@ namespace ninx.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    public class ComercioController : ControllerBase
+    public class ComercioController : NinxControllerBase
     {
         private readonly IComercioService _comercioService;
 
         public ComercioController(IComercioService comercioService)
         {
             _comercioService = comercioService;
-        }
-
-        [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<ComercioResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll()
-        {
-            var result = await _comercioService.GetAll();
-            return Ok(result);
         }
 
         [HttpGet("usuario/{usuarioId}")]
@@ -59,7 +51,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Atualizar(int id, [FromBody] ComercioRequest request)
         {
-            var result = await _comercioService.AtualizarAsync(id, request);
+            var usuarioID = GetUsuarioId();
+            var result = await _comercioService.AtualizarAsync(id, usuarioID, request);
             return Ok(result);
         }
 

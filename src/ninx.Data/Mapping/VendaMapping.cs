@@ -14,9 +14,6 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
         builder.Property(x => x.VendaID)
             .ValueGeneratedOnAdd();
 
-        builder.Property(x => x.DataHora)
-            .HasDefaultValueSql("GETDATE()");
-
         builder.Property(x => x.Total)
             .IsRequired()
             .HasColumnType("decimal(10,2)");
@@ -33,7 +30,7 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
             .HasDefaultValue(StatusVenda.Aberta);
 
         builder.Property(x => x.CriadoEm)
-            .HasDefaultValueSql("GETDATE()");
+            .HasDefaultValueSql("GETUTCDATE()");
 
         builder.HasOne(x => x.Comercio)
             .WithMany(x => x.Vendas)

@@ -6,7 +6,7 @@ public class UsuarioComercioMapping : IEntityTypeConfiguration<UsuarioComercio>
 {
     public void Configure(EntityTypeBuilder<UsuarioComercio> builder)
     {
-        builder.ToTable("UsuarioComercios");
+        builder.ToTable("UsuariosComercios");
 
         builder.HasKey(x => x.UsuarioComercioID);
 
@@ -18,8 +18,15 @@ public class UsuarioComercioMapping : IEntityTypeConfiguration<UsuarioComercio>
             .HasMaxLength(20)
             .HasConversion<string>();
 
+        builder.Property(x => x.NomeComercio)
+            .IsRequired()
+            .HasMaxLength(100);
+
         builder.Property(x => x.Ativo)
             .HasDefaultValue(true);
+
+        builder.HasIndex(x => new { x.UsuarioID, x.ComercioID })
+            .IsUnique();
 
         builder.HasOne(x => x.Usuario)
             .WithMany(x => x.UsuarioComercios)

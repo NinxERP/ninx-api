@@ -31,7 +31,7 @@ namespace ninx.Application.Services
             return usuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task<UsuarioResponse> CriarComVinculoAsync(
+        public async Task<UsuarioResponse> CriarAsync(
             CriarUsuarioRequest request,
             int executorId,
             string executorRole,
@@ -85,6 +85,7 @@ namespace ninx.Application.Services
             request.Adapt(usuario);
 
             await _usuarioRepository.UpdateAsync(usuario);
+            await _unitOfWork.SaveChangesAsync();
             return usuario.Adapt<UsuarioResponse>();
         }
 
@@ -94,8 +95,9 @@ namespace ninx.Application.Services
                 ?? throw new KeyNotFoundException("Usuário não encontrado.");
 
             usuario.Ativo = false;
-            usuario.AtualizadoEm = DateTime.Now;
+            usuario.AtualizadoEm = DateTime.UtcNow;
             await _usuarioRepository.UpdateAsync(usuario);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

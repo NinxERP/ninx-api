@@ -6,6 +6,7 @@
         Venda,
         Ajuste,
         Perda,
-        Devolucao
+        Devolucao,
+        Estorno
     }
 }

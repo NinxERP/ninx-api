@@ -5,22 +5,22 @@ namespace ninx.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class PingController : ControllerBase
+    public class PingController : NinxControllerBase
     {
-        [HttpGet("Ping")]
+        [HttpGet()]
         [AllowAnonymous]
         public IActionResult Ping()
         {
             return Ok();
         }
 
-        [HttpGet("PingAutenticado")]
+        [HttpGet("Autenticado")]
         public IActionResult PingAutenticado()
         {
             return Ok();
         }
 
-        [HttpPost("Ping")]
+        [HttpPost()]
         [AllowAnonymous]
         public IActionResult PingPost()
         {

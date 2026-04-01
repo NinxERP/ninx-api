@@ -14,7 +14,7 @@ namespace ninx.Domain.Entities
         public UnidadeMedida UnidadeMedida { get; set; } = UnidadeMedida.UN;
         public DateTime? Validade { get; set; }
         public bool Ativo { get; set; } = true;
-        public DateTime CriadoEm { get; set; } = DateTime.Now;
+        public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
 
         public Comercio Comercio { get; set; } = null!;

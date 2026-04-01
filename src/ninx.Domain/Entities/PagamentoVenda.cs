@@ -8,7 +8,7 @@ namespace ninx.Domain.Entities
         public int VendaID { get; set; }
         public FormaPagamento FormaPagamento { get; set; }
         public decimal Valor { get; set; }
-        public DateTime DataHora { get; set; } = DateTime.Now;
+        public DateTime DataHora { get; set; } = DateTime.UtcNow;
 
         public Venda Venda { get; set; } = null!;
     }

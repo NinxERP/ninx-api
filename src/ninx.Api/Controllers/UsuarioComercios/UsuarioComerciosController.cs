@@ -10,7 +10,7 @@ namespace ninx.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    public class UsuarioComercioController : ControllerBase
+    public class UsuarioComercioController : NinxControllerBase
     {
         private readonly IUsuarioComercioService _usuarioComercioService;
 

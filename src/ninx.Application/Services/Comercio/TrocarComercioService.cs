@@ -18,28 +18,22 @@ namespace ninx.Application.Services
             _usuarioComercioRepository = usuarioComercioRepository;
         }
 
-        public async Task<string> TrocarAsync(TrocarComercioRequest request, int usuarioLogadoId)
+        public async Task<string> TrocarAsync(int comercioID, int usuarioID)
         {
-            if (request.UsuarioId != usuarioLogadoId)
-            {
-                throw new UnauthorizedException("Você não pode trocar o contexto de outro usuário.");
-            }
-
-            var usuario = await _usuarioRepository.GetByIdAsync(request.UsuarioId);
+            var usuario = await _usuarioRepository.GetByIdAsync(usuarioID);
             if (usuario == null)
                 throw new NotFoundException("Usuário não encontrado.");
 
             var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuario.UsuarioID);
-
             var vinculoNoNovoComercio = usuarioComercio
-                .FirstOrDefault(x => x.ComercioID == request.NovoComercioId);
+                .FirstOrDefault(x => x.ComercioID == comercioID);
 
             if (vinculoNoNovoComercio == null)
             {
                 throw new UnauthorizedException("Você não tem acesso a este comércio.");
             }
 
-            return _jwtTokenService.GerarToken(usuario, vinculoNoNovoComercio.ComercioID);
+            return _jwtTokenService.GerarToken(usuario, vinculoNoNovoComercio.ComercioID, vinculoNoNovoComercio.Permissao);
         }
     }
 }

@@ -23,12 +23,14 @@ public class EstoqueMapping : IEntityTypeConfiguration<Estoque>
             .HasDefaultValue(0);
 
         builder.Property(x => x.UltimaAtualizacao)
-            .HasDefaultValueSql("GETDATE()");
+            .HasDefaultValueSql("GETUTCDATE()");
 
         builder.Property(x => x.AtualizadoEm)
             .IsRequired(false);
 
-        // Unique constraint: mesmo produto não pode ter dois registros no mesmo comércio
+        builder.Property(x => x.RowVersion)
+        .IsRowVersion();
+
         builder.HasIndex(x => new { x.ProdutoID, x.ComercioID })
             .IsUnique();
 

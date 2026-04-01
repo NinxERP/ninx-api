@@ -8,8 +8,8 @@ namespace ninx.Api.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/Produto/[controller]")]
-    public class ProdutoController : ControllerBase
+    [Route("api/[controller]")]
+    public class ProdutoController : NinxControllerBase
     {
         private readonly IProdutoService _produtoService;
 
@@ -23,11 +23,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAllByComercio(int comercioId)
         {
-            var produtos = await _produtoService.GetByComercioIdAsync(comercioId);
-            if (produtos is null)
-            {
-                return NotFound();
-            }
+            var produtos = await _produtoService.GetProdutosByComercioIdAsync(comercioId);
             return Ok(produtos);
         }
 
@@ -37,10 +33,6 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var produto = await _produtoService.GetByIdAsync(id);
-            if (produto is null)
-            {
-                return NotFound();
-            }
             return Ok(produto);
         }
 
@@ -50,10 +42,6 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetByCodigoBarras(int comercioId, string codigoBarras)
         {
             var produto = await _produtoService.GetByCodigoBarrasAsync(comercioId, codigoBarras);
-            if (produto is null)
-            {
-                return NotFound();
-            }
             return Ok(produto);
         }
 
@@ -63,10 +51,6 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetByNome(int comercioId, [FromQuery] string nome)
         {
             var produtos = await _produtoService.GetByNomeAsync(comercioId, nome);
-            if (produtos is null)
-            {
-                return NotFound();
-            }
             return Ok(produtos);
         }
 
@@ -75,7 +59,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Criar([FromBody] CriarProdutoRequest request)
         {
-            var produto = await _produtoService.CriarAsync(request);
+            var comercioID = GetComercioId();
+            var produto = await _produtoService.CriarAsync(request, comercioID);
             return CreatedAtAction(string.Empty, produto);
         }
 
@@ -84,7 +69,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Atualizar(int id, [FromBody] AtualizarProdutoRequest request)
         {
-            var produto = await _produtoService.AtualizarAsync(id, request);
+            var comercioId = GetComercioId();
+            var produto = await _produtoService.AtualizarAsync(id, comercioId, request);
             return Ok(produto);
         }
 
@@ -93,7 +79,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Desativar(int id)
         {
-            await _produtoService.DesativarAsync(id);
+            var comercioId = GetComercioId();
+            await _produtoService.DesativarAsync(id, comercioId);
             return NoContent();
         }
     }

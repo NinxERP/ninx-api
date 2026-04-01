@@ -9,7 +9,7 @@ namespace ninx.Domain.Entities
         public int ComercioID { get; set; }
         public decimal Quantidade { get; set; } = 0;
         public decimal QuantidadeMinima { get; set; } = 0;
-        public DateTime UltimaAtualizacao { get; set; } = DateTime.Now;
+        public DateTime UltimaAtualizacao { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
 
         [Timestamp]

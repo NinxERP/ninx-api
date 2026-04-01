@@ -22,7 +22,7 @@ public class MovimentacaoEstoqueMapping : IEntityTypeConfiguration<MovimentacaoE
             .IsRequired()
             .HasColumnType("decimal(10,3)");
 
-        builder.Property(x => x.ReferenciaID)
+        builder.Property(x => x.VendaID)
             .IsRequired(false);
 
         builder.Property(x => x.Observacao)
@@ -30,9 +30,9 @@ public class MovimentacaoEstoqueMapping : IEntityTypeConfiguration<MovimentacaoE
             .HasMaxLength(200);
 
         builder.Property(x => x.DataHora)
-            .HasDefaultValueSql("GETDATE()");
+            .HasDefaultValueSql("GETUTCDATE()");
 
-        builder.HasOne(x => x.Comercio)
+        builder.HasOne<Comercio>()
             .WithMany()
             .HasForeignKey(x => x.ComercioID);
 
@@ -41,7 +41,7 @@ public class MovimentacaoEstoqueMapping : IEntityTypeConfiguration<MovimentacaoE
             .HasForeignKey(x => x.ProdutoID)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(x => x.Usuario)
+        builder.HasOne<Usuario>()
             .WithMany()
             .HasForeignKey(x => x.UsuarioID)
             .OnDelete(DeleteBehavior.Restrict);

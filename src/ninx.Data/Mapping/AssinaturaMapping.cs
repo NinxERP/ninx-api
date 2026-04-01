@@ -36,7 +36,7 @@ namespace ninx.Data.Mappings
                 .HasDefaultValue(StatusAssinatura.Ativa);
 
             builder.Property(x => x.CriadoEm)
-                .HasDefaultValueSql("GETDATE()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
             builder.Property(x => x.AtualizadoEm)
                 .IsRequired(false);
