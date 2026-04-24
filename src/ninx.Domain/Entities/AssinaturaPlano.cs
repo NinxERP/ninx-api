@@ -2,7 +2,7 @@
 
 namespace ninx.Domain.Entities
 {
-    public class Assinatura
+    public class AssinaturaPlano
     {
         public int AssinaturaID { get; set; }
         public int ComercioID { get; set; }

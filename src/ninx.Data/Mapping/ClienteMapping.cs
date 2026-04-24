@@ -40,9 +40,6 @@ namespace ninx.Data.Mappings
                 .WithMany(x => x.Clientes)
                 .HasForeignKey(x => x.ComercioID);
 
-            builder.HasMany(x => x.VendasFiado)
-                .WithOne(x => x.Cliente)
-                .HasForeignKey(x => x.ClienteID);
         }
     }
 }

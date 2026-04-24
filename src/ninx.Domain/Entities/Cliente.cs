@@ -11,6 +11,5 @@
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
         public Comercio Comercio { get; set; } = null!;
-        public ICollection<VendaFiado> VendasFiado { get; set; } = [];
     }
 }

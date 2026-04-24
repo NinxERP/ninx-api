@@ -4,6 +4,7 @@
     {
         Dinheiro,
         Pix,
-        Cartao
+        Cartao,
+        Fiado
     }
 }

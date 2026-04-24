@@ -5,9 +5,9 @@ using ninx.Domain.Enums;
 
 namespace ninx.Data.Mappings
 {
-    public class AssinaturaMapping : IEntityTypeConfiguration<Assinatura>
+    public class AssinaturaMapping : IEntityTypeConfiguration<AssinaturaPlano>
     {
-        public void Configure(EntityTypeBuilder<Assinatura> builder)
+        public void Configure(EntityTypeBuilder<AssinaturaPlano> builder)
         {
             builder.ToTable("Assinaturas");
 

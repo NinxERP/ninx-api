@@ -15,6 +15,5 @@ namespace ninx.Domain.Entities
 
         public ICollection<UsuarioComercio> UsuarioComercios { get; set; } = [];
         public ICollection<Venda> Vendas { get; set; } = [];
-        public ICollection<PagamentoFiado> PagamentosFiado { get; set; } = [];
     }
 }

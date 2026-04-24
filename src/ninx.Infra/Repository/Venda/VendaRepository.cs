@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ninx.Data.Context;
 using ninx.Domain.Entities;
+using ninx.Domain.Enums;
 using ninx.Domain.Interfaces.Repositories;
 
 namespace ninx.Infra.Repository
@@ -50,8 +51,23 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .Include(v => v.ItensVenda)        
                 .Include(v => v.PagamentosVenda)    
-                .Include(v => v.VendaFiado)         
                 .FirstOrDefaultAsync(v => v.VendaID == id);
+        }
+
+        public async Task<IEnumerable<Venda>> GetVendasByClienteIDAsync(int? clienteId)
+        {
+            return await _context.Vendas
+                .AsNoTracking()
+                .Where(v => v.ClienteID == clienteId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Venda>> GetVendasFiadoByClienteIDAsync(int? clienteId)
+        {
+            return await _context.Vendas
+                .AsNoTracking()
+                .Where(v => v.ClienteID == clienteId && v.TipoVenda == TipoVenda.Fiado)
+                .ToListAsync();
         }
 
     }

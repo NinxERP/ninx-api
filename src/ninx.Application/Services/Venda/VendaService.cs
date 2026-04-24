@@ -19,6 +19,8 @@ namespace ninx.Application.Services
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IComercioRepository _comercioRepository;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
+        private readonly IClienteRepository _clienteRepository;
+        private readonly IPagamentoVendaRepository _pagamentoVendaRepository;
         public VendaService(
             IVendaRepository vendaRepository,
             IProdutoRepository produtoRepository,
@@ -27,7 +29,9 @@ namespace ninx.Application.Services
             IMovimentacaoEstoqueRepository movimentacaoEstoqueRepository,
             IUsuarioRepository usuarioRepository,
             IComercioRepository comercioRepository,
-            IUsuarioComercioRepository usuarioComercioRepository)
+            IUsuarioComercioRepository usuarioComercioRepository,
+            IClienteRepository clienteRepository,
+            IPagamentoVendaRepository pagamentoVendaRepository)
         {
             _vendaRepository = vendaRepository;
             _produtoRepository = produtoRepository;
@@ -37,6 +41,8 @@ namespace ninx.Application.Services
             _usuarioRepository = usuarioRepository;
             _comercioRepository = comercioRepository;
             _usuarioComercioRepository = usuarioComercioRepository;
+            _clienteRepository = clienteRepository;
+            _pagamentoVendaRepository = pagamentoVendaRepository;
         }
 
 
@@ -145,20 +151,33 @@ namespace ninx.Application.Services
 
                     decimal totalPago = request.Pagamentos?.Sum(p => p.Valor) ?? 0;
                     bool ehFiado = request.TipoVenda == 2;
+                    Guid? identificadorAssinatura = null;
                     if (ehFiado)
                     {
                         if (!request.ClienteID.HasValue)
                             throw new BadRequestException("Para vendas fiado, é obrigatório selecionar um cliente.");
                         if (totalPago >= totalVenda)
                             throw new BadRequestException("Uma venda fiado não pode estar totalmente paga no ato da criação.");
+                        var cliente = await _clienteRepository.GetByIdAsync(request.ClienteID);
+                        if (cliente == null) 
+                            throw new NotFoundException("Cliente não encontrado.");
 
-                        // preciso adicionar o limite de crédido aq...
+                        var saldoDevedorAtual = await CalcularSaldoDevedor(request.ClienteID.Value);
+                        decimal valorFiadoDestaVenda = totalVenda - totalPago;
+
+                        if ((saldoDevedorAtual + valorFiadoDestaVenda) > cliente.LimiteCredito)
+                        {
+                            var limiteDisponivel = cliente.LimiteCredito - saldoDevedorAtual;
+                            throw new BadRequestException($"Limite excedido! O cliente já deve R$ {saldoDevedorAtual:N2}. " + $"Disponível para esta compra: R$ {limiteDisponivel:N2}");
+                        }
+                        identificadorAssinatura = Guid.NewGuid();
                     }
 
                     var novaVenda = new Venda
                     {
                         ComercioID = request.ComercioID,
                         UsuarioID = request.UsuarioID,
+                        ClienteID = request.ClienteID,
                         Total = totalVenda,
                         TipoVenda = ehFiado ? TipoVenda.Fiado : TipoVenda.Normal,
                         Status = StatusVenda.Finalizada,
@@ -175,12 +194,17 @@ namespace ninx.Application.Services
 
                     if (ehFiado)
                     {
-                        novaVenda.VendaFiado = new VendaFiado
+                        novaVenda.TipoVenda = TipoVenda.Fiado;
+
+                        var novaAssinaturaEletronica = new AssinaturaEletronica
                         {
-                            ClienteID = request.ClienteID!.Value,
-                            Status = StatusFiado.Pendente,
+                            Venda = novaVenda,
+                            DocumentoGuid = identificadorAssinatura.Value,
+                            Assinado = false,
                             CriadoEm = DateTime.UtcNow
                         };
+
+                        await _assinaturaRepository.AddAsync(novaAssinaturaEletronica); // FALTA IMPLEMENTAR ESSE REPOSITORIO!!
                     }
 
                     await _vendaRepository.AddAsync(novaVenda);
@@ -261,11 +285,6 @@ namespace ninx.Application.Services
                     }
                 }
 
-                if (venda.TipoVenda == TipoVenda.Fiado && venda.VendaFiado != null)
-                {
-                    venda.VendaFiado.Status = StatusFiado.Cancelado;
-                }
-
                 venda.Status = StatusVenda.Cancelada;
                 venda.AtualizadoEm = DateTime.UtcNow;
 
@@ -319,6 +338,24 @@ namespace ninx.Application.Services
             var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
             if (!usuarioComercio.Any(x => x.ComercioID == comercioId))
                 throw new BadRequestException("Este usuário não tem permissão para acessar este comércio.");
+        }
+
+        private async Task<decimal> CalcularSaldoDevedor(int? clienteId)
+        {
+            var vendasFiadoCliente = await _vendaRepository.GetVendasFiadoByClienteIDAsync(clienteId);
+            var valorTotalPago = await _pagamentoVendaRepository.GetPagamentosFiadosByClienteIdAsync(clienteId);
+
+            decimal saldoDevedorTotal = 0;
+            foreach (var venda in vendasFiadoCliente)
+            {
+                    var totalJaPagoDestaVenda = valorTotalPago
+                        .Where(p => p.VendaID == venda.VendaID)
+                        .Sum(p => p.Valor);
+
+                    var saldoDestaVenda = venda.Total - totalJaPagoDestaVenda;
+                    saldoDevedorTotal += saldoDestaVenda;
+            }
+            return saldoDevedorTotal;
         }
     }
 }
