@@ -9,5 +9,6 @@
         public string? TipoVenda { get; set; }
         public string? Status { get; set; } 
         public DateTime? CriadoEm { get; set; } 
+        public Guid DocumentoGuid { get; set; }
     }
 }

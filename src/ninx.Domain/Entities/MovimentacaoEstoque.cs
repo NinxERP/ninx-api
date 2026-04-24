@@ -15,5 +15,6 @@ namespace ninx.Domain.Entities
         public DateTime DataHora { get; set; } = DateTime.UtcNow;
 
         public Produto Produto { get; set; } = null!;
+        public Venda Venda { get; set; } = null!;
     }
 }

@@ -195,10 +195,10 @@ namespace ninx.Application.Services
                         ?? new List<PagamentoVenda>()
                     };
 
+                    await _vendaRepository.AddAsync(novaVenda);
+
                     if (ehFiado)
                     {
-                        novaVenda.TipoVenda = TipoVenda.Fiado;
-
                         var novaAssinaturaEletronica = new AssinaturaEletronica
                         {
                             Venda = novaVenda,
@@ -210,18 +210,22 @@ namespace ninx.Application.Services
                         await _assinaturaEletronicaRepository.AddAsync(novaAssinaturaEletronica);
                     }
 
-                    await _vendaRepository.AddAsync(novaVenda);
 
                     foreach (var mov in movimentacoesEstoque)
                     {
-                        mov.VendaID = novaVenda.VendaID;
+                        mov.Venda = novaVenda;
                         await _movimentacaoEstoqueRepository.AddAsync(mov);
                     }
 
                     await _unitOfWork.SaveChangesAsync();
                     await _unitOfWork.CommitAsync();
 
-                    return novaVenda.Adapt<VendaResponse>();
+                    var response = novaVenda.Adapt<VendaResponse>();
+                    if (ehFiado)
+                    {
+                        response.DocumentoGuid = identificadorAssinatura.Value;
+                    }
+                    return response;
                 }
                 catch (ConcurrencyException)
                 {
