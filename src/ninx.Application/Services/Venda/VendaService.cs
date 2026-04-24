@@ -21,6 +21,7 @@ namespace ninx.Application.Services
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
         private readonly IClienteRepository _clienteRepository;
         private readonly IPagamentoVendaRepository _pagamentoVendaRepository;
+        private readonly IAssinaturaEletronicaRepository _assinaturaEletronicaRepository; 
         public VendaService(
             IVendaRepository vendaRepository,
             IProdutoRepository produtoRepository,
@@ -31,7 +32,8 @@ namespace ninx.Application.Services
             IComercioRepository comercioRepository,
             IUsuarioComercioRepository usuarioComercioRepository,
             IClienteRepository clienteRepository,
-            IPagamentoVendaRepository pagamentoVendaRepository)
+            IPagamentoVendaRepository pagamentoVendaRepository,
+            IAssinaturaEletronicaRepository assinaturaEletronicaRepository)
         {
             _vendaRepository = vendaRepository;
             _produtoRepository = produtoRepository;
@@ -43,6 +45,7 @@ namespace ninx.Application.Services
             _usuarioComercioRepository = usuarioComercioRepository;
             _clienteRepository = clienteRepository;
             _pagamentoVendaRepository = pagamentoVendaRepository;
+            _assinaturaEletronicaRepository = assinaturaEletronicaRepository;
         }
 
 
@@ -204,7 +207,7 @@ namespace ninx.Application.Services
                             CriadoEm = DateTime.UtcNow
                         };
 
-                        await _assinaturaRepository.AddAsync(novaAssinaturaEletronica); // FALTA IMPLEMENTAR ESSE REPOSITORIO!!
+                        await _assinaturaEletronicaRepository.AddAsync(novaAssinaturaEletronica);
                     }
 
                     await _vendaRepository.AddAsync(novaVenda);
