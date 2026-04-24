@@ -69,7 +69,7 @@ namespace ninx.Application.Services
             return vendas.Adapt<IEnumerable<VendaResponse>>();
         }
 
-        public async Task<VendaResponse?> GetByVendaIdAsync(int id)
+        public async Task<VendaResponse> GetByVendaIdAsync(int id)
         {
             var venda = await _vendaRepository.GetByIdAsync(id);
             if (venda is null)
@@ -85,12 +85,12 @@ namespace ninx.Application.Services
             var usuario = await _usuarioRepository.GetByIdAsync(request.UsuarioID);
             if (usuario == null || !usuario.Ativo)
                 throw new BadRequestException("Usuário inválido ou inativo.");
+            
             var comercio = await _comercioRepository.GetByIdAsync(request.ComercioID);
             if (comercio == null)
                 throw new BadRequestException("Comércio inválido ou não encontrado.");
-            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(request.UsuarioID);
-            if (!usuarioComercio.Any(x => x.ComercioID == request.ComercioID))
-                throw new BadRequestException("Este usuário não tem permissão para vender neste comércio.");
+            
+            await ValidarPermissaoUsuarioComercioAsync(request.UsuarioID, request.ComercioID);
 
             int tentativas = 0;
             while (tentativas < 10)
@@ -184,7 +184,6 @@ namespace ninx.Application.Services
                     }
 
                     await _vendaRepository.AddAsync(novaVenda);
-                    await _unitOfWork.SaveChangesAsync();
 
                     foreach (var mov in movimentacoesEstoque)
                     {
@@ -204,6 +203,16 @@ namespace ninx.Application.Services
                     if (tentativas >= 10) throw;
                     await Task.Delay(50);
                 }
+                catch (BadRequestException)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    throw;
+                }
+                catch (NotFoundException)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    throw;
+                }
                 catch (Exception)
                 {
                     await _unitOfWork.RollbackAsync();
@@ -220,14 +229,13 @@ namespace ninx.Application.Services
                 await _unitOfWork.BeginTransactionAsync();
 
                 var venda = await _vendaRepository.GetByIdAsync(vendaId);
-                if (venda == null) throw new NotFoundException("Venda não encontrada.");
+                if (venda == null) 
+                    throw new NotFoundException("Venda não encontrada.");
 
                 if (venda.Status == StatusVenda.Cancelada)
                     throw new BadRequestException("Esta venda já foi estornada.");
 
-                var usuarioC = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
-                if (!usuarioC.Any(x => x.ComercioID == venda.ComercioID))
-                    throw new BadRequestException("O usuário não possui permissão nesse comercio.");
+                await ValidarPermissaoUsuarioComercioAsync(usuarioId, venda.ComercioID);
 
                 foreach (var item in venda.ItensVenda)
                 {
@@ -265,6 +273,16 @@ namespace ninx.Application.Services
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
             }
+            catch (NotFoundException)
+            {
+                await _unitOfWork.RollbackAsync();
+                throw;
+            }
+            catch (BadRequestException)
+            {
+                await _unitOfWork.RollbackAsync();
+                throw;
+            }
             catch (Exception)
             {
                 await _unitOfWork.RollbackAsync();
@@ -294,6 +312,13 @@ namespace ninx.Application.Services
                     $"Estoque insuficiente para {produto.Nome}. " +
                     $"Solicitado: {item.Quantidade:N3}, Disponível: {estoque.Quantidade:N3}.");
             }
+        }
+
+        private async Task ValidarPermissaoUsuarioComercioAsync(int usuarioId, int comercioId)
+        {
+            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
+            if (!usuarioComercio.Any(x => x.ComercioID == comercioId))
+                throw new BadRequestException("Este usuário não tem permissão para acessar este comércio.");
         }
     }
 }

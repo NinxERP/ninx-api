@@ -38,8 +38,8 @@ namespace ninx.Application.Services
         public async Task<UsuarioComercioResponse> CriarAsync(CriarUsuarioComercioRequest request)
         {
             var existe = await _usuarioComercioRepository.GetByUsuarioIdAsync(request.UsuarioID);
-            var existeFiltrado = existe.Where(uc => uc.ComercioID == request.ComercioID).FirstOrDefault();
-            if (existe != null)
+            var existeFiltrado = existe.FirstOrDefault(uc => uc.ComercioID == request.ComercioID);
+            if (existeFiltrado != null)
             {
                 throw new BadRequestException("Usuário já vinculado a esse comércio.");
             }
@@ -63,12 +63,11 @@ namespace ninx.Application.Services
         public async Task DesativarAsync(int usuarioId, int comercioId)
         {
             var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
-            var usuarioComercioFiltrado = usuarioComercio.Where(uc => uc.ComercioID == comercioId).FirstOrDefault();
+            var usuarioComercioFiltrado = usuarioComercio.FirstOrDefault(uc => uc.ComercioID == comercioId);
             if (usuarioComercioFiltrado == null)
             {
-                throw new NotFoundException("Usuario não possui vinculo com o comercio.");
+                throw new NotFoundException("Usuário não possui vínculo com o comércio.");
             }
-
 
             usuarioComercioFiltrado.Ativo = false;
             await _usuarioComercioRepository.UpdateAsync(usuarioComercioFiltrado);

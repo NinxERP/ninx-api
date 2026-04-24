@@ -7,7 +7,7 @@ namespace ninx.Application.Interfaces.Services
     {
         Task<IEnumerable<VendaResponse>> GetVendasFiltroAsync(FiltroRequest request);
         Task<IEnumerable<VendaResponse>> GetByUsuarioIdAsync(int usuarioID);
-        Task<VendaResponse?> GetByVendaIdAsync(int id);
+        Task<VendaResponse> GetByVendaIdAsync(int id);
         Task<VendaResponse> CriarAsync(CriarVendaRequest request);
         Task EstornarAsync(int vendaId, int usuarioId);
     }

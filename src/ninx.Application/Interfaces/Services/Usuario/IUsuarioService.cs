@@ -1,5 +1,6 @@
 ﻿using ninx.Communication.Request;
 using ninx.Communication.Response;
+using ninx.Domain.Enums;
 
 namespace ninx.Domain.Interfaces.Services
 {
@@ -9,7 +10,7 @@ namespace ninx.Domain.Interfaces.Services
         Task<UsuarioResponse> CriarAsync(
                    CriarUsuarioRequest request,
                    int executorId,
-                   string executorRole,
+                   Permissao permissao,
                    int? executorComercioId);
         Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request);
         Task DesativarAsync(int id);

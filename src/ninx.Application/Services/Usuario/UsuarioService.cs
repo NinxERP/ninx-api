@@ -21,12 +21,12 @@ namespace ninx.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<UsuarioResponse?> GetByIdAsync(int id)
+        public async Task<UsuarioResponse> GetByIdAsync(int id)
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario is null)
             {
-                throw new NotFoundException("Usuario não encontrado");
+                throw new NotFoundException("Usuário não encontrado");
             }
             return usuario.Adapt<UsuarioResponse>();
         }
@@ -34,15 +34,15 @@ namespace ninx.Application.Services
         public async Task<UsuarioResponse> CriarAsync(
             CriarUsuarioRequest request,
             int executorId,
-            string executorRole,
+            Permissao permissao,
             int? executorComercioId)
         {
-            if (executorRole == "Funcionario")
+            if (permissao == Permissao.Funcionario)
             {
                 throw new ForbiddenException("Funcionários não podem cadastrar novos usuários.");
             }
 
-            if (executorRole == "Dono")
+            if (permissao == Permissao.Dono)
             {
                 request.ComercioId = executorComercioId ?? throw new BadRequestException("Contexto de comércio inválido.");
 
@@ -92,7 +92,7 @@ namespace ninx.Application.Services
         public async Task DesativarAsync(int id)
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+                ?? throw new NotFoundException("Usuário não encontrado.");
 
             usuario.Ativo = false;
             usuario.AtualizadoEm = DateTime.UtcNow;

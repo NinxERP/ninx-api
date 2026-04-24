@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
+using ninx.Domain.Entities;
 
 
 namespace ninx.Api.Controllers
@@ -28,12 +29,12 @@ namespace ninx.Api.Controllers
             return Ok(result);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{comercioId}")]
         [ProducesResponseType(typeof(ComercioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(int comercioId)
         {
-            var result = await _comercioService.GetByIdAsync(id);
+            var result = await _comercioService.GetByIdAsync(comercioId);
             return Ok(result);
         }
 
@@ -46,22 +47,22 @@ namespace ninx.Api.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.ComercioID }, result);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{comercioId}")]
         [ProducesResponseType(typeof(ComercioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Atualizar(int id, [FromBody] ComercioRequest request)
+        public async Task<IActionResult> Atualizar(int comercioId, [FromBody] ComercioRequest request)
         {
             var usuarioID = GetUsuarioId();
-            var result = await _comercioService.AtualizarAsync(id, usuarioID, request);
+            var result = await _comercioService.AtualizarAsync(comercioId, usuarioID, request);
             return Ok(result);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{comercioId}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Desativar(int id)
+        public async Task<IActionResult> Desativar(int comercioId)
         {
-            await _comercioService.DesativarAsync(id);
+            await _comercioService.DesativarAsync(comercioId);
             return NoContent();
         }
     }
