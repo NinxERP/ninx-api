@@ -4,5 +4,8 @@ namespace ninx.Domain.Interfaces.Repositories
 {
     public interface IAssinaturaEletronicaRepository : IRepositoryBase<AssinaturaEletronica>
     {
+        Task<AssinaturaEletronica?> GetByGuidAsync(Guid guid);
+        Task<AssinaturaEletronica?> GetClienteLojaAssinaturaByGuidAsync(Guid guid);
+
     }
 }

@@ -202,7 +202,7 @@ namespace ninx.Application.Services
                         var novaAssinaturaEletronica = new AssinaturaEletronica
                         {
                             Venda = novaVenda,
-                            DocumentoGuid = identificadorAssinatura.Value,
+                            DocumentoGuid = identificadorAssinatura.Value ,
                             Assinado = false,
                             CriadoEm = DateTime.UtcNow
                         };

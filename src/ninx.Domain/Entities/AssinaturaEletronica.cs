@@ -7,6 +7,7 @@
     public Guid DocumentoGuid { get; set; }
     public string? ImagemAssinatura { get; set; }
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
+    public DateTime AtualizadoEm { get; set; } = DateTime.UtcNow;
     public DateTime? DataAssinatura { get; set; }
     public string? IpAssinante { get; set; }
     public string? DispositivoInfo { get; set; }
