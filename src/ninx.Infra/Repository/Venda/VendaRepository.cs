@@ -46,11 +46,21 @@ namespace ninx.Infra.Repository
                 .OrderByDescending(v => v.CriadoEm)
                 .ToListAsync();
         }
+
         public async Task<Venda?> GetByIdAsync(int id)
         {
             return await _context.Vendas
                 .Include(v => v.ItensVenda)        
                 .Include(v => v.PagamentosVenda)    
+                .FirstOrDefaultAsync(v => v.VendaID == id);
+        }
+
+        public async Task<Venda?> GetByIdComItensAsync(int id)
+        {
+            return await _context.Vendas
+                .Include(v => v.ItensVenda)
+                .Include(v => v.PagamentosVenda)
+                .Include(v => v.AssinaturasEletronicas)
                 .FirstOrDefaultAsync(v => v.VendaID == id);
         }
 
@@ -66,9 +76,9 @@ namespace ninx.Infra.Repository
         {
             return await _context.Vendas
                 .AsNoTracking()
-                .Where(v => v.ClienteID == clienteId && v.TipoVenda == TipoVenda.Fiado)
+                .Where(v => v.ClienteID == clienteId && v.TipoVenda == TipoVenda.Fiado && v.Status != StatusVenda.Cancelada && v.Status != StatusVenda.Estornada)
                 .ToListAsync();
         }
-
     }
 }
+

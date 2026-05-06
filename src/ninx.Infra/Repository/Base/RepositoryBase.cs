@@ -14,14 +14,17 @@ namespace ninx.Infra.Repository
             _context = context;
             _dbSet = _context.Set<TEntity>();
         }
+
         public async Task<IEnumerable<TEntity>> GetAllAsync()
         {
             return await _dbSet.AsNoTracking().ToListAsync();
         }
+
         public async Task<TEntity?> GetByIdAsync(params object[] parameters)
         {
             return await _dbSet.FindAsync(parameters);
         }
+
         public async Task<TEntity> AddAsync(TEntity entity)
         {
             await _dbSet.AddAsync(entity);
@@ -33,11 +36,22 @@ namespace ninx.Infra.Repository
             _dbSet.Update(entity);
             return entity;
         }
+
         public void Delete(TEntity entity)
         {
             _dbSet.Remove(entity);
             _context.SaveChanges();
         }
 
+        public async Task AddBatchAsync(IEnumerable<TEntity> entities)
+        {
+            await _dbSet.AddRangeAsync(entities);
+        }
+
+        public async Task UpdateBatchAsync(IEnumerable<TEntity> entities)
+        {
+            _dbSet.UpdateRange(entities);
+            await Task.CompletedTask;
+        }
     }
 }

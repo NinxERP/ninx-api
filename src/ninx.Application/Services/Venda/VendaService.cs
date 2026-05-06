@@ -65,7 +65,6 @@ namespace ninx.Application.Services
 
             return vendas.Adapt<IEnumerable<VendaResponse>>();
         }
-
         public async Task<IEnumerable<VendaResponse>> GetByUsuarioIdAsync(int usuarioID)
         {
             var vendas = await _vendaRepository.GetVendasByUsuarioIdAsync(usuarioID);
@@ -77,242 +76,403 @@ namespace ninx.Application.Services
 
             return vendas.Adapt<IEnumerable<VendaResponse>>();
         }
-
         public async Task<VendaResponse> GetByVendaIdAsync(int id)
         {
-            var venda = await _vendaRepository.GetByIdAsync(id);
+            var venda = await _vendaRepository.GetByIdComItensAsync(id);
             if (venda is null)
             {
                 throw new NotFoundException("Venda não encontrada");
             }
 
-            return venda.Adapt<VendaResponse>();
-        }
-
-        public async Task<VendaResponse> CriarAsync(CriarVendaRequest request)
-        {
-            var usuario = await _usuarioRepository.GetByIdAsync(request.UsuarioID);
-            if (usuario == null || !usuario.Ativo)
-                throw new BadRequestException("Usuário inválido ou inativo.");
+            var response = venda.Adapt<VendaResponse>();
             
-            var comercio = await _comercioRepository.GetByIdAsync(request.ComercioID);
-            if (comercio == null)
-                throw new BadRequestException("Comércio inválido ou não encontrado.");
-            
-            await ValidarPermissaoUsuarioComercioAsync(request.UsuarioID, request.ComercioID);
-
-            int tentativas = 0;
-            while (tentativas < 10)
+            if (venda.AssinaturasEletronicas?.Any() == true)
             {
-                try
-                {
-                    await _unitOfWork.BeginTransactionAsync();
-
-                    var produtoIds = request.ItensVenda.Select(i => i.ProdutoID).ToList();
-                    var produtosDb = await _produtoRepository.GetProdutosById(produtoIds);
-                    var estoquesDb = await _estoqueRepository.GetByProdutosIdsAsync(produtoIds, request.ComercioID);
-
-                    decimal totalVenda = 0;
-                    var itensParaInserir = new List<ItemVenda>();
-                    var movimentacoesEstoque = new List<MovimentacaoEstoque>();
-
-                    foreach (var itemReq in request.ItensVenda)
-                    {
-                        var produto = produtosDb.FirstOrDefault(p => p.ProdutoID == itemReq.ProdutoID);
-                        var estoque = estoquesDb.FirstOrDefault(e => e.ProdutoID == itemReq.ProdutoID);
-
-                        ValidarVenda(produto, estoque, itemReq);
-
-                        var subtotal = itemReq.Quantidade * produto!.PrecoVenda;
-                        totalVenda += subtotal;
-
-                        itensParaInserir.Add(new ItemVenda
-                        {
-                            ProdutoID = produto.ProdutoID,
-                            ProdutoNome = produto.Nome,
-                            ProdutoCodigoBarras = produto.CodigoBarras,
-                            UnidadeMedida = produto.UnidadeMedida,
-                            Quantidade = itemReq.Quantidade,
-                            PrecoUnitario = produto.PrecoVenda,
-                            Subtotal = subtotal
-                        });
-
-                        estoque!.Quantidade -= itemReq.Quantidade;
-                        estoque.AtualizadoEm = DateTime.UtcNow;
-                        await _estoqueRepository.UpdateAsync(estoque);
-
-                        movimentacoesEstoque.Add(new MovimentacaoEstoque
-                        {
-                            ComercioID = request.ComercioID,
-                            ProdutoID = produto.ProdutoID,
-                            UsuarioID = request.UsuarioID,
-                            Tipo = TipoMovimentacao.Venda,
-                            Quantidade = itemReq.Quantidade,
-                            DataHora = DateTime.UtcNow
-                        });
-                    }
-
-                    decimal totalPago = request.Pagamentos?.Sum(p => p.Valor) ?? 0;
-                    bool ehFiado = request.TipoVenda == 2;
-                    Guid? identificadorAssinatura = null;
-                    if (ehFiado)
-                    {
-                        if (!request.ClienteID.HasValue)
-                            throw new BadRequestException("Para vendas fiado, é obrigatório selecionar um cliente.");
-                        if (totalPago >= totalVenda)
-                            throw new BadRequestException("Uma venda fiado não pode estar totalmente paga no ato da criação.");
-                        var cliente = await _clienteRepository.GetByIdAsync(request.ClienteID);
-                        if (cliente == null) 
-                            throw new NotFoundException("Cliente não encontrado.");
-
-                        var saldoDevedorAtual = await CalcularSaldoDevedor(request.ClienteID.Value);
-                        decimal valorFiadoDestaVenda = totalVenda - totalPago;
-
-                        if ((saldoDevedorAtual + valorFiadoDestaVenda) > cliente.LimiteCredito)
-                        {
-                            var limiteDisponivel = cliente.LimiteCredito - saldoDevedorAtual;
-                            throw new BadRequestException($"Limite excedido! O cliente já deve R$ {saldoDevedorAtual:N2}. " + $"Disponível para esta compra: R$ {limiteDisponivel:N2}");
-                        }
-                        identificadorAssinatura = Guid.NewGuid();
-                    }
-
-                    var novaVenda = new Venda
-                    {
-                        ComercioID = request.ComercioID,
-                        UsuarioID = request.UsuarioID,
-                        ClienteID = request.ClienteID,
-                        Total = totalVenda,
-                        TipoVenda = ehFiado ? TipoVenda.Fiado : TipoVenda.Normal,
-                        Status = StatusVenda.Finalizada,
-                        ItensVenda = itensParaInserir, 
-                        CriadoEm = DateTime.UtcNow,
-                        PagamentosVenda = request.Pagamentos?.Select(p => new PagamentoVenda
-                        {
-                            FormaPagamento = (FormaPagamento)p.FormaPagamento,
-                            Valor = p.Valor,
-                            DataHora = DateTime.UtcNow
-                        }).ToList() 
-                        ?? new List<PagamentoVenda>()
-                    };
-
-                    await _vendaRepository.AddAsync(novaVenda);
-
-                    if (ehFiado)
-                    {
-                        var novaAssinaturaEletronica = new AssinaturaEletronica
-                        {
-                            Venda = novaVenda,
-                            DocumentoGuid = identificadorAssinatura.Value ,
-                            Assinado = false,
-                            CriadoEm = DateTime.UtcNow
-                        };
-
-                        await _assinaturaEletronicaRepository.AddAsync(novaAssinaturaEletronica);
-                    }
-
-
-                    foreach (var mov in movimentacoesEstoque)
-                    {
-                        mov.Venda = novaVenda;
-                        await _movimentacaoEstoqueRepository.AddAsync(mov);
-                    }
-
-                    await _unitOfWork.SaveChangesAsync();
-                    await _unitOfWork.CommitAsync();
-
-                    var response = novaVenda.Adapt<VendaResponse>();
-                    if (ehFiado)
-                    {
-                        response.DocumentoGuid = identificadorAssinatura.Value;
-                    }
-                    return response;
-                }
-                catch (ConcurrencyException)
-                {
-                    await _unitOfWork.RollbackAsync();
-                    tentativas++;
-                    if (tentativas >= 10) throw;
-                    await Task.Delay(50);
-                }
-                catch (BadRequestException)
-                {
-                    await _unitOfWork.RollbackAsync();
-                    throw;
-                }
-                catch (NotFoundException)
-                {
-                    await _unitOfWork.RollbackAsync();
-                    throw;
-                }
-                catch (Exception)
-                {
-                    await _unitOfWork.RollbackAsync();
-                    throw;
-                }
+                var assinatura = venda.AssinaturasEletronicas.First();
+                response.DocumentoGuid = assinatura.DocumentoGuid;
             }
-            throw new BadRequestException("Não foi possível processar a venda devido a múltiplas tentativas de estoque.");
-        }
 
+            return response;
+        }
         public async Task EstornarAsync(int vendaId, int usuarioId)
         {
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
 
-                var venda = await _vendaRepository.GetByIdAsync(vendaId);
-                if (venda == null) 
+                var venda = await _vendaRepository.GetByIdComItensAsync(vendaId);
+                if (venda == null)
                     throw new NotFoundException("Venda não encontrada.");
 
-                if (venda.Status == StatusVenda.Cancelada)
+                if (venda.Status == StatusVenda.Cancelada || venda.Status == StatusVenda.Estornada)
                     throw new BadRequestException("Esta venda já foi estornada.");
 
                 await ValidarPermissaoUsuarioComercioAsync(usuarioId, venda.ComercioID);
 
-                foreach (var item in venda.ItensVenda)
-                {
-                    var estoque = await _estoqueRepository.GetByProdutoIdAsync(item.ProdutoID, venda.ComercioID);
+                await ProcessarEstornoEstoqueAsync(venda, usuarioId);
 
-                    if (estoque != null)
-                    {
-                        estoque.Quantidade += item.Quantidade;
-                        estoque.AtualizadoEm = DateTime.UtcNow;
-                        await _estoqueRepository.UpdateAsync(estoque);
-
-                        await _movimentacaoEstoqueRepository.AddAsync(new MovimentacaoEstoque
-                        {
-                            ComercioID = venda.ComercioID,
-                            ProdutoID = item.ProdutoID,
-                            UsuarioID = usuarioId, 
-                            VendaID = venda.VendaID,
-                            Tipo = TipoMovimentacao.Estorno,
-                            Quantidade = item.Quantidade,
-                            DataHora = DateTime.UtcNow,
-                            Observacao = $"Estorno da Venda #{venda.VendaID}"
-                        });
-                    }
-                }
-
-                venda.Status = StatusVenda.Cancelada;
+                venda.Status = StatusVenda.Estornada;
                 venda.AtualizadoEm = DateTime.UtcNow;
 
                 await _vendaRepository.UpdateAsync(venda);
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
             }
-            catch (NotFoundException)
+            catch
             {
-                await _unitOfWork.RollbackAsync();
+                await RollbackTransacaoAsync();
                 throw;
             }
-            catch (BadRequestException)
+        }
+        public async Task<VendaResponse> CriarAsync(CriarVendaRequest request)
+        {
+            ValidarRequestVenda(request);
+            var (usuario, comercio) = await ValidarDadosVendaAsync(request);
+
+            const int maxTentativas = 5;
+            for (int tentativa = 0; tentativa < maxTentativas; tentativa++)
             {
-                await _unitOfWork.RollbackAsync();
+                try
+                {
+                    await _unitOfWork.BeginTransactionAsync();
+
+                    var (venda, documentoGuid) = await ProcessarCriacaoVendaAsync(request);
+
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitAsync();
+
+                    var response = venda.Adapt<VendaResponse>();
+                    if (documentoGuid.HasValue)
+                    {
+                        response.DocumentoGuid = documentoGuid.Value;
+                    }
+                    return response;
+                }
+                catch (ConcurrencyException) when (tentativa < maxTentativas - 1)
+                {
+                    await RollbackTransacaoAsync();
+                    await Task.Delay(50);
+                }
+                catch
+                {
+                    await RollbackTransacaoAsync();
+                    throw;
+                }
+            }
+            throw new BadRequestException("Não foi possível processar a venda após múltiplas tentativas.");
+        }
+        public async Task ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, decimal valorPago, int formaPagamento)
+        {
+            if (valorPago <= 0)
+                throw new BadRequestException("O valor do pagamento deve ser maior que zero.");
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                var venda = await _vendaRepository.GetByIdComItensAsync(vendaId);
+                if (venda == null)
+                    throw new NotFoundException("Venda não encontrada.");
+
+                if (venda.TipoVenda != TipoVenda.Fiado)
+                    throw new BadRequestException("Esta venda não é do tipo fiado.");
+
+                if (venda.Status != StatusVenda.Finalizada)
+                    throw new BadRequestException("Não é possível receber pagamentos para uma venda que não está finalizada.");
+
+                await ValidarPermissaoUsuarioComercioAsync(usuarioId, venda.ComercioID);
+
+                var pagamentosAnteriores = venda.PagamentosVenda
+                    .Where(p => p.Status == StatusPagamento.Pago)
+                    .Sum(p => p.Valor);
+
+                var saldoDevedorVenda = venda.Total - pagamentosAnteriores;
+
+                if (valorPago > saldoDevedorVenda)
+                    throw new BadRequestException($"Valor informado (R$ {valorPago:N2}) é maior que o saldo devedor da venda (R$ {saldoDevedorVenda:N2}).");
+
+                var novoPagamento = new PagamentoVenda
+                {
+                    VendaID = venda.VendaID,
+                    FormaPagamento = (FormaPagamento)formaPagamento,
+                    Valor = valorPago,
+                    Status = StatusPagamento.Pago,
+                    CriadoEm = DateTime.UtcNow,
+                    UsuarioID = usuarioId,
+                };
+
+                await _pagamentoVendaRepository.AddAsync(novoPagamento);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+            }
+            catch
+            {
+                await RollbackTransacaoAsync();
                 throw;
             }
-            catch (Exception)
+        }
+        private void ValidarRequestVenda(CriarVendaRequest request)
+        {
+            if (request is null)
+                throw new BadRequestException("Dados da venda são obrigatórios.");
+
+            if (request.ItensVenda is null || !request.ItensVenda.Any())
+                throw new BadRequestException("A venda deve conter pelo menos um item.");
+
+            if (request.TipoVenda != (int)TipoVenda.Normal && request.TipoVenda != (int)TipoVenda.Fiado)
+                throw new BadRequestException("Tipo de venda inválido.");
+        }
+        private async Task<(Usuario, Comercio)> ValidarDadosVendaAsync(CriarVendaRequest request)
+        {
+            var usuario = await _usuarioRepository.GetByIdAsync(request.UsuarioID);
+            if (usuario == null || !usuario.Ativo)
+                throw new BadRequestException("Usuário inválido ou inativo.");
+
+            var comercio = await _comercioRepository.GetByIdAsync(request.ComercioID);
+            if (comercio == null)
+                throw new BadRequestException("Comércio inválido ou não encontrado.");
+
+            await ValidarPermissaoUsuarioComercioAsync(request.UsuarioID, request.ComercioID);
+            
+            return (usuario, comercio);
+        }
+        private async Task<(Venda, Guid?)> ProcessarCriacaoVendaAsync(CriarVendaRequest request)
+        {
+            var dataOperacao = DateTime.UtcNow;
+
+            var produtoIds = request.ItensVenda.Select(i => i.ProdutoID).ToList();
+            var produtosDb = await _produtoRepository.GetProdutosById(produtoIds);
+            var estoquesDb = await _estoqueRepository.GetByProdutosIdsAsync(produtoIds, request.ComercioID);
+
+            var (itensVenda, movimentacoes, totalVenda) = await PrepararItensVendaAsync(
+                request, produtosDb, estoquesDb, dataOperacao);
+
+            var pagamentos = PrepararPagamentosVenda(request, dataOperacao);
+            decimal totalPago = pagamentos.Sum(p => p.Valor);
+
+            var ehFiado = request.TipoVenda == (int)TipoVenda.Fiado;
+            Guid? identificadorAssinatura = null;
+
+            if (ehFiado)
+            {
+                identificadorAssinatura = await ValidarEPreparVendaFiadoAsync(
+                    request, totalVenda, totalPago, dataOperacao);
+            }
+
+            var venda = new Venda
+            {
+                ComercioID = request.ComercioID,
+                UsuarioID = request.UsuarioID,
+                ClienteID = request.ClienteID,
+                Total = totalVenda,
+                TipoVenda = ehFiado ? TipoVenda.Fiado : TipoVenda.Normal,
+                Status = StatusVenda.Finalizada,
+                ItensVenda = itensVenda,
+                CriadoEm = dataOperacao,
+                PagamentosVenda = pagamentos
+            };
+
+            await _vendaRepository.AddAsync(venda);
+
+            if (ehFiado && identificadorAssinatura.HasValue)
+            {
+                var assinatura = new AssinaturaEletronica
+                {
+                    Venda = venda,
+                    DocumentoGuid = identificadorAssinatura.Value,
+                    Assinado = false,
+                    CriadoEm = dataOperacao
+                };
+                await _assinaturaEletronicaRepository.AddAsync(assinatura);
+            }
+
+            foreach (var mov in movimentacoes)
+            {
+                mov.Venda = venda;
+            }
+
+            await _movimentacaoEstoqueRepository.AddBatchAsync(movimentacoes);
+
+            return (venda, identificadorAssinatura);
+        }
+        private async Task<(List<ItemVenda>, List<MovimentacaoEstoque>, decimal)> PrepararItensVendaAsync(
+            CriarVendaRequest request,
+            IEnumerable<Produto> produtosDb,
+            IEnumerable<Estoque> estoquesDb,
+            DateTime dataOperacao)
+        {
+            decimal totalVenda = 0;
+            var itensVenda = new List<ItemVenda>();
+            var movimentacoes = new List<MovimentacaoEstoque>();
+            var estoquesParaAtualizar = new List<Estoque>();
+
+            foreach (var itemReq in request.ItensVenda)
+            {
+                var produto = produtosDb.FirstOrDefault(p => p.ProdutoID == itemReq.ProdutoID);
+                var estoque = estoquesDb.FirstOrDefault(e => e.ProdutoID == itemReq.ProdutoID);
+
+                ValidarVenda(produto, estoque, itemReq);
+
+                var subtotal = itemReq.Quantidade * produto!.PrecoVenda;
+                totalVenda += subtotal;
+
+                itensVenda.Add(new ItemVenda
+                {
+                    ProdutoID = produto.ProdutoID,
+                    ProdutoNome = produto.Nome,
+                    ProdutoCodigoBarras = produto.CodigoBarras,
+                    UnidadeMedida = produto.UnidadeMedida,
+                    Quantidade = itemReq.Quantidade,
+                    PrecoUnitario = produto.PrecoVenda,
+                    Subtotal = subtotal
+                });
+
+                estoque!.Quantidade -= itemReq.Quantidade;
+                estoque.AtualizadoEm = dataOperacao;
+                estoquesParaAtualizar.Add(estoque);
+
+                movimentacoes.Add(new MovimentacaoEstoque
+                {
+                    ComercioID = request.ComercioID,
+                    ProdutoID = produto.ProdutoID,
+                    UsuarioID = request.UsuarioID,
+                    Tipo = TipoMovimentacao.Venda,
+                    Quantidade = itemReq.Quantidade,
+                    DataHora = dataOperacao
+                });
+            }
+
+            await _estoqueRepository.UpdateBatchAsync(estoquesParaAtualizar);
+
+            return (itensVenda, movimentacoes, totalVenda);
+        }
+        private List<PagamentoVenda> PrepararPagamentosVenda(CriarVendaRequest request, DateTime dataOperacao)
+        {
+            return request.Pagamentos?.Select(p => new PagamentoVenda
+            {
+                FormaPagamento = (FormaPagamento)p.FormaPagamento,
+                Valor = p.Valor,
+                CriadoEm = dataOperacao
+            }).ToList() ?? new List<PagamentoVenda>();
+        }
+        private async Task<Guid> ValidarEPreparVendaFiadoAsync(
+            CriarVendaRequest request,
+            decimal totalVenda,
+            decimal totalPago,
+            DateTime dataOperacao)
+        {
+            if (!request.ClienteID.HasValue)
+                throw new BadRequestException("Para vendas fiado, é obrigatório selecionar um cliente.");
+
+            if (totalPago >= totalVenda)
+                throw new BadRequestException("Uma venda fiado não pode estar totalmente paga no ato da criação.");
+
+            var cliente = await _clienteRepository.GetByIdAsync(request.ClienteID);
+            if (cliente == null)
+                throw new NotFoundException("Cliente não encontrado.");
+
+            var saldoDevedorAtual = await CalcularSaldoDevedorAsync(request.ClienteID.Value);
+            decimal valorFiadoDestaVenda = totalVenda - totalPago;
+
+            if ((saldoDevedorAtual + valorFiadoDestaVenda) > cliente.LimiteCredito)
+            {
+                var limiteDisponivel = cliente.LimiteCredito - saldoDevedorAtual;
+                throw new BadRequestException(
+                    $"Limite excedido! O cliente já deve R$ {saldoDevedorAtual:N2}. " +
+                    $"Disponível para esta compra: R$ {limiteDisponivel:N2}");
+            }
+
+            return Guid.NewGuid();
+        }
+        private async Task RollbackTransacaoAsync()
+        {
+            try
             {
                 await _unitOfWork.RollbackAsync();
-                throw;
+            }
+            catch
+            {
+                // Log ou ignorar erro de rollback
+            }
+        }
+        private async Task ProcessarEstornoEstoqueAsync(Venda venda, int usuarioId)
+        {
+            var dataOperacao = DateTime.UtcNow;
+
+            var produtoIds = venda.ItensVenda.Select(i => i.ProdutoID).ToList();
+            var estoquesDb = await _estoqueRepository.GetByProdutosIdsAsync(produtoIds, venda.ComercioID);
+
+            var estoquesParaAtualizar = new List<Estoque>();
+            var movimentacoesParaInserir = new List<MovimentacaoEstoque>();
+            var assinaturasParaAtualizar = new List<AssinaturaEletronica>();
+
+            foreach (var item in venda.ItensVenda)
+            {
+                var estoque = estoquesDb.FirstOrDefault(e => e.ProdutoID == item.ProdutoID);
+
+                if (estoque == null)
+                    throw new NotFoundException($"Estoque não encontrado para o produto {item.ProdutoNome} no estorno.");
+
+                estoque.Quantidade += item.Quantidade;
+                estoque.AtualizadoEm = dataOperacao;
+                estoquesParaAtualizar.Add(estoque);
+
+                movimentacoesParaInserir.Add(new MovimentacaoEstoque
+                {
+                    ComercioID = venda.ComercioID,
+                    ProdutoID = item.ProdutoID,
+                    UsuarioID = usuarioId,
+                    VendaID = venda.VendaID,
+                    Tipo = TipoMovimentacao.Estorno,
+                    Quantidade = item.Quantidade,
+                    DataHora = dataOperacao,
+                    Observacao = $"Estorno da Venda #{venda.VendaID}"
+                });
+            }
+
+            var estornosParaInserir = new List<PagamentoVenda>();
+            foreach (var pagamento in venda.PagamentosVenda.Where(p => p.Status == StatusPagamento.Pago))
+            {
+                estornosParaInserir.Add(new PagamentoVenda
+                {
+                    VendaID = venda.VendaID,
+                    FormaPagamento = pagamento.FormaPagamento,
+                    Valor = -pagamento.Valor,
+                    Status = StatusPagamento.Estornado,
+                    CriadoEm = dataOperacao,
+                    PagamentoVinculoID = pagamento.PagamentoID,
+                    UsuarioID = usuarioId
+                });
+
+                pagamento.Status = StatusPagamento.Estornado;
+                pagamento.AtualizadoEm = dataOperacao;
+            }
+
+            if (venda.AssinaturasEletronicas?.Any() == true)
+            {
+                foreach (var assinatura in venda.AssinaturasEletronicas)
+                {
+                    assinatura.Status = StatusAssinatura.Cancelada;
+                    assinatura.AtualizadoEm = dataOperacao;
+                    assinaturasParaAtualizar.Add(assinatura);
+                }
+            }
+
+            await _estoqueRepository.UpdateBatchAsync(estoquesParaAtualizar);
+            await _movimentacaoEstoqueRepository.AddBatchAsync(movimentacoesParaInserir);
+
+            if (estornosParaInserir.Any())
+            {
+                await _pagamentoVendaRepository.AddBatchAsync(estornosParaInserir);
+            }
+
+            if (venda.PagamentosVenda.Any())
+            {
+                await _pagamentoVendaRepository.UpdateBatchAsync(venda.PagamentosVenda.ToList());
+            }
+
+            if (assinaturasParaAtualizar.Any())
+            {
+                await _assinaturaEletronicaRepository.UpdateBatchAsync(assinaturasParaAtualizar);
             }
         }
         private void ValidarVenda(Produto? produto, Estoque? estoque, ItemVendaRequest item)
@@ -339,30 +499,32 @@ namespace ninx.Application.Services
                     $"Solicitado: {item.Quantidade:N3}, Disponível: {estoque.Quantidade:N3}.");
             }
         }
-
         private async Task ValidarPermissaoUsuarioComercioAsync(int usuarioId, int comercioId)
         {
             var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
             if (!usuarioComercio.Any(x => x.ComercioID == comercioId))
                 throw new BadRequestException("Este usuário não tem permissão para acessar este comércio.");
         }
-
-        private async Task<decimal> CalcularSaldoDevedor(int? clienteId)
+        private async Task<decimal> CalcularSaldoDevedorAsync(int clienteId)
         {
             var vendasFiadoCliente = await _vendaRepository.GetVendasFiadoByClienteIDAsync(clienteId);
-            var valorTotalPago = await _pagamentoVendaRepository.GetPagamentosFiadosByClienteIdAsync(clienteId);
+            var vendasAtivas = vendasFiadoCliente.Where(v => v.Status == StatusVenda.Finalizada).ToList();
 
-            decimal saldoDevedorTotal = 0;
-            foreach (var venda in vendasFiadoCliente)
+            if (!vendasAtivas.Any())
+                return 0m;
+
+            var pagamentosValidos = await _pagamentoVendaRepository.GetPagamentosFiadosByClienteIdAsync(clienteId);
+
+            var pagamentosPorVenda = pagamentosValidos
+                .Where(p => p.Status == StatusPagamento.Pago)
+                .GroupBy(p => p.VendaID)
+                .ToDictionary(g => g.Key, g => g.Sum(p => p.Valor));
+
+            return vendasAtivas.Sum(venda =>
             {
-                    var totalJaPagoDestaVenda = valorTotalPago
-                        .Where(p => p.VendaID == venda.VendaID)
-                        .Sum(p => p.Valor);
-
-                    var saldoDestaVenda = venda.Total - totalJaPagoDestaVenda;
-                    saldoDevedorTotal += saldoDestaVenda;
-            }
-            return saldoDevedorTotal;
+                pagamentosPorVenda.TryGetValue(venda.VendaID, out var totalPago);
+                return venda.Total - totalPago;
+            });
         }
     }
 }

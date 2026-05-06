@@ -13,13 +13,5 @@ namespace ninx.Infra.Repository
         {
             _context = context;
         }
-
-        public async Task<IEnumerable<PagamentoVenda>> GetPagamentosFiadosByClienteIdAsync(int? clienteId)
-        {
-            return await _context.PagamentoVendas
-            .Include(p => p.Venda)
-            .Where(p => p.FormaPagamento == FormaPagamento.Fiado && p.Venda.ClienteID == clienteId)
-            .ToListAsync();
-        }
     }
 }
