@@ -1,10 +1,7 @@
-﻿using ninx.Application.Interfaces.Services;
-using ninx.Communication.Request;
+﻿using ninx.Communication.Request;
 using ninx.Communication.Response;
-using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
-using ninx.Domain.Interfaces.Services;
 
 namespace ninx.Application.Services
 {
@@ -30,7 +27,6 @@ namespace ninx.Application.Services
             }
 
             var usuarioComercios = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuario.UsuarioID);
-
             if (usuarioComercios == null || !usuarioComercios.Any())
             {
                 throw new ForbiddenException("Este usuário não possui nenhum comércio vinculado.");
@@ -50,15 +46,17 @@ namespace ninx.Application.Services
                 var unico = usuarioComercios.First();
                 return new LoginResponse { Token = _jwtTokenService.GerarToken(usuario, unico.ComercioID, unico.Permissao) };
             }
-
-            return new LoginResponse
+            else
             {
-                Comercios = usuarioComercios.Select(x => new ComercioSimplificado
+                return new LoginResponse
                 {
-                    ComercioID = x.ComercioID,
-                    Nome = x.NomeComercio
-                }).ToList()
-            };
+                    Comercios = usuarioComercios.Select(x => new ComercioSimplificado
+                    {
+                        ComercioID = x.ComercioID,
+                        Nome = x.Comercio.NomeComercio
+                    }).ToList()
+                };
+            }
         }
     }
 }

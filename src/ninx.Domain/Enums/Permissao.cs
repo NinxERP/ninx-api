@@ -2,7 +2,7 @@
 {
     public enum Permissao
     {
-        Admin = 1,
+        Administrador = 1,
         Dono = 2,
         Funcionario = 3
     }

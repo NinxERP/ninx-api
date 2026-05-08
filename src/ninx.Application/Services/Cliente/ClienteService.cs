@@ -1,5 +1,4 @@
 ﻿using Mapster;
-using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
@@ -18,24 +17,24 @@ namespace ninx.Application.Services
             _clienteRepository = clienteRepository;
             _unitOfWork = unitOfWork;
         }
-        public async Task<IEnumerable<ClienteResponse>> GetAll()
+        public async Task<IEnumerable<ClienteResponse>> GetAllByComercioId(int comercioId)
         {
             var clientes = await _clienteRepository.GetAllAsync();
-            return clientes.Adapt<IEnumerable<ClienteResponse>>();
+            return clientes.Where(x => x.ComercioID == comercioId).Adapt<IEnumerable<ClienteResponse>>();
         }
 
-        public async Task<IEnumerable<ClienteResponse>> GetByClienteId(int clienteId)
+        public async Task<IEnumerable<ClienteResponse>> GetByIdAsync(int clienteId, int comercioId)
         {
             var clientes = await _clienteRepository.GetByIdAsync(clienteId);
-            if (clientes == null)
-            throw new NotFoundException("Cliente não encontrado.");
-            
+            if (clientes == null) throw new NotFoundException("Cliente não encontrado.");
+            if (clientes.ComercioID != comercioId) throw new NotFoundException("Cliente não pertence ao seu comercio.");
             return clientes.Adapt<IEnumerable<ClienteResponse>>();
         }
 
-        public async Task<ClienteResponse> CriarAsync(ClienteRequest request)
+        public async Task<ClienteResponse> CriarAsync(ClienteRequest request, int comercioId)
         {
             var cliente = request.Adapt<Cliente>();
+            cliente.ComercioID = comercioId;
 
             await _clienteRepository.AddAsync(cliente);
             await _unitOfWork.SaveChangesAsync();
@@ -43,12 +42,12 @@ namespace ninx.Application.Services
             return cliente.Adapt<ClienteResponse>();
         }
 
-        public async Task<ClienteResponse> AtualizarAsync(int id, int usuarioLogadoId, ClienteRequest request)
+        public async Task<ClienteResponse> AtualizarAsync(int id, int usuarioLogadoId, ClienteRequest request, int comercioId)
         {
             var cliente = await _clienteRepository.GetByIdAsync(id);
 
-            if (cliente == null)
-                throw new NotFoundException("Cliente não encontrado.");
+            if (cliente == null) throw new NotFoundException("Cliente não encontrado.");
+            if (cliente.ComercioID != comercioId) throw new NotFoundException("Cliente não pertence ao seu comercio.");
 
             request.Adapt(cliente);
             cliente.AtualizadoEm = DateTime.UtcNow;
@@ -59,26 +58,17 @@ namespace ninx.Application.Services
             return cliente.Adapt<ClienteResponse>();
         }
 
-        public async Task DesativarAsync(int id)
+        public async Task DesativarAsync(int id, int comercioId)
         {
             var cliente = await _clienteRepository.GetByIdAsync(id);
-            if (cliente == null)
-                throw new NotFoundException("Cliente não encontrado.");
+            if (cliente == null) throw new NotFoundException("Cliente não encontrado.");
+            if (cliente.ComercioID != comercioId) throw new NotFoundException("Cliente não pertence ao seu comercio.");
 
             cliente.Ativo = false;
             cliente.AtualizadoEm = DateTime.UtcNow;
 
             await _clienteRepository.UpdateAsync(cliente);
             await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task<ClienteResponse> GetByIdAsync(int id)
-        {
-            var cliente = await _clienteRepository.GetByIdAsync(id);
-            if (cliente == null)
-                throw new NotFoundException("Cliente não encontrado.");
-
-            return cliente.Adapt<ClienteResponse>();
         }
     }
 }

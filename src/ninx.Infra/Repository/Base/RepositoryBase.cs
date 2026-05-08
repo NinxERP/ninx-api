@@ -17,7 +17,8 @@ namespace ninx.Infra.Repository
 
         public async Task<IEnumerable<TEntity>> GetAllAsync()
         {
-            return await _dbSet.AsNoTracking().ToListAsync();
+            return await _dbSet.AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<TEntity?> GetByIdAsync(params object[] parameters)

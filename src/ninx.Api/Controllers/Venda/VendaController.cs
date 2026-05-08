@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ninx.Application.Interfaces.Services;
+using ninx.Application.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 
@@ -64,6 +64,23 @@ namespace ninx.Api.Controllers
         {
             var usuarioId = GetUsuarioId();
             await _vendaService.EstornarAsync(vendaId, usuarioId);
+            return NoContent();
+        }
+
+        [HttpPost("{vendaId}/pagamento-fiado")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ReceberPagamentoFiado(int vendaId, [FromBody] ReceberPagamentoFiadoRequest request)
+        {
+            var usuarioId = GetUsuarioId();
+
+            await _vendaService.ReceberPagamentoFiadoAsync(
+                vendaId,
+                usuarioId,
+                request.ValorPago,
+                request.FormaPagamento);
+
             return NoContent();
         }
     }

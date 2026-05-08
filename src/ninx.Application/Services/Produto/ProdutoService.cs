@@ -4,7 +4,6 @@ using ninx.Communication.Response;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
-using ninx.Domain.Interfaces.Services;
 
 namespace ninx.Application.Services
 {
@@ -53,7 +52,7 @@ namespace ninx.Application.Services
         public async Task<ProdutoResponse> AtualizarAsync(int id, int comercioId, AtualizarProdutoRequest request)
         {
             var produto = await _produtoRepository.GetByIdAndComercioAsync(id, comercioId)
-                ?? throw new NotFoundException("Produto não encontrado ou acesso negado.");
+                ?? throw new NotFoundException("Produto não encontrado.");
 
             request.Adapt(produto);
             produto.AtualizadoEm = DateTime.UtcNow;
@@ -89,9 +88,9 @@ namespace ninx.Application.Services
             return produtos.Adapt<IEnumerable<ProdutoResponse>>();
         }
 
-        public async Task<ProdutoResponse> GetByIdAsync(int id)
+        public async Task<ProdutoResponse> GetByIdAsync(int id, int comercioId)
         {
-            var produtos = await _produtoRepository.GetByIdAsync(id);
+            var produtos = await _produtoRepository.GetByIdAndComercioAsync(id, comercioId);
             if (produtos == null)
             {
                 throw new NotFoundException("Produto não encontrado");

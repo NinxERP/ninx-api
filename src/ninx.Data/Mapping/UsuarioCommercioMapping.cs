@@ -18,10 +18,6 @@ public class UsuarioComercioMapping : IEntityTypeConfiguration<UsuarioComercio>
             .HasMaxLength(20)
             .HasConversion<string>();
 
-        builder.Property(x => x.NomeComercio)
-            .IsRequired()
-            .HasMaxLength(100);
-
         builder.Property(x => x.Ativo)
             .HasDefaultValue(true);
 

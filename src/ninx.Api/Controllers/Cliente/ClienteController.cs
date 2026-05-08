@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ninx.Application.Interfaces.Services;
+using ninx.Application.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 
@@ -23,16 +23,18 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ClienteResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll()
         {
-            var clientes = await _clienteService.GetAll();
+            var comercioId = GetComercioId();
+            var clientes = await _clienteService.GetAllByComercioId(comercioId);
             return Ok(clientes);
         }
 
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ClienteResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(int clienteId)
         {
-            var cliente = await _clienteService.GetByIdAsync(id);
+            var comercioId = GetComercioId();
+            var cliente = await _clienteService.GetByIdAsync(clienteId, comercioId);
             return Ok(cliente);
         }
 
@@ -41,7 +43,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Criar([FromBody] ClienteRequest request)
         {
-            var cliente = await _clienteService.CriarAsync(request);
+            var comercioId = GetComercioId();
+            var cliente = await _clienteService.CriarAsync(request, comercioId);
             return CreatedAtAction(nameof(GetById), new { id = cliente.ClienteID }, cliente);
         }
 
@@ -51,7 +54,8 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> Atualizar(int id, [FromBody] ClienteRequest request)
         {
             var usuarioId = GetUsuarioId();
-            var cliente = await _clienteService.AtualizarAsync(id, usuarioId, request);
+            var comercioId = GetComercioId();
+            var cliente = await _clienteService.AtualizarAsync(id, usuarioId, request, comercioId);
             return Ok(cliente);
         }
 
@@ -60,7 +64,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Desativar(int id)
         {
-            await _clienteService.DesativarAsync(id);
+            var comercioId = GetComercioId();
+            await _clienteService.DesativarAsync(id, comercioId);
             return NoContent();
         }
     }

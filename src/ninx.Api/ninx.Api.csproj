@@ -23,4 +23,8 @@
     <ProjectReference Include="..\ninx.Ioc\ninx.Ioc.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Validators\" />
+  </ItemGroup>
+
 </Project>

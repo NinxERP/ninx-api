@@ -1,5 +1,4 @@
 ﻿using Mapster;
-using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
@@ -513,7 +512,7 @@ namespace ninx.Application.Services
             if (!vendasAtivas.Any())
                 return 0m;
 
-            var pagamentosValidos = await _pagamentoVendaRepository.GetPagamentosFiadosByClienteIdAsync(clienteId);
+            var pagamentosValidos = await _pagamentoVendaRepository.GetByClienteId(clienteId);
 
             var pagamentosPorVenda = pagamentosValidos
                 .Where(p => p.Status == StatusPagamento.Pago)

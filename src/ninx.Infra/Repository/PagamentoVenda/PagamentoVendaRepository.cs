@@ -13,5 +13,11 @@ namespace ninx.Infra.Repository
         {
             _context = context;
         }
+        public async Task <IEnumerable<PagamentoVenda>> GetByClienteId(int ClientID)
+        {
+            return await _context.PagamentoVendas
+                .Where(p => p.Venda.ClienteID == ClientID)
+                .ToListAsync();
+        }
     }
 }

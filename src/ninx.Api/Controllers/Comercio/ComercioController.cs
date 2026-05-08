@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ninx.Application.Interfaces.Services;
+using ninx.Application.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
-using ninx.Domain.Entities;
 
 
 namespace ninx.Api.Controllers
@@ -50,9 +49,10 @@ namespace ninx.Api.Controllers
         [HttpPut("{comercioId}")]
         [ProducesResponseType(typeof(ComercioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Atualizar(int comercioId, [FromBody] ComercioRequest request)
+        public async Task<IActionResult> Atualizar([FromBody] ComercioRequest request)
         {
             var usuarioID = GetUsuarioId();
+            var comercioId = GetComercioId();
             var result = await _comercioService.AtualizarAsync(comercioId, usuarioID, request);
             return Ok(result);
         }
@@ -62,7 +62,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Desativar(int comercioId)
         {
-            await _comercioService.DesativarAsync(comercioId);
+            var usuarioIdLogado = GetUsuarioId();
+            await _comercioService.DesativarAsync(comercioId, usuarioIdLogado);
             return NoContent();
         }
     }

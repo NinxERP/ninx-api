@@ -1,8 +1,8 @@
 ﻿using Mapster;
-using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
+using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
 
@@ -57,6 +57,29 @@ namespace ninx.Application.Services
             };
             await _usuarioComercioRepository.AddAsync(usuarioComercio);
             await _unitOfWork.SaveChangesAsync();
+            return usuarioComercio.Adapt<UsuarioComercioResponse>();
+        }
+
+        public async Task<UsuarioComercioResponse> AtualizarAsync(AtualizarUsuarioComercioRequest request, Permissao usuarioLogadoPermissao)
+        {
+            if (usuarioLogadoPermissao == Permissao.Funcionario) throw new ForbiddenException("Funcionários não possuem permissão para atualizar vínculos.");
+
+            var comerciosPorUsuario = await _usuarioComercioRepository.GetByUsuarioIdAsync(request.UsuarioID);
+            var usuarioComercio = comerciosPorUsuario.FirstOrDefault(x => x.ComercioID == request.ComercioID);
+            if (usuarioComercio == null) throw new NotFoundException("Vínculo entre usuário e comércio não encontrado.");
+
+            if (request.Permissao != 0 && usuarioComercio.Permissao != (Permissao)request.Permissao)
+            {
+                if (!Enum.IsDefined(typeof(Permissao), request.Permissao)) throw new BadRequestException($"A permissão não foi informada ou está invalida");
+                if (usuarioLogadoPermissao != Permissao.Administrador) throw new ForbiddenException("Apenas administradores podem alterar o nível de permissão.");
+                usuarioComercio.Permissao = (Permissao)request.Permissao;
+            }
+
+            if (request.Ativo.HasValue) usuarioComercio.Ativo = request.Ativo.Value;
+
+            await _usuarioComercioRepository.UpdateAsync(usuarioComercio);
+            await _unitOfWork.SaveChangesAsync();
+
             return usuarioComercio.Adapt<UsuarioComercioResponse>();
         }
 

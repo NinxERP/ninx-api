@@ -5,7 +5,6 @@ using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
-using ninx.Domain.Interfaces.Services;
 
 namespace ninx.Application.Services
 {
@@ -21,13 +20,41 @@ namespace ninx.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<UsuarioResponse> GetByIdAsync(int id)
+        public async Task<UsuarioResponse> GetById(int id, int usuarioIdLogado)
+        {
+            var usuarioLogado = await _usuarioRepository.GetByIdAsync(usuarioIdLogado);
+            if (usuarioLogado.Permissao != Permissao.Administrador) throw new UnauthorizedException("Você não possui permissão para utilizar esse endpoint");
+
+            var usuario = await _usuarioRepository.GetByIdAsync(id);
+            if (usuario is null) throw new NotFoundException("Usuário não encontrado");
+
+            return usuario.Adapt<UsuarioResponse>();
+        }
+
+        public async Task<UsuarioResponse> GetAll(int usuarioIdLogado)
+        {
+            var usuarioLogado = await _usuarioRepository.GetByIdAsync(usuarioIdLogado);
+            if (usuarioLogado.Permissao != Permissao.Administrador) throw new UnauthorizedException("Você não possui permissão para utilizar esse endpoint");
+
+            var usuarios = await _usuarioRepository.GetAllAsync();
+            if (usuarios is null) throw new NotFoundException("Nenhum usuário foi encontrado");
+
+            return usuarios.Adapt<UsuarioResponse>();
+        }
+
+        public async Task<UsuarioResponse> GetAllByComercioId(int comercioId)
+        {
+            var usuarios = await _usuarioRepository.GetAllByComercioIdAsync(comercioId);
+            if (usuarios is null) throw new NotFoundException("Nenhum usuário foi encontrado");
+
+            return usuarios.Adapt<UsuarioResponse>();
+        }
+
+        public async Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioid)
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
-            if (usuario is null)
-            {
-                throw new NotFoundException("Usuário não encontrado");
-            }
+            if (usuario is null) throw new NotFoundException("Usuário não encontrado");
+
             return usuario.Adapt<UsuarioResponse>();
         }
 
@@ -35,25 +62,15 @@ namespace ninx.Application.Services
             CriarUsuarioRequest request,
             int executorId,
             Permissao permissao,
-            int? executorComercioId)
+            int? comercioIdLogado)
         {
-            if (permissao == Permissao.Funcionario)
-            {
-                throw new ForbiddenException("Funcionários não podem cadastrar novos usuários.");
-            }
 
-            if (permissao == Permissao.Dono)
-            {
-                request.ComercioId = executorComercioId ?? throw new BadRequestException("Contexto de comércio inválido.");
-
-                request.Permissao = 3;
-            }
+            if (request.ComercioId == comercioIdLogado) throw new BadRequestException("Contexto de comércio inválido.");
+            if (permissao == Permissao.Funcionario) throw new ForbiddenException("Funcionários não podem cadastrar novos usuários.");
+            if (permissao == Permissao.Dono) request.Permissao = (int)Permissao.Funcionario;
 
             var existente = await _usuarioRepository.GetUsuarioByEmail(request.Email);
-            if (existente != null)
-            {
-                throw new BadRequestException("E-mail já cadastrado.");
-            }
+            if (existente != null) throw new BadRequestException("E-mail já cadastrado.");
                 
             var novoUsuario = request.Adapt<Usuario>();
             novoUsuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha);
@@ -68,32 +85,32 @@ namespace ninx.Application.Services
             };
 
             await _usuarioComercioRepository.AddAsync(vinculo);
-
             await _unitOfWork.SaveChangesAsync();
 
             return novoUsuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request)
+        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int comercioId)
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
-            if (usuario is null)
-            {
-                throw new NotFoundException("Usuario não encontrado");
-            }
+            if (usuario is null) throw new NotFoundException("Usuario não encontrado");
+            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(id);
+            if (usuarioComercio.Any(x => x.ComercioID == comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
 
             request.Adapt(usuario);
-
             await _usuarioRepository.UpdateAsync(usuario);
             await _unitOfWork.SaveChangesAsync();
             return usuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task DesativarAsync(int id)
+        public async Task DesativarAsync(int id, int comercioId)
         {
-            var usuario = await _usuarioRepository.GetByIdAsync(id)
-                ?? throw new NotFoundException("Usuário não encontrado.");
+            var usuario = await _usuarioRepository.GetByIdAsync(id);
+            if (usuario == null) throw new NotFoundException("Usuário não encontrado.");
+            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(id);
+            if (usuarioComercio.Any(x => x.ComercioID == comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
 
+            
             usuario.Ativo = false;
             usuario.AtualizadoEm = DateTime.UtcNow;
             await _usuarioRepository.UpdateAsync(usuario);

@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using ninx.Application.Interfaces.Services;
 using ninx.Application.Services;
-using ninx.Domain.Interfaces.Services;
+using ninx.Application.Services.TrocarComercio;
 
 namespace ninx.Ioc.Extensions
 {

@@ -2,7 +2,6 @@
 using Microsoft.IdentityModel.Tokens;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
-using ninx.Domain.Interfaces.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;

@@ -1,5 +1,4 @@
 ﻿using Mapster;
-using ninx.Application.Interfaces.Services;
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
@@ -11,9 +10,6 @@ namespace ninx.Application.Services
     {
         private readonly IAssinaturaEletronicaRepository _assinaturaEletronicaRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IVendaRepository _vendaRepository;
-        private readonly IItemVendaRepository _itemVendaRepository;
-        private readonly IClienteRepository _clienteRepository;
         public AssinaturaEletronicaService
             (IAssinaturaEletronicaRepository assinaturaEletronicaRepository, 
             IUnitOfWork unitOfWork)

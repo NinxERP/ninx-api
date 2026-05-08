@@ -1,5 +1,4 @@
 ﻿using Mapster;
-using ninx.Application.Interfaces.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
@@ -13,13 +12,15 @@ namespace ninx.Application.Services
     {
         private readonly IComercioRepository _comercioRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IUsuarioComercioRepository _usuarioComercioRepository; 
+        private readonly IUsuarioComercioRepository _usuarioComercioRepository;
+        private readonly IUsuarioRepository _usuarioRepository;
 
-        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercio)
+        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IUsuarioRepository usuarioRepository)
         {
             _comercioRepository = comercioRepository;
             _unitOfWork = unitOfWork;
-            _usuarioComercioRepository = usuarioComercio;
+            _usuarioComercioRepository = usuarioComercioRepository;
+            _usuarioRepository = usuarioRepository;
         }
 
         public async Task<IEnumerable<ComercioResponse>> GetAll()
@@ -27,7 +28,14 @@ namespace ninx.Application.Services
             var comercios = await _comercioRepository.GetAllAsync();
             return comercios.Adapt<IEnumerable<ComercioResponse>>();
         }
+        public async Task<ComercioResponse> GetByIdAsync(int id)
+        {
+            var comercio = await _comercioRepository.GetByIdAsync(id);
+            if (comercio == null)
+                throw new NotFoundException("Comércio não encontrado.");
 
+            return comercio.Adapt<ComercioResponse>();
+        }
         public async Task<IEnumerable<ComercioResponse>> GetByUsuarioId(int usuarioId)
         {
             var comercios = await _comercioRepository.GetByUsuarioId(usuarioId);
@@ -47,13 +55,11 @@ namespace ninx.Application.Services
         public async Task<ComercioResponse> AtualizarAsync(int id, int usuarioLogadoId, ComercioRequest request)
         {
             var comercio = await _comercioRepository.GetByIdAsync(id);
-
-            if (comercio == null)
-                throw new NotFoundException("Comércio não encontrado.");
+            if (comercio == null) throw new NotFoundException("Comércio não encontrado.");
 
             var usuarioComercio = await _usuarioComercioRepository.GetByComercioIdAsync(comercio.ComercioID);
             var vinculoLogado = usuarioComercio.FirstOrDefault(x => x.UsuarioID == usuarioLogadoId);
-            if (vinculoLogado == null || (vinculoLogado.Permissao != Permissao.Admin && vinculoLogado.Permissao != Permissao.Dono))
+            if (vinculoLogado == null || (vinculoLogado.Permissao != Permissao.Administrador && vinculoLogado.Permissao != Permissao.Dono))
             {
                 throw new UnauthorizedException("Acesso negado.");
             }
@@ -67,11 +73,13 @@ namespace ninx.Application.Services
             return comercio.Adapt<ComercioResponse>();
         }
 
-        public async Task DesativarAsync(int id)
+        public async Task DesativarAsync(int id, int usuarioIdLogado)
         {
+
+            var usuario = await _usuarioRepository.GetByIdAsync(usuarioIdLogado);
+            if (usuario.Permissao != Permissao.Administrador) throw new UnauthorizedException("Você não tem permissão pra excluir comercios");
             var comercio = await _comercioRepository.GetByIdAsync(id);
-            if (comercio == null)
-                throw new NotFoundException("Comércio não encontrado.");
+            if (comercio == null) throw new NotFoundException("Comércio não encontrado.");
 
             comercio.Ativo = false;
             comercio.AtualizadoEm = DateTime.UtcNow;
@@ -80,13 +88,5 @@ namespace ninx.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
-        public async Task<ComercioResponse> GetByIdAsync(int id)
-        {
-            var comercio = await _comercioRepository.GetByIdAsync(id);
-            if (comercio == null)
-                throw new NotFoundException("Comércio não encontrado.");
-
-            return comercio.Adapt<ComercioResponse>();
-        }
     }
 }

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ninx.Application.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
-using ninx.Domain.Interfaces.Services;
 
 namespace ninx.Api.Controllers
 {
@@ -18,11 +18,12 @@ namespace ninx.Api.Controllers
             _produtoService = produtoService;
         }
 
-        [HttpGet("comercio/{comercioId}")]
+        [HttpGet("GetAll")]
         [ProducesResponseType(typeof(IEnumerable<ProdutoResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAllByComercio(int comercioId)
+        public async Task<IActionResult> GetAllByComercio()
         {
+            var comercioId = GetComercioId();
             var produtos = await _produtoService.GetProdutosByComercioIdAsync(comercioId);
             return Ok(produtos);
         }
@@ -32,25 +33,28 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int id)
         {
-            var produto = await _produtoService.GetByIdAsync(id);
+            var comercioId = GetComercioId();
+            var produto = await _produtoService.GetByIdAsync(id, comercioId);
             return Ok(produto);
         }
 
-        [HttpGet("comercio/{comercioId}/codigo-barras/{codigoBarras}")]
+        [HttpGet("codigo-barras/{codigoBarras}")]
         [ProducesResponseType(typeof(ProdutoResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetByCodigoBarras(int comercioId, string codigoBarras)
+        public async Task<IActionResult> GetByCodigoBarras(string codigoBarras)
         {
+            var comercioId = GetComercioId();
             var produto = await _produtoService.GetByCodigoBarrasAsync(comercioId, codigoBarras);
             return Ok(produto);
         }
 
-        [HttpGet("comercio/{comercioId}/buscar")]
+        [HttpGet("produto/{nomeProduto}")]
         [ProducesResponseType(typeof(IEnumerable<ProdutoResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetByNome(int comercioId, [FromQuery] string nome)
+        public async Task<IActionResult> GetByNome(string nomeProduto)
         {
-            var produtos = await _produtoService.GetByNomeAsync(comercioId, nome);
+            var comercioId = GetComercioId();
+            var produtos = await _produtoService.GetByNomeAsync(comercioId, nomeProduto);
             return Ok(produtos);
         }
 

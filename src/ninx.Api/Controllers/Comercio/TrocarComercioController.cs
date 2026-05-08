@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ninx.Application.Interfaces.Services;
-using ninx.Communication.Request;
-using System.Security.Claims;
+using ninx.Application.Services;
 
-namespace ninx.Api.Controllers
+namespace ninx.Api.Controllers  
 {
     [ApiController]
     [Route("api/[controller]")]

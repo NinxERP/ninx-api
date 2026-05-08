@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ninx.Application.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
-using ninx.Domain.Interfaces.Services;
 
 namespace ninx.Api.Controllers
 {
@@ -19,14 +19,46 @@ namespace ninx.Api.Controllers
             _usuarioService = usuarioService;
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("NoComercioId/{id}")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int id)
         {
-            var usuario = await _usuarioService.GetByIdAsync(id);
+            var usuarioIdLogado = GetUsuarioId();
+            var usuario = await _usuarioService.GetById(id, usuarioIdLogado);
             return Ok(usuario);
         }
+
+        [HttpGet("NoComercioId/All")]
+        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetAll()
+        {
+            var usuarioIdLogado = GetUsuarioId();
+            var usuario = await _usuarioService.GetAll(usuarioIdLogado);
+            return Ok(usuario);
+        }
+
+        [HttpGet("All")]
+        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetAllByComercioId()
+        {
+            var comercioId = GetComercioId();
+            var usuario = await _usuarioService.GetAllByComercioId(comercioId);
+            return Ok(usuario);
+        }
+
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetByIdAndComercioIdAsync(int id)
+        {
+            var comercioId = GetComercioId();
+            var usuario = await _usuarioService.GetByIdAndComercioIdAsync(id, comercioId);
+            return Ok(usuario);
+        }
+
 
         [HttpPost]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status201Created)]
@@ -46,7 +78,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Atualizar(int id, [FromBody] AtualizarUsuarioRequest request)
         {
-            var usuario = await _usuarioService.AtualizarAsync(id, request);
+            var comercioId = GetComercioId();
+            var usuario = await _usuarioService.AtualizarAsync(id, request, comercioId);
             return Ok(usuario);
         }
 
@@ -55,7 +88,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Desativar(int id)
         {
-            await _usuarioService.DesativarAsync(id);
+            var comercioId = GetComercioId();
+            await _usuarioService.DesativarAsync(id, comercioId);
             return NoContent();
         }
     }

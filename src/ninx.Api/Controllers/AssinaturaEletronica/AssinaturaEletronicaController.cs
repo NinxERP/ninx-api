@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ninx.Application.Interfaces.Services;
+using ninx.Application.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 

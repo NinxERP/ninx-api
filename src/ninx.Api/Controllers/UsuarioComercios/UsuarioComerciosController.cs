@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ninx.Application.Interfaces.Services;
+using ninx.Application.Services;
 using ninx.Communication.Request;
 using ninx.Communication.Response;
 
@@ -19,34 +19,23 @@ namespace ninx.Api.Controllers
             _usuarioComercioService = usuarioComercioService;
         }
 
-        [HttpGet("usuario/{usuarioId}")]
-        [ProducesResponseType(typeof(IEnumerable<UsuarioComercioResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetByUsuarioId(int usuarioId)
-        {
-            var result = await _usuarioComercioService.GetByUsuarioIdAsync(usuarioId);
-            return Ok(result);
-        }
-
-        [HttpGet("comercio/{comercioId}")]
-        [ProducesResponseType(typeof(IEnumerable<UsuarioComercioResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetByComercioId(int comercioId)
-        {
-            var result = await _usuarioComercioService.GetByComercioIdAsync(comercioId);
-            return Ok(result);
-        }
-
-        [HttpPost]
-        [ProducesResponseType(typeof(UsuarioComercioResponse), StatusCodes.Status201Created)]
+        [HttpPut]
+        [ProducesResponseType(typeof(UsuarioComercioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Criar([FromBody] CriarUsuarioComercioRequest request)
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Atualizar([FromBody] AtualizarUsuarioComercioRequest request)
         {
-            var result = await _usuarioComercioService.CriarAsync(request);
-            return Created(string.Empty, result);
+            var usuarioLogadoPermissao = GetPermissao();
+            var result = await _usuarioComercioService.AtualizarAsync(request, usuarioLogadoPermissao);
+            return Ok(result);
         }
 
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Desativar([FromQuery] int usuarioId, [FromQuery] int comercioId)
         {
             await _usuarioComercioService.DesativarAsync(usuarioId, comercioId);
@@ -54,3 +43,4 @@ namespace ninx.Api.Controllers
         }
     }
 }
+
