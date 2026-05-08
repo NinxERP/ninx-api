@@ -13,7 +13,6 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IComercioService, ComercioService>();
             services.AddScoped<ITrocarComercioService, TrocarComercioService>();
             services.AddScoped<ILoginService, LoginService>();
-            services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IUsuarioService, UsuarioService>();
             services.AddScoped<IUsuarioComercioService, UsuarioComercioService>();
             return services;

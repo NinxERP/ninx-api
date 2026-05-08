@@ -1,5 +1,6 @@
 ﻿using ninx.Communication.Request;
 using ninx.Communication.Response;
+using ninx.Domain;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
 
@@ -7,15 +8,15 @@ namespace ninx.Application.Services
 {
     public class LoginService : ILoginService
     {
-        private readonly IJwtTokenService _jwtTokenService;
+        private readonly ITokenProvider _tokenProvider;
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
-        public LoginService(IJwtTokenService jwtTokenService, IUsuarioRepository usuarioRepository, IUsuarioComercioRepository usuarioComercioRepository)
+        public LoginService(ITokenProvider tokenProvider, IUsuarioRepository usuarioRepository, IUsuarioComercioRepository usuarioComercioRepository)
         {
-            _jwtTokenService = jwtTokenService;
+            _tokenProvider = tokenProvider;
             _usuarioRepository = usuarioRepository;
             _usuarioComercioRepository = usuarioComercioRepository;
-        }
+        }   
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
         {
@@ -38,13 +39,13 @@ namespace ninx.Application.Services
                 if (usuarioC == null)
                     throw new UnauthorizedException("Acesso negado ao comércio selecionado.");
 
-                return new LoginResponse { Token = _jwtTokenService.GerarToken(usuario, usuarioC.ComercioID, usuarioC.Permissao) };
+                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, usuarioC.ComercioID, usuarioC.Permissao) };
             }
 
             if (usuarioComercios.Count() == 1)
             {
                 var unico = usuarioComercios.First();
-                return new LoginResponse { Token = _jwtTokenService.GerarToken(usuario, unico.ComercioID, unico.Permissao) };
+                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, unico.ComercioID, unico.Permissao) };
             }
             else
             {

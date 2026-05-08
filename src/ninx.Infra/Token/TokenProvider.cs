@@ -1,18 +1,19 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using ninx.Domain;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace ninx.Application.Services
+namespace ninx.Infra
 {
-    public class JwtTokenService : IJwtTokenService
+    public class TokenProvider : ITokenProvider
     {
         private readonly IConfiguration _configuration;
 
-        public JwtTokenService(IConfiguration configuration)
+        public TokenProvider(IConfiguration configuration)
         {
             _configuration = configuration;
         }

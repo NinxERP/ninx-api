@@ -1,4 +1,5 @@
-﻿using ninx.Domain.Exceptions;
+﻿using ninx.Domain;
+using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces.Repositories;
 
 namespace ninx.Application.Services.TrocarComercio
@@ -6,12 +7,12 @@ namespace ninx.Application.Services.TrocarComercio
     public class TrocarComercioService : ITrocarComercioService
     {
         private readonly IUsuarioRepository _usuarioRepository;
-        private readonly IJwtTokenService _jwtTokenService;
+        private readonly ITokenProvider _tokenProvider;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
-        public TrocarComercioService (IUsuarioRepository usuarioRepository, IJwtTokenService jwtTokenService, IUsuarioComercioRepository usuarioComercioRepository)
+        public TrocarComercioService (IUsuarioRepository usuarioRepository, ITokenProvider tokenProvider, IUsuarioComercioRepository usuarioComercioRepository)
         {
             _usuarioRepository = usuarioRepository;
-            _jwtTokenService = jwtTokenService;
+            _tokenProvider = tokenProvider;
             _usuarioComercioRepository = usuarioComercioRepository;
         }
 
@@ -30,7 +31,7 @@ namespace ninx.Application.Services.TrocarComercio
                 throw new UnauthorizedException("Você não tem acesso a este comércio.");
             }
 
-            return _jwtTokenService.GerarToken(usuario, vinculoNoNovoComercio.ComercioID, vinculoNoNovoComercio.Permissao);
+            return _tokenProvider.GerarToken(usuario, vinculoNoNovoComercio.ComercioID, vinculoNoNovoComercio.Permissao);
         }
     }
 }
