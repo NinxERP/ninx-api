@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
-using ninx.Communication.Response;
+using ninx.Communication;
 using ninx.Domain.Exceptions;
 
 namespace ninx.Api.Middlewares

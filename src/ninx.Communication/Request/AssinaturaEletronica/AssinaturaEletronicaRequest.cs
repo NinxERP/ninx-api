@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ninx.Communication.Request
+namespace ninx.Communication
 {
     public class ConfirmarAssinaturaEletronicaRequest
     {

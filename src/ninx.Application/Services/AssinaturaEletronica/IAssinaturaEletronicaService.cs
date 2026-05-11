@@ -1,4 +1,4 @@
-﻿using ninx.Communication.Response;
+﻿using ninx.Communication;
 
 namespace ninx.Application.Services
 {

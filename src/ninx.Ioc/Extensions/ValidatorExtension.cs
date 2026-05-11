@@ -2,8 +2,8 @@ using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using ninx.Application.Validators.Entidades;
 using ninx.Application.Validators.Request;
-using ninx.Communication.Request;
-using ninx.Communication.Request.Venda;
+using ninx.Communication;
+using ninx.Communication.Venda;
 using ninx.Domain.Entities;
 
 namespace ninx.Ioc.Extensions

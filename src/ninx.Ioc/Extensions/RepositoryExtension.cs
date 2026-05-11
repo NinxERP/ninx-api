@@ -21,6 +21,8 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IMovimentacaoEstoqueRepository, MovimentacaoEstoqueRepository>();
             services.AddScoped<IPagamentoVendaRepository, PagamentoVendaRepository>();
             services.AddScoped<IAssinaturaEletronicaRepository, AssinaturaEletronicaRepository>();
+            services.AddScoped<ICategoriaProdutoRepository, CategoriaProdutoRepository>();
+            services.AddScoped<IAssinaturaPlanoRepository, AssinaturaPlanoRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             return services;

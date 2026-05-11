@@ -1,5 +1,5 @@
 using FluentValidation;
-using ninx.Communication.Request.Venda;
+using ninx.Communication.Venda;
 
 namespace ninx.Application.Validators.Request
 {

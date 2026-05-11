@@ -1,5 +1,5 @@
-﻿using ninx.Communication.Request;
-using ninx.Communication.Response;
+﻿using ninx.Communication;
+using ninx.Communication;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
 

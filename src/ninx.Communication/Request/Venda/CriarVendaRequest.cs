@@ -1,6 +1,6 @@
-﻿using ninx.Communication.Request.Venda;
+﻿using ninx.Communication.Venda;
 
-namespace ninx.Communication.Request
+namespace ninx.Communication
 {
     public class CriarVendaRequest
     {

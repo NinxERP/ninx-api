@@ -11,10 +11,7 @@ namespace ninx.Domain.Entities
         public decimal QuantidadeMinima { get; set; } = 0;
         public DateTime UltimaAtualizacao { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
-
-        [Timestamp]
         public byte[] RowVersion { get; set; } = null!;
-
         public Produto Produto { get; set; } = null!;
         public Comercio Comercio { get; set; } = null!;
     }

@@ -1,4 +1,4 @@
-﻿namespace ninx.Communication.Request.Venda
+﻿namespace ninx.Communication.Venda
 {
     public class PagamentoVendaRequest
     {

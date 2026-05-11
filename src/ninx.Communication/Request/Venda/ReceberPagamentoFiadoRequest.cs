@@ -1,4 +1,4 @@
-﻿namespace ninx.Communication.Request
+﻿namespace ninx.Communication
 {
     public class ReceberPagamentoFiadoRequest
     {

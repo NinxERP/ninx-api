@@ -1,8 +1,8 @@
 using Mapster;
-using ninx.Communication.Response;
+using ninx.Communication;
 using ninx.Domain.Entities;
 
-namespace ninx.Application.Mappings.Estoque
+namespace ninx.Application.Mappings
 {
     public class EstoqueMapper : IRegister
     {
