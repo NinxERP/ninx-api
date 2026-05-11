@@ -2,7 +2,7 @@
 using ninx.Communication.Response;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
-using ninx.Domain.Interfaces.Repositories;
+using ninx.Domain.Interfaces;
 
 namespace ninx.Application.Services
 {

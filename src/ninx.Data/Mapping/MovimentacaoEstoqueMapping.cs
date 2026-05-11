@@ -34,11 +34,17 @@ public class MovimentacaoEstoqueMapping : IEntityTypeConfiguration<MovimentacaoE
 
         builder.HasOne<Comercio>()
             .WithMany()
-            .HasForeignKey(x => x.ComercioID);
+            .HasForeignKey(x => x.ComercioID)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.Produto)
             .WithMany()
             .HasForeignKey(x => x.ProdutoID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Venda)
+            .WithMany()
+            .HasForeignKey(x => x.VendaID)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne<Usuario>()

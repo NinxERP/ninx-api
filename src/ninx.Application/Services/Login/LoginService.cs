@@ -1,8 +1,7 @@
 ﻿using ninx.Communication.Request;
 using ninx.Communication.Response;
-using ninx.Domain;
 using ninx.Domain.Exceptions;
-using ninx.Domain.Interfaces.Repositories;
+using ninx.Domain.Interfaces;
 
 namespace ninx.Application.Services
 {
@@ -61,3 +60,4 @@ namespace ninx.Application.Services
         }
     }
 }
+    

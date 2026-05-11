@@ -2,7 +2,7 @@
 using ninx.Data.Context;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
-using ninx.Domain.Interfaces.Repositories;
+using ninx.Domain.Interfaces;
 
 namespace ninx.Infra.Repository
 {

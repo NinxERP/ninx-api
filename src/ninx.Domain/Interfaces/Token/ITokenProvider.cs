@@ -1,7 +1,7 @@
 ﻿using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 
-namespace ninx.Domain
+namespace ninx.Domain.Interfaces
 {
     public interface ITokenProvider
     {

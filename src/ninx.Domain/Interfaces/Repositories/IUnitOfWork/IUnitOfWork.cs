@@ -1,4 +1,4 @@
-﻿namespace ninx.Domain.Interfaces.Repositories
+﻿namespace ninx.Domain.Interfaces
 {
     public interface IUnitOfWork
     {

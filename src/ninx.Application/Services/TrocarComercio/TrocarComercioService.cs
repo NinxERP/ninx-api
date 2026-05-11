@@ -1,6 +1,5 @@
-﻿using ninx.Domain;
-using ninx.Domain.Exceptions;
-using ninx.Domain.Interfaces.Repositories;
+﻿using ninx.Domain.Exceptions;
+using ninx.Domain.Interfaces;
 
 namespace ninx.Application.Services.TrocarComercio
 {

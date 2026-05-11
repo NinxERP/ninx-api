@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ninx.Domain.Entities;
+using ninx.Domain.Enums;
 
 public class PagamentoVendaMapping : IEntityTypeConfiguration<PagamentoVenda>
 {
@@ -22,7 +23,16 @@ public class PagamentoVendaMapping : IEntityTypeConfiguration<PagamentoVenda>
             .IsRequired()
             .HasColumnType("decimal(10,2)");
 
+        builder.Property(x => x.Status)
+            .IsRequired()
+            .HasMaxLength(10)
+            .HasConversion<string>()
+            .HasDefaultValue(StatusPagamento.Pago);
+
         builder.Property(x => x.CriadoEm)
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.Property(x => x.AtualizadoEm)
             .HasDefaultValueSql("GETUTCDATE()");
 
         builder.HasOne(x => x.Venda)
@@ -30,5 +40,9 @@ public class PagamentoVendaMapping : IEntityTypeConfiguration<PagamentoVenda>
             .HasForeignKey(x => x.VendaID)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<Usuario>()
+            .WithMany()
+            .HasForeignKey(x => x.UsuarioID)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -32,16 +32,23 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
         builder.Property(x => x.CriadoEm)
             .HasDefaultValueSql("GETUTCDATE()");
 
+        builder.Property(x => x.AtualizadoEm)
+            .IsRequired(false);
+
         builder.HasOne(x => x.Comercio)
             .WithMany(x => x.Vendas)
             .HasForeignKey(x => x.ComercioID)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         builder.HasOne(x => x.Usuario)
             .WithMany(x => x.Vendas)
             .HasForeignKey(x => x.UsuarioID)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(x => x.Cliente)
+            .WithMany()
+            .HasForeignKey(x => x.ClienteID)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
