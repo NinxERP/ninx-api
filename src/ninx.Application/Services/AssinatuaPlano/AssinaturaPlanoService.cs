@@ -14,19 +14,17 @@ namespace ninx.Application.Services
             _AssinaturaPlanoRepository = AssinaturaPlanoRepository;
         }
     
-        public async Task<PaginatedResponse<AssinaturaPlanoResponse>> GetAll(int pageNumber = 1, int pageSize = 10)
+        public async Task<PaginatedResponse<AssinaturaPlanoResponse>> GetAll(PaginationRequest request)
         {
-            var assinaturas = await _AssinaturaPlanoRepository.GetAllAsync();
-            var totalRecords = assinaturas.Count();
+            var (entidades, total) = await _AssinaturaPlanoRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
+            var listaResponse = entidades.Adapt<List<AssinaturaPlanoResponse>>();
 
-            var paginatedData = assinaturas
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            var data = paginatedData.Adapt<List<AssinaturaPlanoResponse>>();
-
-            return new PaginatedResponse<AssinaturaPlanoResponse>(data, pageNumber, pageSize, totalRecords);
+            return new PaginatedResponse<AssinaturaPlanoResponse>(
+                listaResponse,
+                request.PageNumber,
+                request.PageSize,
+                total
+            );
         }
     
         public async Task<AssinaturaPlanoResponse> GetByIdAsync(int id)

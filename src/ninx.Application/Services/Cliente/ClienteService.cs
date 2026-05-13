@@ -1,6 +1,7 @@
 ﻿using Mapster;
 using ninx.Communication;
 using ninx.Communication;
+using ninx.Communication.Response;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
@@ -17,19 +18,18 @@ namespace ninx.Application.Services
             _clienteRepository = clienteRepository;
             _unitOfWork = unitOfWork;
         }
-        public async Task<PaginatedResponse<ClienteResponse>> GetAllByComercioId(int comercioId, int pageNumber = 1, int pageSize = 10)
+        public async Task<PaginatedResponse<ClienteResponse>> GetAllByComercioId(int comercioId, PaginationRequest request)
         {
-            var clientes = await _clienteRepository.GetAllAsync();
-            var clientesFiltrados = clientes.Where(x => x.ComercioID == comercioId).ToList();
-            var totalRecords = clientesFiltrados.Count();
+            var (entidades, total) = await _clienteRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
+            entidades = entidades.Where(c => c.ComercioID == comercioId).ToList();
+            var listaResponse = entidades.Adapt<List<ClienteResponse>>();
 
-            var paginatedData = clientesFiltrados
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            var data = paginatedData.Adapt<List<ClienteResponse>>();
-            return new PaginatedResponse<ClienteResponse>(data, pageNumber, pageSize, totalRecords);
+            return new PaginatedResponse<ClienteResponse>(
+                listaResponse,
+                request.PageNumber,
+                request.PageSize,
+                total
+            );
         }
 
         public async Task<IEnumerable<ClienteResponse>> GetByIdAsync(int clienteId, int comercioId)

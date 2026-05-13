@@ -21,6 +21,20 @@ namespace ninx.Infra.Repository
                 .ToListAsync();
         }
 
+        public async Task<(IEnumerable<TEntity> Data, int TotalCount)> GetPaginatedAsync(int pageNumber, int pageSize)
+        {
+            var query = _dbSet.AsNoTracking();
+
+            var totalCount = await query.CountAsync();
+
+            var data = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (data, totalCount);
+        }
+
         public async Task<TEntity?> GetByIdAsync(params object[] parameters)
         {
             return await _dbSet.FindAsync(parameters);

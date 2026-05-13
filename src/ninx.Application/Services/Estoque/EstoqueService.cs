@@ -1,6 +1,7 @@
 using Mapster;
 using ninx.Communication;
 using ninx.Communication;
+using ninx.Communication.Response;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
@@ -23,20 +24,18 @@ namespace ninx.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<PaginatedResponse<EstoqueResponse>> GetAllByComercioIdAsync(int comercioId, int pageNumber = 1, int pageSize = 10)
+        public async Task<PaginatedResponse<EstoqueResponse>> GetAllByComercioIdAsync(int comercioId, PaginationRequest request)
         {
-            var estoques = await _estoqueRepository.GetAllAsync();
-            var estoquesFiltrados = estoques.Where(e => e.ComercioID == comercioId).ToList();
-            var totalRecords = estoquesFiltrados.Count();
+            var (entidades, total) = await _estoqueRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
+            entidades = entidades.Where(e => e.ComercioID == comercioId).ToList();
+            var listaResponse = entidades.Adapt<List<EstoqueResponse>>();
 
-            var paginatedData = estoquesFiltrados
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            var data = paginatedData.Adapt<List<EstoqueResponse>>();
-
-            return new PaginatedResponse<EstoqueResponse>(data, pageNumber, pageSize, totalRecords);
+            return new PaginatedResponse<EstoqueResponse>(
+                listaResponse,
+                request.PageNumber,
+                request.PageSize,
+                total
+            );
         }
 
         public async Task<EstoqueResponse> GetByIdAsync(int estoqueId)

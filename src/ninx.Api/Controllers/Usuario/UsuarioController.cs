@@ -33,20 +33,20 @@ namespace ninx.Api.Controllers
         [HttpGet("NoComercioId/All")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAll(int pageNumber, int pageSize)
+        public async Task<IActionResult> GetAll(PaginationRequest request)
         {
             var usuarioIdLogado = GetUsuarioId();
-            var usuario = await _usuarioService.GetAll(usuarioIdLogado, pageNumber, pageSize);
+            var usuario = await _usuarioService.GetAll(usuarioIdLogado, request);
             return Ok(usuario);
         }
 
         [HttpGet("All")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAllByComercioId(int pageNumber, int pageSize)
+        public async Task<IActionResult> GetAllByComercioId(PaginationRequest request)
         {
             var comercioId = GetComercioId();
-            var usuario = await _usuarioService.GetAllByComercioId(comercioId, pageNumber, pageSize);
+            var usuario = await _usuarioService.GetAllByComercioId(comercioId, request);
             return Ok(usuario);
         }
 

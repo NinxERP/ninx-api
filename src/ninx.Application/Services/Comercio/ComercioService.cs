@@ -1,6 +1,5 @@
 ﻿using Mapster;
 using ninx.Communication;
-using ninx.Communication;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
@@ -29,19 +28,17 @@ namespace ninx.Application.Services
         }
 
 
-        public async Task<PaginatedResponse<ComercioResponse>> GetAll(int pageNumber = 1, int pageSize = 10)
+        public async Task<PaginatedResponse<ComercioResponse>> GetAll(PaginationRequest request)
         {
-            var comercios = await _comercioRepository.GetAllAsync();
-            var totalRecords = comercios.Count();
+            var (entidades, total) = await _comercioRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
+            var listaResponse = entidades.Adapt<List<ComercioResponse>>();
 
-            var paginatedData = comercios
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            var data = paginatedData.Adapt<List<ComercioResponse>>();
-
-            return new PaginatedResponse<ComercioResponse>(data, pageNumber, pageSize, totalRecords);
+            return new PaginatedResponse<ComercioResponse>(
+                listaResponse,
+                request.PageNumber,
+                request.PageSize,
+                total
+            );
         }
         public async Task<ComercioResponse> GetByIdAsync(int id)
         {

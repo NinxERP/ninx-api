@@ -1,7 +1,7 @@
 ﻿using Mapster;
 using Microsoft.Extensions.Logging;
-using ninx.Application.Services.PagamentoHistoricoAssinaturaPlano;
 using ninx.Communication;
+using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;

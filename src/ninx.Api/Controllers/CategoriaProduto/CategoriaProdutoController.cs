@@ -22,9 +22,9 @@ namespace ninx.Api.Controllers
         [HttpGet]
         [Route("All")]
         [ProducesResponseType(typeof(IEnumerable<CategoriaProdutoResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll(int pageNumber, int pageSize)
+        public async Task<IActionResult> GetAll(PaginationRequest request)
         {
-            var categorias = await _categoriaProdutoService.GetAllAsync(pageNumber, pageSize);
+            var categorias = await _categoriaProdutoService.GetAllAsync(request);
             return Ok(categorias);
         }
 

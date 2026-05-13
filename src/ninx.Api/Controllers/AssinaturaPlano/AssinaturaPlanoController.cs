@@ -18,9 +18,9 @@ namespace ninx.API.Controllers
         [HttpGet]
         [Route("All")]
         [ProducesResponseType(typeof(IEnumerable<AssinaturaPlanoResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll(int pageNumber, int pageSize)
+        public async Task<IActionResult> GetAll(PaginationRequest request)
         {
-            var result = await _assinaturaService.GetAll(pageNumber, pageSize);
+            var result = await _assinaturaService.GetAll(request);
             return Ok(result);
         }
 

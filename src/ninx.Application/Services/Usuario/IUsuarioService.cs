@@ -7,8 +7,8 @@ namespace ninx.Application.Services
     {
         Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioId);
         Task<UsuarioResponse> GetById(int id, int usuarioIdLogado);
-        Task<PaginatedResponse<UsuarioResponse>> GetAll(int usuarioIdLogado, int pageNumber = 1, int pageSize = 10);
-        Task<PaginatedResponse<UsuarioResponse>> GetAllByComercioId(int comercioId, int pageNumber = 1, int pageSize = 10);
+        Task<PaginatedResponse<UsuarioResponse>> GetAll(int usuarioIdLogado, PaginationRequest request);
+        Task<PaginatedResponse<UsuarioResponse>> GetAllByComercioId(int comercioId, PaginationRequest request);
         Task<UsuarioResponse> CriarAsync(
                    CriarUsuarioRequest request,
                    int executorId,
