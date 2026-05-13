@@ -1,7 +1,8 @@
 ﻿using ninx.Communication;
-using ninx.Communication;
+using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
+using ninx.Domain.Interfaces.Repositories;
 
 namespace ninx.Application.Services
 {
@@ -10,11 +11,22 @@ namespace ninx.Application.Services
         private readonly ITokenProvider _tokenProvider;
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
-        public LoginService(ITokenProvider tokenProvider, IUsuarioRepository usuarioRepository, IUsuarioComercioRepository usuarioComercioRepository)
+        private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
+        private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        public LoginService(ITokenProvider tokenProvider,
+            IUsuarioRepository usuarioRepository, 
+            IUsuarioComercioRepository usuarioComercioRepository, 
+            IAssinaturaPlanoRepository assinaturaPlanoRepository, 
+            IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository,
+            IUnitOfWork unitOfWork)
         {
             _tokenProvider = tokenProvider;
             _usuarioRepository = usuarioRepository;
             _usuarioComercioRepository = usuarioComercioRepository;
+            _assinaturaPlanoRepository = assinaturaPlanoRepository;
+            _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
+            _unitOfWork = unitOfWork;
         }   
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
@@ -32,6 +44,20 @@ namespace ninx.Application.Services
                 throw new ForbiddenException("Este usuário não possui nenhum comércio vinculado.");
             }
 
+            var plano = await _assinaturaPlanoRepository.GetByComercioIdAsync(usuarioComercios.FirstOrDefault().ComercioID);
+            if (plano == null) throw new Exception("Comércio sem plano vinculado.");
+            if (plano.Status == StatusAssinatura.Cancelada || plano.Status == StatusAssinatura.Vencida) throw new ForbiddenException("Assinatura vencida ou cancelada.");
+
+            var ultimoPagamento = await _pagamentoHistoricoAssinaturaPlanoRepository.GetUltimoPagamentoByAssinaturaPlanoIdAsync(plano.AssinaturaID);
+            if (ultimoPagamento == null) throw new Exception("Comércio sem pagamentos registrados.");
+            if (ultimoPagamento.DataVencimento < DateTime.UtcNow)
+            {
+                plano.Status = StatusAssinatura.Vencida;
+                await _assinaturaPlanoRepository.UpdateAsync(plano);
+                await _unitOfWork.CommitAsync();
+                throw new ForbiddenException("Sua assinatura está vencida.");
+            }
+                
             if (request.ComercioID.HasValue && request.ComercioID > 0)
             {
                 var usuarioC = usuarioComercios.FirstOrDefault(x => x.ComercioID == request.ComercioID);

@@ -5,6 +5,7 @@ using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
+using ninx.Domain.Interfaces.Repositories;
 
 namespace ninx.Application.Services
 {
@@ -14,19 +15,33 @@ namespace ninx.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
         private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
+        private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
 
-        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IUsuarioRepository usuarioRepository)
+        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IUsuarioRepository usuarioRepository, IAssinaturaPlanoRepository assinaturaPlanoRepository, IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository)
         {
             _comercioRepository = comercioRepository;
             _unitOfWork = unitOfWork;
             _usuarioComercioRepository = usuarioComercioRepository;
             _usuarioRepository = usuarioRepository;
+            _assinaturaPlanoRepository = assinaturaPlanoRepository;
+            _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
         }
 
-        public async Task<IEnumerable<ComercioResponse>> GetAll()
+
+        public async Task<PaginatedResponse<ComercioResponse>> GetAll(int pageNumber = 1, int pageSize = 10)
         {
             var comercios = await _comercioRepository.GetAllAsync();
-            return comercios.Adapt<IEnumerable<ComercioResponse>>();
+            var totalRecords = comercios.Count();
+
+            var paginatedData = comercios
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var data = paginatedData.Adapt<List<ComercioResponse>>();
+
+            return new PaginatedResponse<ComercioResponse>(data, pageNumber, pageSize, totalRecords);
         }
         public async Task<ComercioResponse> GetByIdAsync(int id)
         {
@@ -45,7 +60,22 @@ namespace ninx.Application.Services
         public async Task<ComercioResponse> CriarAsync(ComercioRequest request)
         {
             var comercio = request.Adapt<Comercio>();
-
+            var assinatura = new AssinaturaPlano
+            {
+                Comercio = comercio,
+                Plano = PlanoAssinatura.Mensal,
+                DataInicio = DateTime.UtcNow,
+                DataFim = DateTime.UtcNow.AddMonths(1),
+            };
+           var primeiroPagamento = new PagamentoHistoricoAssinaturaPlano
+            {
+                Assinatura = assinatura,
+                Valor = 0,
+                DataPagamento = DateTime.UtcNow,
+                DataVencimento = DateTime.UtcNow.AddMonths(1)
+            };
+            await _pagamentoHistoricoAssinaturaPlanoRepository.AddAsync(primeiroPagamento);
+            await _assinaturaPlanoRepository.AddAsync(assinatura);
             await _comercioRepository.AddAsync(comercio);
             await _unitOfWork.SaveChangesAsync();
 

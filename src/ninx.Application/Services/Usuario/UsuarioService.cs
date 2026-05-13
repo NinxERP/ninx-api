@@ -31,23 +31,40 @@ namespace ninx.Application.Services
             return usuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task<UsuarioResponse> GetAll(int usuarioIdLogado)
+        public async Task<PaginatedResponse<UsuarioResponse>> GetAll(int usuarioIdLogado, int pageNumber = 1, int pageSize = 10)
         {
             var usuarioLogado = await _usuarioRepository.GetByIdAsync(usuarioIdLogado);
             if (usuarioLogado.Permissao != Permissao.Administrador) throw new UnauthorizedException("Você não possui permissão para utilizar esse endpoint");
 
             var usuarios = await _usuarioRepository.GetAllAsync();
-            if (usuarios is null) throw new NotFoundException("Nenhum usuário foi encontrado");
+            if (usuarios is null || !usuarios.Any()) throw new NotFoundException("Nenhum usuário foi encontrado");
 
-            return usuarios.Adapt<UsuarioResponse>();
+            var totalRecords = usuarios.Count();
+            var paginatedData = usuarios
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var data = paginatedData.Adapt<List<UsuarioResponse>>();
+
+            return new PaginatedResponse<UsuarioResponse>(data, pageNumber, pageSize, totalRecords);
         }
 
-        public async Task<UsuarioResponse> GetAllByComercioId(int comercioId)
+        public async Task<PaginatedResponse<UsuarioResponse>> GetAllByComercioId(int comercioId, int pageNumber = 1, int pageSize = 10)
         {
             var usuarios = await _usuarioRepository.GetAllByComercioIdAsync(comercioId);
-            if (usuarios is null) throw new NotFoundException("Nenhum usuário foi encontrado");
+            if (usuarios is null || !usuarios.Any()) 
+                throw new NotFoundException("Nenhum usuário foi encontrado");
 
-            return usuarios.Adapt<UsuarioResponse>();
+            var totalRecords = usuarios.Count();
+            var paginatedData = usuarios
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var data = paginatedData.Adapt<List<UsuarioResponse>>();
+
+            return new PaginatedResponse<UsuarioResponse>(data, pageNumber, pageSize, totalRecords);
         }
 
         public async Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioid)

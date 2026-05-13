@@ -4,7 +4,7 @@ namespace ninx.Application.Services
 {
     public interface IEstoqueService
     {
-        Task<IEnumerable<EstoqueResponse>> GetAllByComercioIdAsync(int comercioId);
+        Task<PaginatedResponse<EstoqueResponse>> GetAllByComercioIdAsync(int comercioId, int pageNumber = 1, int pageSize = 10);
         Task<EstoqueResponse> GetByIdAsync(int estoqueId);
         Task<EstoqueResponse> CreateAsync(EstoqueRequest request, int comercioId);
         Task<EstoqueResponse> UpdateAsync(int estoqueId, EstoqueRequest request, int comercioId);

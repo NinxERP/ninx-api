@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using ninx.Application.Services;
 using ninx.Domain.Interfaces;
+using ninx.Domain.Interfaces.Repositories;
 using ninx.Infra.Repository;
 using ninx.Infra.Repository.ClienteRepository;
 
@@ -24,6 +26,8 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<ICategoriaProdutoRepository, CategoriaProdutoRepository>();
             services.AddScoped<IAssinaturaPlanoRepository, AssinaturaPlanoRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IComercioService, ComercioService>();
+            services.AddScoped<IPagamentoHistoricoAssinaturaPlanoRepository, PagamentoHistoricoAssinaturaPlanoRepository>();
 
             return services;
         }

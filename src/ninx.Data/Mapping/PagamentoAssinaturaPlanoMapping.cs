@@ -4,9 +4,9 @@ using ninx.Domain.Entities;
 
 namespace ninx.Data.Mappings
 {
-    public class PagamentoAssinaturaPlanoMapping : IEntityTypeConfiguration<PagamentoAssinaturaPlano>
+    public class PagamentoHistoricoAssinaturaPlanoMapping : IEntityTypeConfiguration<PagamentoHistoricoAssinaturaPlano>
     {
-        public void Configure(EntityTypeBuilder<PagamentoAssinaturaPlano> builder)
+        public void Configure(EntityTypeBuilder<PagamentoHistoricoAssinaturaPlano> builder)
         {
             builder.ToTable("PagamentosAssinaturasPlano");
 
@@ -23,7 +23,7 @@ namespace ninx.Data.Mappings
                 .IsRequired()
                 .HasDefaultValueSql("GETUTCDATE()");
 
-            builder.Property(x => x.ProximoVencimento)
+            builder.Property(x => x.DataVencimento)
                 .IsRequired();
 
             builder.Property(x => x.CriadoEm)

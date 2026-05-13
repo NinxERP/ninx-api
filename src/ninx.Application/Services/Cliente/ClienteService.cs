@@ -17,10 +17,19 @@ namespace ninx.Application.Services
             _clienteRepository = clienteRepository;
             _unitOfWork = unitOfWork;
         }
-        public async Task<IEnumerable<ClienteResponse>> GetAllByComercioId(int comercioId)
+        public async Task<PaginatedResponse<ClienteResponse>> GetAllByComercioId(int comercioId, int pageNumber = 1, int pageSize = 10)
         {
             var clientes = await _clienteRepository.GetAllAsync();
-            return clientes.Where(x => x.ComercioID == comercioId).Adapt<IEnumerable<ClienteResponse>>();
+            var clientesFiltrados = clientes.Where(x => x.ComercioID == comercioId).ToList();
+            var totalRecords = clientesFiltrados.Count();
+
+            var paginatedData = clientesFiltrados
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var data = paginatedData.Adapt<List<ClienteResponse>>();
+            return new PaginatedResponse<ClienteResponse>(data, pageNumber, pageSize, totalRecords);
         }
 
         public async Task<IEnumerable<ClienteResponse>> GetByIdAsync(int clienteId, int comercioId)

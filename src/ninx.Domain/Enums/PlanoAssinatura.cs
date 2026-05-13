@@ -2,8 +2,8 @@
 {
     public enum PlanoAssinatura
     {
-        Mensal,
-        Trimestral,
-        Anual
+        Mensal = 1,
+        Trimestral = 3,
+        Anual = 12
     }
 }

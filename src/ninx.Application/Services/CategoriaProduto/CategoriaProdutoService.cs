@@ -20,10 +20,18 @@ namespace ninx.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<CategoriaProdutoResponse>> GetAllAsync()
+        public async Task<PaginatedResponse<CategoriaProdutoResponse>> GetAllAsync(int pageNumber = 1, int pageSize = 10)
         {
             var categorias = await _categoriaProdutoRepository.GetAllAsync();
-            return categorias.Adapt<IEnumerable<CategoriaProdutoResponse>>();
+            var totalRecords = categorias.Count();
+
+            var paginatedData = categorias
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var data = paginatedData.Adapt<List<CategoriaProdutoResponse>>();
+            return new PaginatedResponse<CategoriaProdutoResponse>(data, pageNumber, pageSize, totalRecords);
         }
 
         public async Task<CategoriaProdutoResponse> GetByIdAsync(int categoriaId)

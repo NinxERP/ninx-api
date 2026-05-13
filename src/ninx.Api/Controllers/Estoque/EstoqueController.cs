@@ -19,11 +19,12 @@ namespace ninx.Api.Controllers
         }
 
         [HttpGet]
+        [Route("All")]
         [ProducesResponseType(typeof(IEnumerable<EstoqueResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(int pageNumber, int pageSize)
         {
             var comercioId = GetComercioId();
-            var estoques = await _estoqueService.GetAllByComercioIdAsync(comercioId);
+            var estoques = await _estoqueService.GetAllByComercioIdAsync(comercioId, pageNumber, pageSize);
             return Ok(estoques);
         }
 

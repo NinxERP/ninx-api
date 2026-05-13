@@ -1,6 +1,5 @@
 ﻿using Mapster;
 using ninx.Communication;
-using ninx.Communication;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;

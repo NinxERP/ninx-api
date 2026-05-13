@@ -1,5 +1,4 @@
 ﻿using ninx.Communication;
-using ninx.Communication;
 using ninx.Domain.Enums;
 
 namespace ninx.Application.Services
@@ -8,8 +7,8 @@ namespace ninx.Application.Services
     {
         Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioId);
         Task<UsuarioResponse> GetById(int id, int usuarioIdLogado);
-        Task<UsuarioResponse> GetAll(int usuarioIdLogado);
-        Task<UsuarioResponse> GetAllByComercioId(int comercioId);
+        Task<PaginatedResponse<UsuarioResponse>> GetAll(int usuarioIdLogado, int pageNumber = 1, int pageSize = 10);
+        Task<PaginatedResponse<UsuarioResponse>> GetAllByComercioId(int comercioId, int pageNumber = 1, int pageSize = 10);
         Task<UsuarioResponse> CriarAsync(
                    CriarUsuarioRequest request,
                    int executorId,

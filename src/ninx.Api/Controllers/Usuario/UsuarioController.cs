@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using ninx.Application.Services;
 using ninx.Communication;
 using ninx.Communication;
@@ -32,20 +33,20 @@ namespace ninx.Api.Controllers
         [HttpGet("NoComercioId/All")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(int pageNumber, int pageSize)
         {
             var usuarioIdLogado = GetUsuarioId();
-            var usuario = await _usuarioService.GetAll(usuarioIdLogado);
+            var usuario = await _usuarioService.GetAll(usuarioIdLogado, pageNumber, pageSize);
             return Ok(usuario);
         }
 
         [HttpGet("All")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAllByComercioId()
+        public async Task<IActionResult> GetAllByComercioId(int pageNumber, int pageSize)
         {
             var comercioId = GetComercioId();
-            var usuario = await _usuarioService.GetAllByComercioId(comercioId);
+            var usuario = await _usuarioService.GetAllByComercioId(comercioId, pageNumber, pageSize);
             return Ok(usuario);
         }
 

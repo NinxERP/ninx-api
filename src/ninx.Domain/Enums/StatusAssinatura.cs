@@ -2,8 +2,8 @@
 {
     public enum StatusAssinatura
     {
-        Ativa,
-        Vencida,
-        Cancelada
+        Ativa = 1,
+        Vencida = 2,
+        Cancelada = 3
     }
 }

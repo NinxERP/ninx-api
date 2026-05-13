@@ -5,7 +5,7 @@ namespace ninx.Application.Services
 {
     public interface ICategoriaProdutoService
     {
-        Task<IEnumerable<CategoriaProdutoResponse>> GetAllAsync();
+        Task<PaginatedResponse<CategoriaProdutoResponse>> GetAllAsync(int pageNumber = 1, int pageSize = 10);
         Task<CategoriaProdutoResponse> GetByIdAsync(int categoriaId);
         Task<CategoriaProdutoResponse> CreateAsync(CategoriaProdutoRequest request);
         Task<CategoriaProdutoResponse> UpdateAsync(int categoriaId, CategoriaProdutoRequest request);

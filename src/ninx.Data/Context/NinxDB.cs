@@ -19,7 +19,7 @@ namespace ninx.Data.Context
         public DbSet<ItemVenda> ItemVendas { get; set; }
         public DbSet<MovimentacaoEstoque> MovimentacaoEstoque { get; set; }
         public DbSet<PagamentoVenda> PagamentoVendas { get; set; }
-        public DbSet<PagamentoAssinaturaPlano> PagamentosAssinaturasPlano { get; set; }
+        public DbSet<PagamentoHistoricoAssinaturaPlano> PagamentoHistoricoAssinaturaPlano { get; set; }
         public DbSet<Produto> Produtos { get; set; }
         public DbSet<SessaoWhatsapp> SessaoWhatsapps { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }    
