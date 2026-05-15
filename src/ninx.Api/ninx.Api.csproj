@@ -19,8 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ninx.Communication\ninx.Communication.csproj" />
-    <ProjectReference Include="..\ninx.Ioc\ninx.Ioc.csproj" />
+	<ProjectReference Include="..\ninx.Communication\ninx.Communication.csproj" />
+	<ProjectReference Include="..\ninx.Data\ninx.Data.csproj" />
+	<ProjectReference Include="..\ninx.Ioc\ninx.Ioc.csproj" />
   </ItemGroup>
 
   <ItemGroup>

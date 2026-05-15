@@ -36,6 +36,9 @@ public class ProdutoMapping : IEntityTypeConfiguration<Produto>
             .HasConversion<string>()
             .HasDefaultValue(UnidadeMedida.UN);
 
+        builder.ToTable(t => t.HasCheckConstraint("CK_Produtos_UnidadeMedida", 
+            "[UnidadeMedida] IN ('UN', 'KG', 'L', 'G')"));
+
         builder.Property(x => x.Validade)
             .IsRequired(false)
             .HasColumnType("date");

@@ -50,6 +50,9 @@ namespace ninx.Data.Mappings
                 .HasConversion<string>()
                 .HasDefaultValue(StatusAssinatura.Ativa);
 
+            builder.ToTable(t => t.HasCheckConstraint("CK_AssinaturasEletronicas_Status", 
+                "[Status] IN ('Ativa', 'Vencida', 'Cancelada')"));
+
             builder.HasOne(x => x.Venda)
                 .WithMany(x => x.AssinaturasEletronicas)
                 .HasForeignKey(x => x.VendaID)

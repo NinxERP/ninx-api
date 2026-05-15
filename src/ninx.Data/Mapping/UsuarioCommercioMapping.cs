@@ -18,6 +18,9 @@ public class UsuarioComercioMapping : IEntityTypeConfiguration<UsuarioComercio>
             .HasMaxLength(20)
             .HasConversion<string>();
 
+        builder.ToTable(t => t.HasCheckConstraint("CK_UsuariosComercios_Permissao", 
+            "[Permissao] IN ('Administrador', 'Dono', 'Funcionario')"));
+
         builder.Property(x => x.Ativo)
             .HasDefaultValue(true);
 

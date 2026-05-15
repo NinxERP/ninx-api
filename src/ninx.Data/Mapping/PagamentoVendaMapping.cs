@@ -29,6 +29,12 @@ public class PagamentoVendaMapping : IEntityTypeConfiguration<PagamentoVenda>
             .HasConversion<string>()
             .HasDefaultValue(StatusPagamento.Pago);
 
+        builder.ToTable(t => 
+        {
+            t.HasCheckConstraint("CK_PagamentosVenda_FormaPagamento", "[FormaPagamento] IN ('Dinheiro', 'Pix', 'Cartao')");
+            t.HasCheckConstraint("CK_PagamentosVenda_Status", "[Status] IN ('Pago', 'Estornado')");
+        });
+
         builder.Property(x => x.CriadoEm)
             .HasDefaultValueSql("GETUTCDATE()");
 

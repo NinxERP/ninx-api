@@ -29,6 +29,12 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
             .HasConversion<string>()
             .HasDefaultValue(StatusVenda.Aberta);
 
+        builder.ToTable(t => 
+        {
+            t.HasCheckConstraint("CK_Vendas_Status", "[Status] IN ('Aberta', 'Finalizada', 'Cancelada', 'Estornada')");
+            t.HasCheckConstraint("CK_Vendas_TipoVenda", "[TipoVenda] IN ('Normal', 'Fiado')");
+        });
+
         builder.Property(x => x.CriadoEm)
             .HasDefaultValueSql("GETUTCDATE()");
 

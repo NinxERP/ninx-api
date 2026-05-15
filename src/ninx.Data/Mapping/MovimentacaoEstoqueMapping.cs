@@ -18,6 +18,9 @@ public class MovimentacaoEstoqueMapping : IEntityTypeConfiguration<MovimentacaoE
             .HasMaxLength(10)
             .HasConversion<string>();
 
+        builder.ToTable(t => t.HasCheckConstraint("CK_MovimentacoesEstoque_Tipo", 
+            "[Tipo] IN ('Entrada', 'Venda', 'Ajuste', 'Perda', 'Devolucao', 'Estorno')"));
+
         builder.Property(x => x.Quantidade)
             .IsRequired()
             .HasColumnType("decimal(10,3)");

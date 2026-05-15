@@ -24,6 +24,9 @@ public class SessaoWhatsappMapping : IEntityTypeConfiguration<SessaoWhatsapp>
             .HasConversion<string>()
             .HasDefaultValue(EtapaWhatsapp.Menu);
 
+        builder.ToTable(t => t.HasCheckConstraint("CK_SessoesWhatsapp_Etapa", 
+            "[Etapa] IN ('Menu', 'AguardandoProduto', 'AguardandoSelecao')"));
+
         builder.Property(x => x.DadosTemporarios)
             .IsRequired(false);
 

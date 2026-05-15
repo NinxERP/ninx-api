@@ -26,6 +26,9 @@ public class ItemVendaMapping : IEntityTypeConfiguration<ItemVenda>
             .HasMaxLength(10)
             .HasConversion<string>();
 
+        builder.ToTable(t => t.HasCheckConstraint("CK_ItensVenda_UnidadeMedida", 
+            "[UnidadeMedida] IN ('UN', 'KG', 'L', 'G')"));
+
         builder.Property(x => x.Quantidade)
             .IsRequired()
             .HasColumnType("decimal(10,3)");
