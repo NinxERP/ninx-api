@@ -1,4 +1,5 @@
 ﻿using ninx.Communication;
+using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
@@ -64,13 +65,13 @@ namespace ninx.Application.Services
                 if (usuarioC == null)
                     throw new UnauthorizedException("Acesso negado ao comércio selecionado.");
 
-                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, usuarioC.ComercioID, usuarioC.Permissao) };
+                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, usuarioC.ComercioID, usuarioC.Permissao, usuarioC.Comercio.NomeComercio) };
             }
 
             if (usuarioComercios.Count() == 1)
             {
                 var unico = usuarioComercios.First();
-                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, unico.ComercioID, unico.Permissao) };
+                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, unico.ComercioID, unico.Permissao, unico.Comercio.NomeComercio) };
             }
             else
             {

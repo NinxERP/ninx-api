@@ -79,6 +79,14 @@ namespace ninx.Application.Services
             await _clienteRepository.UpdateAsync(cliente);
             await _unitOfWork.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<ClienteResponse>> GetByNomeAsync(string Nome, int comercioId)
+        {
+            var clientes = await _clienteRepository.GetByNomeAsync(Nome, comercioId);
+            if (clientes == null) throw new NotFoundException("Cliente não encontrado.");
+            if (!clientes.Any(x => x.ComercioID == comercioId)) throw new NotFoundException("Cliente não pertence ao seu comercio.");
+            return clientes.Adapt<IEnumerable<ClienteResponse>>();
+        }
     }
 }
     

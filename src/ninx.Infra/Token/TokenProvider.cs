@@ -18,7 +18,7 @@ namespace ninx.Infra
             _configuration = configuration;
         }
 
-        public string GerarToken(Usuario usuario, int comercioIdSelecionado, Permissao permissaoNoComercio)
+        public string GerarToken(Usuario usuario, int comercioIdSelecionado, Permissao permissaoNoComercio, string nomeComercio)
         {
             var claims = new List<Claim>
             {
@@ -26,7 +26,8 @@ namespace ninx.Infra
                 new Claim("nome", usuario.Nome),
                 new Claim("email", usuario.Email),
                 new Claim("comercioId", comercioIdSelecionado.ToString()),
-                new Claim("permissao", permissaoNoComercio.ToString())
+                new Claim("permissao", permissaoNoComercio.ToString()),
+                new Claim("nomeComercio", nomeComercio)
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

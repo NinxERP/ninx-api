@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Services;
+using ninx.Communication;
 
 namespace ninx.Api.Controllers  
 {
@@ -14,6 +15,9 @@ namespace ninx.Api.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(IEnumerable<ClienteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ClienteResponse>), StatusCodes.Status401Unauthorized)]
+
         public async Task<IActionResult> TrocarComercio([FromBody] int comercioID)
         {
             var usuarioId = GetUsuarioId();

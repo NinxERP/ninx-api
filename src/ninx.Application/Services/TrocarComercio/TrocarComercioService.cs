@@ -30,7 +30,7 @@ namespace ninx.Application.Services.TrocarComercio
                 throw new UnauthorizedException("Você não tem acesso a este comércio.");
             }
 
-            return _tokenProvider.GerarToken(usuario, vinculoNoNovoComercio.ComercioID, vinculoNoNovoComercio.Permissao);
+            return _tokenProvider.GerarToken(usuario, vinculoNoNovoComercio.ComercioID, vinculoNoNovoComercio.Permissao, vinculoNoNovoComercio.Comercio.NomeComercio);
         }
     }
 }

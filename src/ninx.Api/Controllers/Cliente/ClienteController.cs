@@ -29,7 +29,18 @@ namespace ninx.Api.Controllers
             return Ok(clientes);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet]
+        [Route("nome/{nome}")]
+        [ProducesResponseType(typeof(IEnumerable<ClienteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ClienteResponse>), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetByNomeAsync(string nome)
+        {
+            var comercioId = GetComercioId();
+            var clientes = await _clienteService.GetByNomeAsync(nome, comercioId);
+            return Ok(clientes);
+        }
+
+        [HttpGet("id/{id}")]
         [ProducesResponseType(typeof(ClienteResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int clienteId)

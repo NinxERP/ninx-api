@@ -63,7 +63,7 @@ namespace ninx.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AssinaturaPlano",
+                name: "Assinaturas",
                 columns: table => new
                 {
                     AssinaturaID = table.Column<int>(type: "int", nullable: false)

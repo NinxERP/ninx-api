@@ -261,7 +261,7 @@ namespace ninx.Application.Services
             {
                 ComercioID = request.ComercioID,
                 UsuarioID = request.UsuarioID,
-                ClienteID = request.ClienteID,
+                ClienteID = request.ClienteID == 0 ? null : request.ClienteID,
                 Total = totalVenda,
                 TipoVenda = ehFiado ? TipoVenda.Fiado : TipoVenda.Normal,
                 Status = StatusVenda.Finalizada,
@@ -350,7 +350,8 @@ namespace ninx.Application.Services
             {
                 FormaPagamento = (FormaPagamento)p.FormaPagamento,
                 Valor = p.Valor,
-                CriadoEm = dataOperacao
+                CriadoEm = dataOperacao,
+                UsuarioID = request.UsuarioID
             }).ToList() ?? new List<PagamentoVenda>();
         }
         private async Task<Guid> ValidarEPreparVendaFiadoAsync(

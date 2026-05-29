@@ -52,6 +52,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Criar([FromBody] CriarVendaRequest request)
         {
+            request.ComercioID = GetComercioId();
+            request.UsuarioID = GetUsuarioId();
             var result = await _vendaService.CriarAsync(request);
             return CreatedAtAction(nameof(GetByVendaId), new { vendaId = result.VendaID }, result);
         }

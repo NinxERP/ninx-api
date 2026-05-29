@@ -5,6 +5,6 @@ namespace ninx.Domain.Interfaces
 {
     public interface ITokenProvider
     {
-        public string GerarToken(Usuario usuario, int comercioIdSelecionado, Permissao permissaoNoComercio);
+        public string GerarToken(Usuario usuario, int comercioIdSelecionado, Permissao permissaoNoComercio, string nomeComercio);
     }
 }

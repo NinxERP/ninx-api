@@ -15,7 +15,7 @@ namespace ninx.Domain.Entities
         public TipoVenda TipoVenda { get; set; }
         public Comercio Comercio { get; set; } = null!;
         public Usuario Usuario { get; set; } = null!;
-        public Cliente Cliente { get; set; } = null!;
+        public Cliente? Cliente { get; set; } = null!;
         public ICollection<ItemVenda> ItensVenda { get; set; } = [];
         public ICollection<PagamentoVenda> PagamentosVenda { get; set; } = [];
         public ICollection<AssinaturaEletronica> AssinaturasEletronicas { get; set; } = [];
