@@ -60,9 +60,17 @@ namespace ninx.Application.Services
 
         public async Task<AssinaturaEletronicaResponse> ObterDadosParaAssinaturaAsync(Guid guid)
         {
-            var assinatura = await _assinaturaEletronicaRepository.GetClienteLojaAssinaturaByGuidAsync(guid);
+            var assinatura = await _assinaturaEletronicaRepository.GetByGuidAsync(guid);
             if (assinatura == null) throw new NotFoundException("Documento não encontrado.");
             return assinatura.Adapt<AssinaturaEletronicaResponse>();
         }
+
+        public async Task<bool> ValidaAssinado(Guid guid)
+        {
+            var assinatura = await _assinaturaEletronicaRepository.GetByGuidAsync(guid);
+            if (assinatura == null) throw new NotFoundException("Documento não encontrado.");
+            return assinatura.Assinado;
+        }
+
     }
 }

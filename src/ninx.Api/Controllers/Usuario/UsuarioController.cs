@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using ninx.Application.Services;
-using ninx.Communication;
 using ninx.Communication;
 
 namespace ninx.Api.Controllers

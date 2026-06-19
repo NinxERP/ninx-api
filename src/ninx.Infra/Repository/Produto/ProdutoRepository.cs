@@ -17,6 +17,7 @@ namespace ninx.Infra.Repository
         public async Task<IEnumerable<Produto>> GetProdutosByComercioIdAsync(int comercioId)
         {
             return await _context.Produtos
+                .Include(x => x.Estoque)
                 .AsNoTracking()
                 .Where(x => x.ComercioID == comercioId)
                 .ToListAsync();

@@ -1,5 +1,4 @@
 ﻿using ninx.Communication;
-using ninx.Communication;
 
 namespace ninx.Application.Services
 {

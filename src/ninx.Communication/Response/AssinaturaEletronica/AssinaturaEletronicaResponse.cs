@@ -3,11 +3,7 @@
     public class AssinaturaEletronicaResponse
     {
         public Guid DocumentoGuid { get; set; }
-        public string NomeCliente { get; set; }
-        public string NomeComercio { get; set; }
-        public decimal ValorTotal { get; set; }
-        public DateTime DataVenda { get; set; }
-        public List<ItemVendaResumoResponse> Itens { get; set; }
+        public string DocumentoBase64 { get; set; }
     }
 
     public class ItemVendaResumoResponse

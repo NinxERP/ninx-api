@@ -1,5 +1,4 @@
 ﻿using ninx.Communication;
-using ninx.Communication;
 using ninx.Domain.Enums;
 
 namespace ninx.Application.Services
