@@ -22,18 +22,13 @@ namespace ninx.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<PaginatedResponse<EstoqueResponse>> GetAllByComercioIdAsync(int comercioId, PaginationRequest request)
+        public async Task<IEnumerable<EstoqueResponse>> GetAllByComercioIdAsync(int comercioId)
         {
-            var (entidades, total) = await _estoqueRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
-            entidades = entidades.Where(e => e.ComercioID == comercioId).ToList();
-            var listaResponse = entidades.Adapt<List<EstoqueResponse>>();
+            var estoque = await _estoqueRepository.GetAllAsync();
+            estoque = estoque.Where(e => e.ComercioID == comercioId).ToList();
+            var listaResponse = estoque.Adapt<List<EstoqueResponse>>();
 
-            return new PaginatedResponse<EstoqueResponse>(
-                listaResponse,
-                request.PageNumber,
-                request.PageSize,
-                total
-            );
+            return listaResponse;
         }
 
         public async Task<EstoqueResponse> GetByIdAsync(int estoqueId)
