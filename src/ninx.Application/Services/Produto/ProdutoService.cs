@@ -78,14 +78,23 @@ namespace ninx.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<ProdutoResponse>> GetProdutosEstoqueByComercioIdAsync(int comercioId)
+        public async Task<PaginatedResponse<ProdutoResponse>> GetProdutosEstoqueByComercioIdAsync(int comercioId, PaginationRequest request)
         {
-            var produtos = await _produtoRepository.GetProdutosEstoqueByComercioIdAsync(comercioId);
-            if (produtos == null)
+            var (data, totalCount) = await _produtoRepository.GetProdutosEstoqueByComercioIdPaginatedAsync(comercioId, request.PageNumber, request.PageSize, request.TipoFiltro);
+
+            if (data == null || !data.Any())
             {
                 throw new NotFoundException("Produtos não encontrados para o comércio informado");
             }
-            return produtos.Adapt<IEnumerable<ProdutoResponse>>();
+
+            var produtosResponse = data.Adapt<List<ProdutoResponse>>();
+
+            return new PaginatedResponse<ProdutoResponse>(
+                produtosResponse,
+                request.PageNumber,
+                request.PageSize,
+                totalCount
+            );
         }
 
         public async Task<ProdutoResponse> GetByIdAsync(int id, int comercioId)
@@ -98,9 +107,9 @@ namespace ninx.Application.Services
             return produtos.Adapt<ProdutoResponse>();
         }
 
-        public async Task<ProdutoResponse> GetByCodigoBarrasAsync(int comercioId, string codigoBarras)
+        public async Task<ProdutoResponse> GetAtivosByCodigoBarrasAsync(int comercioId, string codigoBarras)
         {
-            var produtos = await _produtoRepository.GetByCodigoBarrasAsync(comercioId, codigoBarras);
+            var produtos = await _produtoRepository.GetAtivosByCodigoBarrasAsync(comercioId, codigoBarras);
             if (produtos == null)
             {
                 throw new NotFoundException("Produto não encontrado");

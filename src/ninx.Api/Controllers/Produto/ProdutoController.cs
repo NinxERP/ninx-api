@@ -17,13 +17,13 @@ namespace ninx.Api.Controllers
             _produtoService = produtoService;
         }
 
-        [HttpGet("GetAll")]
-        [ProducesResponseType(typeof(IEnumerable<ProdutoResponse>), StatusCodes.Status200OK)]
+        [HttpGet("GetAllPaginated")]
+        [ProducesResponseType(typeof(PaginatedResponse<ProdutoResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAllByComercio()
+        public async Task<IActionResult> GetAllPaginatedByComercio([FromQuery] PaginationRequest request)
         {
             var comercioId = GetComercioId();
-            var produtos = await _produtoService.GetProdutosEstoqueByComercioIdAsync(comercioId);
+            var produtos = await _produtoService.GetProdutosEstoqueByComercioIdAsync(comercioId, request);
             return Ok(produtos);
         }
 
@@ -43,7 +43,7 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetByCodigoBarras(string codigoBarras)
         {
             var comercioId = GetComercioId();
-            var produto = await _produtoService.GetByCodigoBarrasAsync(comercioId, codigoBarras);
+            var produto = await _produtoService.GetAtivosByCodigoBarrasAsync(comercioId, codigoBarras);
             return Ok(produto);
         }
 

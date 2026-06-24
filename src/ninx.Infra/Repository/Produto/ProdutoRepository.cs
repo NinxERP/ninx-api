@@ -22,6 +22,44 @@ namespace ninx.Infra.Repository
                 .Where(x => x.ComercioID == comercioId)
                 .ToListAsync();
         }
+
+        public async Task<(IEnumerable<Produto> Data, int TotalCount)> GetProdutosEstoqueByComercioIdPaginatedAsync(int comercioId, int pageNumber, int pageSize, string? tipoFiltro)
+        {
+            var query = _context.Produtos
+                .Include(x => x.Estoque)
+                .AsNoTracking()
+                .Where(x => x.ComercioID == comercioId);
+
+            if (!string.IsNullOrEmpty(tipoFiltro))
+            {
+                switch (tipoFiltro.ToLower())
+                {
+                    case "normal":
+                        query = query.Where(x => x.Ativo && x.Estoque.Quantidade >= x.Estoque.QuantidadeMinima);
+                        break;
+                    case "abaixominimo":
+                        query = query.Where(x => x.Ativo && x.Estoque.Quantidade < x.Estoque.QuantidadeMinima && x.Estoque.Quantidade > 0);
+                        break;
+                    case "semestoque":
+                        query = query.Where(x => x.Ativo && x.Estoque.Quantidade == 0);
+                        break;
+                    case "desativados":
+                        query = query.Where(x => !x.Ativo);
+                        break;
+                }
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var data = await query
+                .OrderBy(x => x.Nome)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (data, totalCount);
+        }
+
         public async Task<Produto?> GetProdutoByIdAsync(int produtoId)
         {
             return await _context.Produtos
@@ -30,11 +68,11 @@ namespace ninx.Infra.Repository
                 .FirstOrDefaultAsync();
 
         }
-        public async Task<Produto?> GetByCodigoBarrasAsync(int comercioId, string codigoBarras)
+        public async Task<Produto?> GetAtivosByCodigoBarrasAsync(int comercioId, string codigoBarras)
         {
             return await _context.Produtos
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.ComercioID == comercioId && x.CodigoBarras == codigoBarras);
+                .FirstOrDefaultAsync(x => x.ComercioID == comercioId && x.CodigoBarras == codigoBarras && x.Ativo == true);
         }
 
         public async Task<IEnumerable<Produto>> GetByNomeAsync(int comercioId, string nome)
