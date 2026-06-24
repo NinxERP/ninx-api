@@ -9,5 +9,6 @@
         public decimal? PrecoCusto { get; set; }
         public string UnidadeMedida { get; set; } = "UN";
         public DateTime? Validade { get; set; }
+        public bool Ativo { get; set; }
     }
 }

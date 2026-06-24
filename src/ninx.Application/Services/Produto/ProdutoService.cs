@@ -33,12 +33,13 @@ namespace ninx.Application.Services
 
             await _produtoRepository.AddAsync(produto);
 
-            if (request.EstoqueInicial > 0)
+            if (request.EstoqueInicial > 0 || request.QuantidadeMinima > 0) 
             {
                 var estoque = new Estoque
                 {
                     Produto = produto,
                     Quantidade = request.EstoqueInicial,
+                    QuantidadeMinima = request.QuantidadeMinima,
                     ComercioID = request.ComercioID
                 };
                 await _estoqueRepository.AddAsync(estoque);
@@ -77,9 +78,9 @@ namespace ninx.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<ProdutoResponse>> GetProdutosByComercioIdAsync(int comercioId)
+        public async Task<IEnumerable<ProdutoResponse>> GetProdutosEstoqueByComercioIdAsync(int comercioId)
         {
-            var produtos = await _produtoRepository.GetProdutosByComercioIdAsync(comercioId);
+            var produtos = await _produtoRepository.GetProdutosEstoqueByComercioIdAsync(comercioId);
             if (produtos == null)
             {
                 throw new NotFoundException("Produtos não encontrados para o comércio informado");

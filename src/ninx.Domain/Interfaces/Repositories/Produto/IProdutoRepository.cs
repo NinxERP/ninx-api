@@ -4,7 +4,7 @@ namespace ninx.Domain.Interfaces
 {
     public interface IProdutoRepository : IRepositoryBase<Produto>
     {
-        Task<IEnumerable<Produto>> GetProdutosByComercioIdAsync(int comercioId);
+        Task<IEnumerable<Produto>> GetProdutosEstoqueByComercioIdAsync(int comercioId);
         Task<Produto?> GetByCodigoBarrasAsync(int comercioId, string codigoBarras);
         Task<IEnumerable<Produto>> GetByNomeAsync(int comercioId, string nome);
         Task<Produto?> GetProdutoByIdAsync(int produtoId);

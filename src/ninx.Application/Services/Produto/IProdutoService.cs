@@ -4,7 +4,7 @@ namespace ninx.Application.Services
 {
     public interface IProdutoService
     {
-        Task<IEnumerable<ProdutoResponse>> GetProdutosByComercioIdAsync(int comercioId);
+        Task<IEnumerable<ProdutoResponse>> GetProdutosEstoqueByComercioIdAsync(int comercioId);
         Task<ProdutoResponse> GetByIdAsync(int id, int comercioId);
         Task<ProdutoResponse> GetByCodigoBarrasAsync(int comercioId, string codigoBarras);
         Task<IEnumerable<ProdutoResponse>> GetByNomeAsync(int comercioId, string nome);

@@ -14,7 +14,7 @@ namespace ninx.Infra.Repository
             _context = context;
         }
 
-        public async Task<IEnumerable<Produto>> GetProdutosByComercioIdAsync(int comercioId)
+        public async Task<IEnumerable<Produto>> GetProdutosEstoqueByComercioIdAsync(int comercioId)
         {
             return await _context.Produtos
                 .Include(x => x.Estoque)

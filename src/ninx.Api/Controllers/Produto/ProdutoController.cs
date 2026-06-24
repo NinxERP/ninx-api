@@ -23,7 +23,7 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetAllByComercio()
         {
             var comercioId = GetComercioId();
-            var produtos = await _produtoService.GetProdutosByComercioIdAsync(comercioId);
+            var produtos = await _produtoService.GetProdutosEstoqueByComercioIdAsync(comercioId);
             return Ok(produtos);
         }
 

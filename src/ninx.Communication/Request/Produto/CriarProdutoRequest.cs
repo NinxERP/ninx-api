@@ -11,5 +11,6 @@
         public string UnidadeMedida { get; set; } = "UN";
         public DateTime? Validade { get; set; }
         public int EstoqueInicial { get; set; } = 0;
+        public int QuantidadeMinima { get; set; } = 0;
     }
 }
