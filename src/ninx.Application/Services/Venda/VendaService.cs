@@ -81,6 +81,18 @@ namespace ninx.Application.Services
 
             return vendas.Adapt<IEnumerable<VendaResponse>>();
         }
+
+        public async Task<IEnumerable<VendaResponse>> GetByClienteIdAsync(int clienteId)
+        {
+            var vendas = await _vendaRepository.GetVendasByClienteIdAsync(clienteId);
+
+            if (vendas is null || !vendas.Any())
+            {
+                throw new NotFoundException("Nenhuma venda encontrada para o usuário especificado.");
+            }
+
+            return vendas.Adapt<IEnumerable<VendaResponse>>();
+        }
         public async Task<VendaResponse> GetByVendaIdAsync(int id)
         {
             var venda = await _vendaRepository.GetByIdComItensAsync(id);
@@ -90,11 +102,10 @@ namespace ninx.Application.Services
             }
 
             var response = venda.Adapt<VendaResponse>();
-            
-            if (venda.AssinaturasEletronicas?.Any() == true)
+
+            if (venda.AssinaturaEletronica?.DocumentoGuid != Guid.Empty)
             {
-                var assinatura = venda.AssinaturasEletronicas.First();
-                response.DocumentoGuid = assinatura.DocumentoGuid;
+                response.DocumentoGuid = venda.AssinaturaEletronica.DocumentoGuid;
             }
 
             return response;
@@ -460,14 +471,13 @@ namespace ninx.Application.Services
                 pagamentosParaAtualizar.Add(pagamento);
             }
 
-            if (venda.AssinaturasEletronicas?.Any() == true)
+            if (venda.AssinaturaEletronica?.DocumentoGuid != Guid.Empty)
             {
-                foreach (var assinatura in venda.AssinaturasEletronicas)
-                {
+                var assinatura = venda.AssinaturaEletronica;
+
                     assinatura.Status = StatusAssinatura.Cancelada;
                     assinatura.AtualizadoEm = dataOperacao;
                     assinaturasParaAtualizar.Add(assinatura);
-                }
             }
 
             await _estoqueRepository.UpdateBatchAsync(estoquesParaAtualizar);

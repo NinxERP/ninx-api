@@ -10,5 +10,6 @@ namespace ninx.Application.Services
         Task<VendaResponse> CriarAsync(CriarVendaRequest request);
         Task EstornarAsync(int vendaId, int usuarioId);
         Task ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, decimal valorPago, int formaPagamento);
+        Task<IEnumerable<VendaResponse>> GetByClienteIdAsync(int clienteId);
     }
 }

@@ -18,8 +18,7 @@ namespace ninx.Application.Services
         }
         public async Task<PaginatedResponse<ClienteResponse>> GetAllByComercioId(int comercioId, PaginationRequest request)
         {
-            var (entidades, total) = await _clienteRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
-            entidades = entidades.Where(c => c.ComercioID == comercioId).ToList();
+            var (entidades, total) = await _clienteRepository.GetClienteComercioByComercioId(comercioId, request);
             var listaResponse = entidades.Adapt<List<ClienteResponse>>();
 
             return new PaginatedResponse<ClienteResponse>(

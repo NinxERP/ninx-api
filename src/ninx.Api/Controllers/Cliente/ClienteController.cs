@@ -21,7 +21,7 @@ namespace ninx.Api.Controllers
         [HttpGet]
         [Route("All")]
         [ProducesResponseType(typeof(IEnumerable<ClienteResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll(PaginationRequest request)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
         {
             var comercioId = GetComercioId();
             var clientes = await _clienteService.GetAllByComercioId(comercioId, request);

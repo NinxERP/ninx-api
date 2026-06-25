@@ -37,6 +37,15 @@ namespace ninx.Api.Controllers
             return Ok(result);
         }
 
+        [HttpGet("cliente/{clienteId}")]
+        [ProducesResponseType(typeof(IEnumerable<VendaResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetByClienteId(int clienteId)
+        {
+            var result = await _vendaService.GetByClienteIdAsync(clienteId);
+            return Ok(result);
+        }
+
         [HttpGet("{vendaId}")]
         [ProducesResponseType(typeof(VendaResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]

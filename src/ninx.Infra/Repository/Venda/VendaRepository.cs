@@ -47,6 +47,17 @@ namespace ninx.Infra.Repository
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Venda>> GetVendasByClienteIdAsync(int clienteId)
+        {
+            return await _context.Vendas
+                .AsNoTracking()
+                .Include(v => v.ItensVenda)
+                .Include(v => v.AssinaturaEletronica)
+                .Where(v => v.ClienteID == clienteId)
+                .OrderByDescending(v => v.CriadoEm)
+                .ToListAsync();
+        }
+
         public async Task<Venda?> GetByIdAsync(int id)
         {
             return await _context.Vendas
@@ -60,7 +71,7 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .Include(v => v.ItensVenda)
                 .Include(v => v.PagamentosVenda)
-                .Include(v => v.AssinaturasEletronicas)
+                .Include(v => v.AssinaturaEletronica)
                 .FirstOrDefaultAsync(v => v.VendaID == id);
         }
 

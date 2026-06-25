@@ -10,5 +10,6 @@ namespace ninx.Domain.Interfaces
         Task<Venda?> GetByIdComItensAsync(int id);
         Task<IEnumerable<Venda>> GetVendasByClienteIDAsync(int? clienteId);
         Task<IEnumerable<Venda>> GetVendasFiadoByClienteIDAsync(int? clienteId);
+        Task<IEnumerable<Venda>> GetVendasByClienteIdAsync(int clienteId);
     }
 }
