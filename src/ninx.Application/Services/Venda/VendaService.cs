@@ -26,7 +26,7 @@ namespace ninx.Application.Services
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
         private readonly IClienteRepository _clienteRepository;
         private readonly IPagamentoVendaRepository _pagamentoVendaRepository;
-        private readonly IAssinaturaEletronicaRepository _assinaturaEletronicaRepository; 
+        private readonly IDocumentosVendaRepository _documentosVidaRepository; 
         public VendaService(
             IVendaRepository vendaRepository,
             IProdutoRepository produtoRepository,
@@ -38,7 +38,7 @@ namespace ninx.Application.Services
             IUsuarioComercioRepository usuarioComercioRepository,
             IClienteRepository clienteRepository,
             IPagamentoVendaRepository pagamentoVendaRepository,
-            IAssinaturaEletronicaRepository assinaturaEletronicaRepository)
+            IDocumentosVendaRepository assinaturaEletronicaRepository)
         {
             _vendaRepository = vendaRepository;
             _produtoRepository = produtoRepository;
@@ -50,7 +50,7 @@ namespace ninx.Application.Services
             _usuarioComercioRepository = usuarioComercioRepository;
             _clienteRepository = clienteRepository;
             _pagamentoVendaRepository = pagamentoVendaRepository;
-            _assinaturaEletronicaRepository = assinaturaEletronicaRepository;
+            _documentosVidaRepository = assinaturaEletronicaRepository;
         }
 
 
@@ -103,9 +103,9 @@ namespace ninx.Application.Services
 
             var response = venda.Adapt<VendaResponse>();
 
-            if (venda.AssinaturaEletronica?.DocumentoGuid != Guid.Empty)
+            if (venda.DocumentosVenda.Any())
             {
-                response.DocumentoGuid = venda.AssinaturaEletronica.DocumentoGuid;
+                response.DocumentoGuid = venda.DocumentosVenda.Select(x => x.DocumentoGuid);
             }
 
             return response;
@@ -160,7 +160,7 @@ namespace ninx.Application.Services
                     var response = venda.Adapt<VendaResponse>();
                     if (documentoGuid.HasValue)
                     {
-                        response.DocumentoGuid = documentoGuid.Value;
+                        response.DocumentoGuid.ToList().Add(documentoGuid.Value);
                     }
                     return response;
                 }
@@ -226,6 +226,13 @@ namespace ninx.Application.Services
                 throw;
             }
         }
+        public async Task UpdateVenda(Venda venda)
+        {
+            await _vendaRepository.UpdateAsync(venda);
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitAsync();
+        }
+
         private void ValidarRequestVenda(CriarVendaRequest request)
         {
             if (request is null)
@@ -281,10 +288,10 @@ namespace ninx.Application.Services
                 ClienteID = request.ClienteID == 0 ? null : request.ClienteID,
                 Total = totalVenda,
                 TipoVenda = ehFiado ? TipoVenda.Fiado : TipoVenda.Normal,
-                Status = StatusVenda.Finalizada,
                 ItensVenda = itensVenda,
                 CriadoEm = dataOperacao,
-                PagamentosVenda = pagamentos
+                PagamentosVenda = pagamentos,
+                Status = ehFiado ? StatusVenda.Aberta : StatusVenda.Finalizada
             };
 
             await _vendaRepository.AddAsync(venda);
@@ -294,15 +301,16 @@ namespace ninx.Application.Services
                 var cliente = await _clienteRepository.GetByIdAsync(request.ClienteID!.Value);
                 var comercio = await _comercioRepository.GetByIdAsync(request.ComercioID);
 
-                var assinatura = new AssinaturaEletronica
+                var assinatura = new DocumentosVenda
                 {
+                    DocumentoNome = DocumentoNomes.ContratoInicial.ToString(),
                     Venda = venda,
                     DocumentoGuid = identificadorAssinatura.Value,
                     Assinado = false,
                     CriadoEm = dataOperacao,
                     ImagemAssinatura = await CriarDocAssinatura(venda, cliente!, comercio!)
                 };
-                await _assinaturaEletronicaRepository.AddAsync(assinatura);
+                await _documentosVidaRepository.AddAsync(assinatura);
             }
 
             foreach (var mov in movimentacoes)
@@ -412,7 +420,6 @@ namespace ninx.Application.Services
             }
             catch
             {
-                // Log ou ignorar erro de rollback
             }
         }
         private async Task ProcessarEstornoEstoqueAsync(Venda venda, int usuarioId)
@@ -424,7 +431,7 @@ namespace ninx.Application.Services
 
             var estoquesParaAtualizar = new List<Estoque>();
             var movimentacoesParaInserir = new List<MovimentacaoEstoque>();
-            var assinaturasParaAtualizar = new List<AssinaturaEletronica>();
+            var assinaturasParaAtualizar = new List<DocumentosVenda>();
 
             foreach (var item in venda.ItensVenda)
             {
@@ -471,13 +478,11 @@ namespace ninx.Application.Services
                 pagamentosParaAtualizar.Add(pagamento);
             }
 
-            if (venda.AssinaturaEletronica?.DocumentoGuid != Guid.Empty)
+            foreach (var assinatura in venda.DocumentosVenda.Where(x => x.Status == StatusAssinaturaEletronica.Pendente))
             {
-                var assinatura = venda.AssinaturaEletronica;
-
-                    assinatura.Status = StatusAssinatura.Cancelada;
-                    assinatura.AtualizadoEm = dataOperacao;
-                    assinaturasParaAtualizar.Add(assinatura);
+                assinatura.Status = StatusAssinaturaEletronica.Cancelada;
+                assinatura.AtualizadoEm = dataOperacao;
+                assinaturasParaAtualizar.Add(assinatura);
             }
 
             await _estoqueRepository.UpdateBatchAsync(estoquesParaAtualizar);
@@ -495,7 +500,7 @@ namespace ninx.Application.Services
 
             if (assinaturasParaAtualizar.Any())
             {
-                await _assinaturaEletronicaRepository.UpdateBatchAsync(assinaturasParaAtualizar);
+                await _documentosVidaRepository.UpdateBatchAsync(assinaturasParaAtualizar);
             }
         }
         private void ValidarVenda(Produto? produto, Estoque? estoque, ItemVendaRequest item)

@@ -14,7 +14,7 @@ namespace ninx.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
         private readonly IUsuarioRepository _usuarioRepository;
-        private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
+        private readonly IAssinaturaPlanoRepository _documentosVidaPlanoRepository;
         private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
 
         public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IUsuarioRepository usuarioRepository, IAssinaturaPlanoRepository assinaturaPlanoRepository, IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository)
@@ -23,7 +23,7 @@ namespace ninx.Application.Services
             _unitOfWork = unitOfWork;
             _usuarioComercioRepository = usuarioComercioRepository;
             _usuarioRepository = usuarioRepository;
-            _assinaturaPlanoRepository = assinaturaPlanoRepository;
+            _documentosVidaPlanoRepository = assinaturaPlanoRepository;
             _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
         }
 
@@ -72,7 +72,7 @@ namespace ninx.Application.Services
                 DataVencimento = DateTime.UtcNow.AddMonths(1)
             };
             await _pagamentoHistoricoAssinaturaPlanoRepository.AddAsync(primeiroPagamento);
-            await _assinaturaPlanoRepository.AddAsync(assinatura);
+            await _documentosVidaPlanoRepository.AddAsync(assinatura);
             await _comercioRepository.AddAsync(comercio);
             await _unitOfWork.SaveChangesAsync();
 

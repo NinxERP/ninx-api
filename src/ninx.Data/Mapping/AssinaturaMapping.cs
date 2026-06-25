@@ -33,12 +33,12 @@ namespace ninx.Data.Mappings
                 .IsRequired()
                 .HasMaxLength(10)
                 .HasConversion<string>()
-                .HasDefaultValue(StatusAssinatura.Ativa);
+                .HasDefaultValue(StatusAssinaturaPlano.Ativa);
 
             builder.ToTable(t => 
             {
-                t.HasCheckConstraint("CK_Assinaturas_Plano", "[Plano] IN ('Mensal', 'Trimestral', 'Anual')");
-                t.HasCheckConstraint("CK_Assinaturas_Status", "[Status] IN ('Ativa', 'Vencida', 'Cancelada')");
+                t.HasCheckConstraint("CK_documentosVidas_Plano", "[Plano] IN ('Mensal', 'Trimestral', 'Anual')");
+                t.HasCheckConstraint("CK_documentosVidas_Status", "[Status] IN ('Ativa', 'Vencida', 'Cancelada')");
             });
 
             builder.Property(x => x.CriadoEm)

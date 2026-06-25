@@ -26,7 +26,7 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IValidator<ItemVendaRequest>, ItemVendaRequestValidator>();
             services.AddScoped<IValidator<CriarUsuarioComercioRequest>, CriarUsuarioComercioRequestValidator>();
             services.AddScoped<IValidator<AtualizarUsuarioComercioRequest>, AtualizarUsuarioComercioRequestValidator>();
-            services.AddScoped<IValidator<ConfirmarAssinaturaEletronicaRequest>, ConfirmarAssinaturaEletronicaRequestValidator>();
+            services.AddScoped<IValidator<ConfirmarAssinaturaEletronicaRequest>, ConfirmarDocumentosVendaRequestValidator>();
             services.AddScoped<IValidator<FiltroRequest>, FiltroRequestValidator>();
 
             services.AddScoped<IValidator<Usuario>, UsuarioValidator>();
@@ -36,7 +36,7 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IValidator<Venda>, VendaValidator>();
             services.AddScoped<IValidator<UsuarioComercio>, UsuarioComercioValidator>();
             services.AddScoped<IValidator<ItemVenda>, ItemVendaValidator>();
-            services.AddScoped<IValidator<AssinaturaEletronica>, AssinaturaEletronicaValidator>();
+            services.AddScoped<IValidator<DocumentosVenda>, DocumentosVendaValidator>();
             services.AddScoped<IValidator<Estoque>, EstoqueValidator>();
             services.AddScoped<IValidator<CategoriaProduto>, CategoriaProdutoValidator>();
             services.AddScoped<IValidator<PagamentoVenda>, PagamentoVendaValidator>();

@@ -12,7 +12,7 @@ namespace ninx.Application.Services
         private readonly ITokenProvider _tokenProvider;
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
-        private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
+        private readonly IAssinaturaPlanoRepository _documentosVidaPlanoRepository;
         private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
         private readonly IUnitOfWork _unitOfWork;
         public LoginService(ITokenProvider tokenProvider,
@@ -25,7 +25,7 @@ namespace ninx.Application.Services
             _tokenProvider = tokenProvider;
             _usuarioRepository = usuarioRepository;
             _usuarioComercioRepository = usuarioComercioRepository;
-            _assinaturaPlanoRepository = assinaturaPlanoRepository;
+            _documentosVidaPlanoRepository = assinaturaPlanoRepository;
             _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
             _unitOfWork = unitOfWork;
         }   
@@ -45,16 +45,16 @@ namespace ninx.Application.Services
                 throw new ForbiddenException("Este usuário não possui nenhum comércio vinculado.");
             }
 
-            var plano = await _assinaturaPlanoRepository.GetByComercioIdAsync(usuarioComercios.FirstOrDefault().ComercioID);
+            var plano = await _documentosVidaPlanoRepository.GetByComercioIdAsync(usuarioComercios.FirstOrDefault().ComercioID);
             if (plano == null) throw new Exception("Comércio sem plano vinculado.");
-            if (plano.Status == StatusAssinatura.Cancelada || plano.Status == StatusAssinatura.Vencida) throw new ForbiddenException("Assinatura vencida ou cancelada.");
+            if (plano.Status == StatusAssinaturaPlano.Cancelada || plano.Status == StatusAssinaturaPlano.Vencida) throw new ForbiddenException("Assinatura vencida ou cancelada.");
 
             var ultimoPagamento = await _pagamentoHistoricoAssinaturaPlanoRepository.GetUltimoPagamentoByAssinaturaPlanoIdAsync(plano.AssinaturaID);
             if (ultimoPagamento == null) throw new Exception("Comércio sem pagamentos registrados.");
             if (ultimoPagamento.DataVencimento < DateTime.UtcNow)
             {
-                plano.Status = StatusAssinatura.Vencida;
-                await _assinaturaPlanoRepository.UpdateAsync(plano);
+                plano.Status = StatusAssinaturaPlano.Vencida;
+                await _documentosVidaPlanoRepository.UpdateAsync(plano);
                 await _unitOfWork.CommitAsync();
                 throw new ForbiddenException("Sua assinatura está vencida.");
             }

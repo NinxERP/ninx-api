@@ -8,9 +8,6 @@ namespace ninx.Application.Mappings.Vendas
     {
         public void Register(TypeAdapterConfig config)
         {
-            TypeAdapterConfig<Venda, VendaResponse>
-                .NewConfig()
-                .Map(dest => dest.DocumentoGuid, src => src.AssinaturaEletronica.DocumentoGuid);
         }
     }
 }

@@ -8,11 +8,11 @@ namespace ninx.API.Controllers
     [Route("api/[controller]")]
     public class AssinaturaPlanoController : ControllerBase
     {
-        private readonly IAssinaturaPlanoService _assinaturaService;
+        private readonly IAssinaturaPlanoService _documentosVidaService;
 
         public AssinaturaPlanoController(IAssinaturaPlanoService assinaturaService)
         {
-            _assinaturaService = assinaturaService;
+            _documentosVidaService = assinaturaService;
         }
 
         [HttpGet]
@@ -20,7 +20,7 @@ namespace ninx.API.Controllers
         [ProducesResponseType(typeof(IEnumerable<AssinaturaPlanoResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll(PaginationRequest request)
         {
-            var result = await _assinaturaService.GetAll(request);
+            var result = await _documentosVidaService.GetAll(request);
             return Ok(result);
         }
 
@@ -29,7 +29,7 @@ namespace ninx.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int id)
         {
-            var result = await _assinaturaService.GetByIdAsync(id);
+            var result = await _documentosVidaService.GetByIdAsync(id);
             return Ok(result);
         }
     }

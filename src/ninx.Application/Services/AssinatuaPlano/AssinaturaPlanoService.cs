@@ -8,15 +8,15 @@ namespace ninx.Application.Services
 {
     public class AssinaturaPlanoService : IAssinaturaPlanoService
     {
-        private readonly IAssinaturaPlanoRepository _AssinaturaPlanoRepository;
+        private readonly IAssinaturaPlanoRepository _documentosVidaPlanoRepository;
         public AssinaturaPlanoService(IAssinaturaPlanoRepository AssinaturaPlanoRepository)
         {
-            _AssinaturaPlanoRepository = AssinaturaPlanoRepository;
+            _documentosVidaPlanoRepository = AssinaturaPlanoRepository;
         }
     
         public async Task<PaginatedResponse<AssinaturaPlanoResponse>> GetAll(PaginationRequest request)
         {
-            var (entidades, total) = await _AssinaturaPlanoRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
+            var (entidades, total) = await _documentosVidaPlanoRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
             var listaResponse = entidades.Adapt<List<AssinaturaPlanoResponse>>();
 
             return new PaginatedResponse<AssinaturaPlanoResponse>(
@@ -29,7 +29,7 @@ namespace ninx.Application.Services
     
         public async Task<AssinaturaPlanoResponse> GetByIdAsync(int id)
         {
-            var AssinaturaPlano = await _AssinaturaPlanoRepository.GetByIdAsync(id);
+            var AssinaturaPlano = await _documentosVidaPlanoRepository.GetByIdAsync(id);
             if (AssinaturaPlano == null)
                 throw new NotFoundException("AssinaturaPlano não encontrado.");
     

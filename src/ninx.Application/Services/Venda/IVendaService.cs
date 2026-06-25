@@ -1,4 +1,5 @@
 ﻿using ninx.Communication;
+using ninx.Domain.Entities;
 
 namespace ninx.Application.Services
 {
@@ -11,5 +12,6 @@ namespace ninx.Application.Services
         Task EstornarAsync(int vendaId, int usuarioId);
         Task ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, decimal valorPago, int formaPagamento);
         Task<IEnumerable<VendaResponse>> GetByClienteIdAsync(int clienteId);
+        Task UpdateVenda(Venda venda);
     }
 }

@@ -12,7 +12,7 @@ namespace ninx.Application.Services
     public class PagamentoHistoricoAssinaturaPlanoService : IPagamentoHistoricoAssinaturaPlanoService
     {
         private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
-        private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
+        private readonly IAssinaturaPlanoRepository _documentosVidaPlanoRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<PagamentoHistoricoAssinaturaPlanoService> _logger;
 
@@ -23,7 +23,7 @@ namespace ninx.Application.Services
             ILogger<PagamentoHistoricoAssinaturaPlanoService> logger)
         {
             _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
-            _assinaturaPlanoRepository = assinaturaPlanoRepository;
+            _documentosVidaPlanoRepository = assinaturaPlanoRepository;
             _unitOfWork = unitOfWork;
             _logger = logger;
         }
@@ -35,7 +35,7 @@ namespace ninx.Application.Services
             if (request.ComercioId <= 0) throw new BadRequestException("ComercioId inválido.");
 
 
-            var assinatura = await _assinaturaPlanoRepository.GetByComercioIdAsync(request.ComercioId);
+            var assinatura = await _documentosVidaPlanoRepository.GetByComercioIdAsync(request.ComercioId);
             if (assinatura == null) throw new NotFoundException("Nenhuma assinatura encontrada para este comércio.");
 
             var hoje = DateTime.UtcNow;
@@ -43,10 +43,10 @@ namespace ninx.Application.Services
             int mesesParaAdicionar = (int)assinatura.Plano;
             DateTime novoVencimento = dataBase.AddMonths(mesesParaAdicionar);
 
-            assinatura.Status = StatusAssinatura.Ativa;
+            assinatura.Status = StatusAssinaturaPlano.Ativa;
             assinatura.DataFim = novoVencimento;
             assinatura.AtualizadoEm = hoje;
-            await _assinaturaPlanoRepository.UpdateAsync(assinatura);
+            await _documentosVidaPlanoRepository.UpdateAsync(assinatura);
 
             var newPagamento = request.Adapt<PagamentoHistoricoAssinaturaPlano>();
 
