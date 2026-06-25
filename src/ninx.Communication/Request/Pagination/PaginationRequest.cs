@@ -17,16 +17,19 @@ namespace ninx.Communication
             set => _pageSize = value > 0 && value <= 100 ? value : (value <= 0 ? 10 : 100);
         }
 
-        public string? TipoFiltro { get; set; }
+        public List<string>? Status { get; set; } = new();
+        public string? TermoBusca { get; set; }
+
         public PaginationRequest()
         {
         }
 
-        public PaginationRequest(int pageNumber, int pageSize, string? tipoFiltro)
+        public PaginationRequest(int pageNumber, int pageSize, List<string>? status, string? termoBusca)
         {
             PageNumber = pageNumber;
             PageSize = pageSize;
-            TipoFiltro = tipoFiltro;
+            Status = status;
+            TermoBusca = termoBusca;
         }
     }
 }

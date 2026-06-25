@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ninx.Communication;
 using ninx.Data.Context;
 using ninx.Domain.Entities;
 using ninx.Domain.Interfaces;
+using System.Linq;
 
 namespace ninx.Infra.Repository
 {
@@ -23,42 +25,64 @@ namespace ninx.Infra.Repository
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Produto> Data, int TotalCount)> GetProdutosEstoqueByComercioIdPaginatedAsync(int comercioId, int pageNumber, int pageSize, string? tipoFiltro)
+        public async Task<(IEnumerable<Produto> Data, PaginatedResponse<ProdutoResponse> dadosPaginated)> GetProdutosEstoqueByComercioIdPaginatedAsync(
+            int comercioId,
+            PaginationRequest request)
         {
             var query = _context.Produtos
                 .Include(x => x.Estoque)
                 .AsNoTracking()
                 .Where(x => x.ComercioID == comercioId);
 
-            if (!string.IsNullOrEmpty(tipoFiltro))
+            var totalAtivos = await query.CountAsync(x => x.Ativo);
+            var totalNormal = await query.CountAsync(x => x.Ativo && x.Estoque.Quantidade >= x.Estoque.QuantidadeMinima);
+            var totalBaixo = await query.CountAsync(x => x.Ativo && x.Estoque.Quantidade < x.Estoque.QuantidadeMinima && x.Estoque.Quantidade > 0);
+            var totalZerado = await query.CountAsync(x => x.Ativo && x.Estoque.Quantidade == 0);
+
+            if (!string.IsNullOrWhiteSpace(request.TermoBusca))
             {
-                switch (tipoFiltro.ToLower())
-                {
-                    case "normal":
-                        query = query.Where(x => x.Ativo && x.Estoque.Quantidade >= x.Estoque.QuantidadeMinima);
-                        break;
-                    case "abaixominimo":
-                        query = query.Where(x => x.Ativo && x.Estoque.Quantidade < x.Estoque.QuantidadeMinima && x.Estoque.Quantidade > 0);
-                        break;
-                    case "semestoque":
-                        query = query.Where(x => x.Ativo && x.Estoque.Quantidade == 0);
-                        break;
-                    case "desativados":
-                        query = query.Where(x => !x.Ativo);
-                        break;
-                }
+                var t = request.TermoBusca.Trim().ToLower();
+                query = query.Where(p => p.Nome.ToLower().Contains(t) || (p.CodigoBarras != null && p.CodigoBarras.Contains(t)));
             }
 
-            var totalCount = await query.CountAsync();
+            if (request.Status != null && request.Status.Any())
+            {
+                var filtros = request.Status.Select(s => s.ToLower().Trim()).ToList();
+
+                query = query.Where(x =>
+                    (filtros.Contains("desativados") && !x.Ativo) ||
+                    (filtros.Contains("ok") && x.Ativo && x.Estoque.Quantidade >= x.Estoque.QuantidadeMinima) ||
+                    (filtros.Contains("baixo") && x.Ativo && x.Estoque.Quantidade < x.Estoque.QuantidadeMinima && x.Estoque.Quantidade > 0) ||
+                    (filtros.Contains("zerado") && x.Ativo && x.Estoque.Quantidade == 0)
+                );
+            }
+            else
+            {
+                query = query.Where(x => x.Ativo);
+            }
+
+            var totalRecordsFiltrado = await query.CountAsync();
 
             var data = await query
                 .OrderBy(x => x.Nome)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .ToListAsync();
 
-            return (data, totalCount);
+            var dadosPaginated = new PaginatedResponse<ProdutoResponse>(
+                data: new List<ProdutoResponse>(), 
+                pageNumber: request.PageNumber,
+                pageSize: request.PageSize,
+                totalRecords: totalRecordsFiltrado,
+                totalAtivos: totalAtivos,
+                totalNormal: totalNormal,
+                totalBaixo: totalBaixo,
+                totalZerado: totalZerado
+            );
+
+            return (data, dadosPaginated);
         }
+
 
         public async Task<Produto?> GetProdutoByIdAsync(int produtoId)
         {

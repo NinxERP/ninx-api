@@ -1,4 +1,5 @@
-﻿using ninx.Domain.Entities;
+﻿using ninx.Communication;
+using ninx.Domain.Entities;
 
 namespace ninx.Domain.Interfaces
 {
@@ -10,6 +11,6 @@ namespace ninx.Domain.Interfaces
         Task<Produto?> GetProdutoByIdAsync(int produtoId);
         Task<IEnumerable<Produto>> GetProdutosById(IEnumerable<int> produtoIds);
         Task<Produto?> GetByIdAndComercioAsync(int id, int comercioId);
-        Task<(IEnumerable<Produto> Data, int TotalCount)> GetProdutosEstoqueByComercioIdPaginatedAsync(int comercioId, int pageNumber, int pageSize, string? tipoFiltro);
+        Task<(IEnumerable<Produto> Data, PaginatedResponse<ProdutoResponse> dadosPaginated)> GetProdutosEstoqueByComercioIdPaginatedAsync(int comercioId, PaginationRequest request);
     }
 }

@@ -80,7 +80,7 @@ namespace ninx.Application.Services
 
         public async Task<PaginatedResponse<ProdutoResponse>> GetProdutosEstoqueByComercioIdAsync(int comercioId, PaginationRequest request)
         {
-            var (data, totalCount) = await _produtoRepository.GetProdutosEstoqueByComercioIdPaginatedAsync(comercioId, request.PageNumber, request.PageSize, request.TipoFiltro);
+            var (data, response) = await _produtoRepository.GetProdutosEstoqueByComercioIdPaginatedAsync(comercioId, request);
 
             if (data == null || !data.Any())
             {
@@ -88,13 +88,11 @@ namespace ninx.Application.Services
             }
 
             var produtosResponse = data.Adapt<List<ProdutoResponse>>();
+            response.Data = produtosResponse;
+            response.PageNumber = request.PageNumber;
+            response.PageSize = request.PageSize;
 
-            return new PaginatedResponse<ProdutoResponse>(
-                produtosResponse,
-                request.PageNumber,
-                request.PageSize,
-                totalCount
-            );
+            return response;
         }
 
         public async Task<ProdutoResponse> GetByIdAsync(int id, int comercioId)
