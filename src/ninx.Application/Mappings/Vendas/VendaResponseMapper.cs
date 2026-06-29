@@ -10,7 +10,7 @@ namespace ninx.Application.Mappings.Vendas
         {
             TypeAdapterConfig<Venda, VendaResponse>
                 .NewConfig()
-                .Map(dest => dest.DocumentoGuid, src => src.AssinaturaEletronica.DocumentoGuid);
+                .Map(dest => dest.DocumentoGuid, src => src.AssinaturasEletronicas.Select(x => x.DocumentoGuid));
         }
     }
 }

@@ -11,6 +11,7 @@ using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
+using ninx.Communication.Helpers;
 
 namespace ninx.Application.Services
 {
@@ -103,9 +104,9 @@ namespace ninx.Application.Services
 
             var response = venda.Adapt<VendaResponse>();
 
-            if (venda.AssinaturaEletronica?.DocumentoGuid != Guid.Empty)
+            if (venda.AssinaturasEletronicas.Any(x => x.DocumentoGuid != Guid.Empty))
             {
-                response.DocumentoGuid = venda.AssinaturaEletronica.DocumentoGuid;
+                response.DocumentoGuid = venda.AssinaturasEletronicas.Select(x => x.DocumentoGuid);
             }
 
             return response;
@@ -160,7 +161,7 @@ namespace ninx.Application.Services
                     var response = venda.Adapt<VendaResponse>();
                     if (documentoGuid.HasValue)
                     {
-                        response.DocumentoGuid = documentoGuid.Value;
+                        response.DocumentoGuid.ToList().Add(documentoGuid.Value);
                     }
                     return response;
                 }
@@ -177,7 +178,8 @@ namespace ninx.Application.Services
             }
             throw new BadRequestException("Não foi possível processar a venda após múltiplas tentativas.");
         }
-        public async Task ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, decimal valorPago, int formaPagamento)
+
+        public async Task<Guid> ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, decimal valorPago, int formaPagamento)
         {
             if (valorPago <= 0)
                 throw new BadRequestException("O valor do pagamento deve ser maior que zero.");
@@ -206,19 +208,39 @@ namespace ninx.Application.Services
                 if (valorPago > saldoDevedorVenda)
                     throw new BadRequestException($"Valor informado (R$ {valorPago:N2}) é maior que o saldo devedor da venda (R$ {saldoDevedorVenda:N2}).");
 
+                var dataOperacao = DateTime.UtcNow;
+
                 var novoPagamento = new PagamentoVenda
                 {
                     VendaID = venda.VendaID,
                     FormaPagamento = (FormaPagamento)formaPagamento,
                     Valor = valorPago,
                     Status = StatusPagamento.Pago,
-                    CriadoEm = DateTime.UtcNow,
+                    CriadoEm = dataOperacao,
                     UsuarioID = usuarioId,
                 };
 
                 await _pagamentoVendaRepository.AddAsync(novoPagamento);
+
+                var identificadorAssinatura = Guid.NewGuid();
+                var cliente = await _clienteRepository.GetByIdAsync(venda.ClienteID!.Value);
+                var comercio = await _comercioRepository.GetByIdAsync(venda.ComercioID);
+
+                var assinatura = new AssinaturaEletronica
+                {
+                    Venda = venda,
+                    DocumentoGuid = identificadorAssinatura,
+                    Assinado = false,
+                    CriadoEm = dataOperacao,
+                    ImagemAssinatura = await CriarDocReciboPagamento(venda, novoPagamento, cliente!, comercio!, saldoDevedorVenda)
+                };
+
+                await _assinaturaEletronicaRepository.AddAsync(assinatura);
+
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
+
+                return identificadorAssinatura; // Retorna o GUID para o front-end iniciar o fluxo de assinatura
             }
             catch
             {
@@ -226,6 +248,111 @@ namespace ninx.Application.Services
                 throw;
             }
         }
+
+        public async Task<Guid> ReceberPagamentoGeralFiadoAsync(int clienteId, int usuarioId, decimal valorTotalPago, int formaPagamento)
+        {
+            if (valorTotalPago <= 0)
+                throw new BadRequestException("O valor do pagamento global deve ser maior que zero.");
+
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                // 1. Procura todas as vendas fiadas finalizadas do cliente com os seus pagamentos incluídos
+                var vendasDoCliente = await _vendaRepository.GetVendasFiadoAtivasPorClienteAsync(clienteId);
+                if (vendasDoCliente == null || !vendasDoCliente.Any())
+                    throw new NotFoundException("Nenhuma venda fiada em aberto foi encontrada para este cliente.");
+
+                // Valida a permissão do utilizador no comércio da primeira venda (assumindo o mesmo contexto)
+                var primeiraVenda = vendasDoCliente.First();
+                await ValidarPermissaoUsuarioComercioAsync(usuarioId, primeiraVenda.ComercioID);
+
+                var dataOperacao = DateTime.UtcNow;
+                var detalheAbatimentos = new List<ItemAbatimentoGlobal>();
+                decimal valorRestanteParaDistribuir = valorTotalPago;
+
+                // 2. Distribui o valor entre as vendas (da mais antiga para a mais recente - FIFO)
+                foreach (var venda in vendasDoCliente.OrderBy(v => v.CriadoEm))
+                {
+                    if (valorRestanteParaDistribuir <= 0)
+                        break;
+
+                    var pagamentosAnteriores = venda.PagamentosVenda
+                        .Where(p => p.Status == StatusPagamento.Pago)
+                        .Sum(p => p.Valor);
+
+                    var saldoDevedorVenda = venda.Total - pagamentosAnteriores;
+
+                    // Se a venda já estiver totalmente paga, avança para a próxima
+                    if (saldoDevedorVenda <= 0)
+                        continue;
+
+                    // Define quanto esta venda vai receber de abatimento
+                    decimal valorAbatidoNestaVenda = Math.Min(valorRestanteParaDistribuir, saldoDevedorVenda);
+
+                    var novoPagamento = new PagamentoVenda
+                    {
+                        VendaID = venda.VendaID,
+                        FormaPagamento = (FormaPagamento)formaPagamento,
+                        Valor = valorAbatidoNestaVenda,
+                        Status = StatusPagamento.Pago,
+                        CriadoEm = dataOperacao,
+                        UsuarioID = usuarioId,
+                    };
+
+                    await _pagamentoVendaRepository.AddAsync(novoPagamento);
+
+                    // Armazena as informações para o demonstrativo do PDF do recibo
+                    detalheAbatimentos.Add(new ItemAbatimentoGlobal
+                    {
+                        VendaId = venda.VendaID,
+                        DataVenda = venda.CriadoEm,
+                        SaldoAnterior = saldoDevedorVenda,
+                        ValorAbatido = valorAbatidoNestaVenda,
+                        SaldoRestante = saldoDevedorVenda - valorAbatidoNestaVenda
+                    });
+
+                    valorRestanteParaDistribuir -= valorAbatidoNestaVenda;
+                }
+
+                // Se após percorrer todas as vendas ainda sobrar dinheiro, lança uma exceção
+                if (valorRestanteParaDistribuir > 0)
+                    throw new BadRequestException($"O valor informado é maior do que o total da dívida acumulada do cliente. Sobra: R$ {valorRestanteParaDistribuir:N2}");
+
+                // 3. Gera o documento único de Recibo Global em memória (uma única vez)
+                var identificadorAssinatura = Guid.NewGuid();
+                var cliente = await _clienteRepository.GetByIdAsync(clienteId);
+                var comercio = await _comercioRepository.GetByIdAsync(primeiraVenda.ComercioID);
+
+                var pdfBase64 = await CriarDocReciboGlobalPagamento(detalheAbatimentos, valorTotalPago, (FormaPagamento)formaPagamento, cliente!, comercio!, dataOperacao);
+
+                // 🌟 ALTERAÇÃO CRÍTICA CORRIGIDA: Regista uma assinatura individual para CADA venda afetada pelo abatimento
+                foreach (var abatimento in detalheAbatimentos)
+                {
+                    var assinaturaVinculada = new AssinaturaEletronica
+                    {
+                        VendaID = abatimento.VendaId,            // Vinculada diretamente à respetiva venda
+                        DocumentoGuid = identificadorAssinatura, // Todas partilham o mesmo identificador único de controlo
+                        Assinado = false,
+                        CriadoEm = dataOperacao,
+                        ImagemAssinatura = pdfBase64             // Guarda o mesmo PDF para consulta individual posterior
+                    };
+
+                    await _assinaturaEletronicaRepository.AddAsync(assinaturaVinculada);
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+
+                return identificadorAssinatura; // Retorna o GUID para o Front-end gerir o fluxo de recolha de assinatura
+            }
+            catch
+            {
+                await RollbackTransacaoAsync();
+                throw;
+            }
+        }
+
         private void ValidarRequestVenda(CriarVendaRequest request)
         {
             if (request is null)
@@ -415,6 +542,7 @@ namespace ninx.Application.Services
                 // Log ou ignorar erro de rollback
             }
         }
+
         private async Task ProcessarEstornoEstoqueAsync(Venda venda, int usuarioId)
         {
             var dataOperacao = DateTime.UtcNow;
@@ -452,7 +580,7 @@ namespace ninx.Application.Services
 
             var estornosParaInserir = new List<PagamentoVenda>();
             var pagamentosParaAtualizar = new List<PagamentoVenda>();
-            
+
             foreach (var pagamento in venda.PagamentosVenda.Where(p => p.Status == StatusPagamento.Pago))
             {
                 estornosParaInserir.Add(new PagamentoVenda
@@ -471,13 +599,14 @@ namespace ninx.Application.Services
                 pagamentosParaAtualizar.Add(pagamento);
             }
 
-            if (venda.AssinaturaEletronica?.DocumentoGuid != Guid.Empty)
+            if (venda.AssinaturasEletronicas != null && venda.AssinaturasEletronicas.Any())
             {
-                var assinatura = venda.AssinaturaEletronica;
-
+                foreach (var assinatura in venda.AssinaturasEletronicas.Where(a => a.Status != StatusAssinatura.Cancelada))
+                {
                     assinatura.Status = StatusAssinatura.Cancelada;
                     assinatura.AtualizadoEm = dataOperacao;
                     assinaturasParaAtualizar.Add(assinatura);
+                }
             }
 
             await _estoqueRepository.UpdateBatchAsync(estoquesParaAtualizar);
@@ -498,6 +627,8 @@ namespace ninx.Application.Services
                 await _assinaturaEletronicaRepository.UpdateBatchAsync(assinaturasParaAtualizar);
             }
         }
+
+
         private void ValidarVenda(Produto? produto, Estoque? estoque, ItemVendaRequest item)
         {
             if (produto is null)
@@ -729,6 +860,246 @@ namespace ninx.Application.Services
 
                 var pdfBytes = memoryStream.ToArray();
                 return Convert.ToBase64String(pdfBytes);
+            }
+        }
+
+        private async Task<string> CriarDocReciboPagamento(Venda venda, PagamentoVenda pagamento, Cliente cliente, Comercio comercio, decimal saldoDevedorAnterior)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                var writer = new PdfWriter(memoryStream);
+                var pdfDocument = new PdfDocument(writer);
+                var document = new Document(pdfDocument, PageSize.A4);
+
+                document.SetMargins(35, 45, 35, 45);
+
+                // 🎨 Paleta Ninx
+                Color azulNinxEscuro = new DeviceRgb(13, 27, 42);
+                Color azulNinxDestaque = new DeviceRgb(14, 165, 233);
+                Color cinzaCardFundo = new DeviceRgb(248, 250, 252);
+                Color cinzaLinhaSutil = new DeviceRgb(226, 232, 240);
+                Color cinzaTextoMuted = new DeviceRgb(100, 116, 139);
+                Color pretoSuveTexto = new DeviceRgb(30, 41, 59);
+
+                var fonteNormal = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
+                var fonteNegrito = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA_BOLD);
+
+                document.SetFont(fonteNormal);
+                document.SetFontColor(pretoSuveTexto);
+
+                // ── 1. CABEÇALHO ──
+                var titulo = new Paragraph("RECIBO DE PAGAMENTO PARCIAL")
+                    .SetFontSize(20)
+                    .SetFont(fonteNegrito)
+                    .SetFontColor(azulNinxEscuro)
+                    .SetMarginBottom(0);
+                document.Add(titulo);
+
+                var subtitulo = new Paragraph()
+                    .Add(new Text($"REFERENTE À VENDA #{venda.VendaID}").SetFont(fonteNegrito).SetFontColor(azulNinxDestaque).SetHorizontalScaling(1.1f))
+                    .SetFontSize(10)
+                    .SetMarginBottom(25);
+                document.Add(subtitulo);
+
+                // ── 2. ENVOLVIDOS ──
+                var tableEnvolvidos = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth();
+
+                var cellCredor = new Cell()
+                    .SetBackgroundColor(cinzaCardFundo)
+                    .SetBorder(new SolidBorder(cinzaLinhaSutil, 1))
+                    .SetPadding(12)
+                    .SetBorderRadius(new BorderRadius(6));
+                cellCredor.Add(new Paragraph("CREDOR").SetFont(fonteNegrito).SetFontSize(9.5f).SetFontColor(cinzaTextoMuted).SetMarginBottom(6));
+                cellCredor.Add(new Paragraph($"{comercio.NomeComercio}").SetFontSize(10));
+                cellCredor.Add(new Paragraph($"CNPJ: {comercio.CNPJ ?? "Não informado"}").SetFontSize(10));
+
+                var cellDevedor = new Cell()
+                    .SetBackgroundColor(cinzaCardFundo)
+                    .SetBorder(new SolidBorder(cinzaLinhaSutil, 1))
+                    .SetPadding(12)
+                    .SetBorderRadius(new BorderRadius(6));
+                cellDevedor.Add(new Paragraph("DEVEDOR").SetFont(fonteNegrito).SetFontSize(9.5f).SetFontColor(cinzaTextoMuted).SetMarginBottom(6));
+                cellDevedor.Add(new Paragraph($"{cliente.Nome}").SetFontSize(10));
+                cellDevedor.Add(new Paragraph($"Telefone: {cliente.Telefone ?? "Não informado"}").SetFontSize(10));
+
+                tableEnvolvidos.AddCell(cellCredor.SetMarginRight(6));
+                tableEnvolvidos.AddCell(cellDevedor.SetMarginLeft(6));
+                document.Add(tableEnvolvidos);
+
+                var declaracao = new Paragraph()
+                    .SetMarginTop(30)
+                    .SetMarginBottom(30)
+                    .SetFontSize(11)
+                    .SetMultipliedLeading(1.3f) 
+                    .Add(new Text("Declaramos para os devidos fins que o devedor acima identificado realizou o pagamento manual da quantia de "))
+                    .Add(new Text($"R$ {pagamento.Valor:N2}").SetFont(fonteNegrito).SetFontColor(azulNinxEscuro))
+                    .Add(new Text($" através da forma de pagamento "))
+                    .Add(new Text($"{pagamento.FormaPagamento}").SetFont(fonteNegrito))
+                    .Add(new Text(", abatendo do saldo devedor remanescente desta transação comercial."));
+                document.Add(declaracao);
+
+                // ── 4. RESUMO FINANCEIRO ATUALIZADO ──
+                document.Add(new Paragraph("DEMONSTRATIVO DO SALDO")
+                    .SetFont(fonteNegrito).SetFontSize(11).SetFontColor(azulNinxEscuro).SetMarginBottom(8));
+
+                decimal novoSaldoDevedor = saldoDevedorAnterior - pagamento.Valor;
+
+                var tableResumo = new Table(UnitValue.CreatePercentArray(new float[] { 100 })).UseAllAvailableWidth();
+                var cardResumo = new Cell()
+                    .SetBackgroundColor(cinzaCardFundo)
+                    .SetBorder(new SolidBorder(cinzaLinhaSutil, 1))
+                    .SetBorderRadius(new BorderRadius(6))
+                    .SetPadding(14);
+
+                var innerTable = new Table(UnitValue.CreatePercentArray(new float[] { 75, 25 })).UseAllAvailableWidth();
+                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph("Saldo Devedor Antes deste Pagamento").SetFontSize(10).SetFontColor(cinzaTextoMuted)));
+                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph($"R$ {saldoDevedorAnterior:N2}").SetFontSize(10).SetTextAlignment(TextAlignment.RIGHT)));
+
+                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph("Valor Pago Neste Ato (-)").SetFontSize(10).SetFontColor(azulNinxDestaque).SetFont(fonteNegrito)));
+                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph($"R$ {pagamento.Valor:N2}").SetFontSize(10).SetFontColor(azulNinxDestaque).SetFont(fonteNegrito).SetTextAlignment(TextAlignment.RIGHT)));
+
+                innerTable.AddCell(new Cell(1, 2).SetBorder(Border.NO_BORDER).SetBorderTop(new DashedBorder(cinzaLinhaSutil, 1)).SetMarginTop(6));
+
+                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingTop(6).Add(new Paragraph("Saldo Devedor Atual Restante").SetFont(fonteNegrito).SetFontSize(11.5f)));
+                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingTop(6).Add(new Paragraph($"R$ {novoSaldoDevedor:N2}").SetFont(fonteNegrito).SetFontSize(11.5f).SetFontColor(azulNinxEscuro).SetTextAlignment(TextAlignment.RIGHT)));
+
+                cardResumo.Add(innerTable);
+                tableResumo.AddCell(cardResumo);
+                document.Add(tableResumo);
+
+                // ── 5. SEÇÃO DE ASSINATURAS ──
+                var tableAssinaturas = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth().SetMarginTop(60);
+
+                tableAssinaturas.AddCell(new Cell()
+                    .SetBorder(Border.NO_BORDER)
+                    .SetPaddingRight(20)
+                    .Add(new Paragraph()
+                        .SetHeight(45)
+                        .SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
+                        .Add(new Text("ASSINATURA DO CLIENTE\n").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted))
+                        .Add(new Text(cliente.Nome).SetFontSize(9.5f))
+                        .SetTextAlignment(TextAlignment.CENTER).SetMarginTop(10)));
+
+                tableAssinaturas.AddCell(new Cell()
+                    .SetBorder(Border.NO_BORDER)
+                    .SetPaddingLeft(20)
+                    .Add(new Paragraph()
+                        .SetHeight(45)
+                        .SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
+                        .Add(new Text("RESPONSÁVEL RECEBIMENTO\n").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted))
+                        .Add(new Text(comercio.NomeComercio).SetFontSize(9.5f))
+                        .SetTextAlignment(TextAlignment.CENTER).SetMarginTop(10)));
+
+                document.Add(tableAssinaturas);
+
+                // ── 6. RODAPÉ ──
+                document.Add(new Paragraph($"Recibo emitido em: {pagamento.CriadoEm:dd/MM/yyyy HH:mm:ss} UTC")
+                    .SetTextAlignment(TextAlignment.CENTER)
+                    .SetFontColor(cinzaTextoMuted)
+                    .SetFontSize(8.5f)
+                    .SetMarginTop(40));
+
+                document.Close();
+
+                var pdfBytes = memoryStream.ToArray();
+                return Convert.ToBase64String(pdfBytes);
+            }
+        }
+
+        private async Task<string> CriarDocReciboGlobalPagamento(List<ItemAbatimentoGlobal> abatimentos, decimal valorTotal, FormaPagamento formaPagamento, Cliente cliente, Comercio comercio, DateTime dataOperacao)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                var writer = new PdfWriter(memoryStream);
+                var pdfDocument = new PdfDocument(writer);
+                var document = new Document(pdfDocument, PageSize.A4);
+
+                document.SetMargins(35, 45, 35, 45);
+
+                Color azulNinxEscuro = new DeviceRgb(13, 27, 42);
+                Color azulNinxDestaque = new DeviceRgb(14, 165, 233);
+                Color cinzaCardFundo = new DeviceRgb(248, 250, 252);
+                Color cinzaLinhaSutil = new DeviceRgb(226, 232, 240);
+                Color cinzaTextoMuted = new DeviceRgb(100, 116, 139);
+                Color pretoSuveTexto = new DeviceRgb(30, 41, 59);
+
+                var fonteNormal = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
+                var fonteNegrito = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA_BOLD);
+
+                document.SetFont(fonteNormal).SetFontColor(pretoSuveTexto);
+
+                // ── CABEÇALHO ──
+                document.Add(new Paragraph("RECIBO DE QUITAÇÃO GLOBAL / ABATIMENTO")
+                    .SetFontSize(18).SetFont(fonteNegrito).SetFontColor(azulNinxEscuro).SetMarginBottom(0));
+
+                document.Add(new Paragraph("CONTA FIADO - MULTIPLAS TRANSAÇÕES")
+                    .SetFontSize(9).SetFont(fonteNegrito).SetFontColor(azulNinxDestaque).SetMarginBottom(20));
+
+                // ── ENVOLVIDOS ──
+                var tableEnvolvidos = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth();
+
+                var cellCredor = new Cell().SetBackgroundColor(cinzaCardFundo).SetBorder(new SolidBorder(cinzaLinhaSutil, 1)).SetPadding(10).SetBorderRadius(new BorderRadius(4));
+                cellCredor.Add(new Paragraph("CREDOR").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted));
+                cellCredor.Add(new Paragraph(comercio.NomeComercio).SetFontSize(9.5f));
+
+                var cellDevedor = new Cell().SetBackgroundColor(cinzaCardFundo).SetBorder(new SolidBorder(cinzaLinhaSutil, 1)).SetPadding(10).SetBorderRadius(new BorderRadius(4));
+                cellDevedor.Add(new Paragraph("DEVEDOR").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted));
+                cellDevedor.Add(new Paragraph(cliente.Nome).SetFontSize(9.5f));
+
+                tableEnvolvidos.AddCell(cellCredor.SetMarginRight(4));
+                tableEnvolvidos.AddCell(cellDevedor.SetMarginLeft(4));
+                document.Add(tableEnvolvidos);
+
+                // ── DECLARAÇÃO ──
+                document.Add(new Paragraph()
+                    .SetMarginTop(20).SetMarginBottom(20).SetFontSize(10.5f).SetMultipliedLeading(1.3f)
+                    .Add(new Text("Confirmamos o recebimento do valor total de "))
+                    .Add(new Text($"R$ {valorTotal:N2}").SetFont(fonteNegrito).SetFontColor(azulNinxEscuro))
+                    .Add(new Text($" via de pagamento "))
+                    .Add(new Text($"{formaPagamento}").SetFont(fonteNegrito))
+                    .Add(new Text(", utilizado para abater e/ou quitar o saldo devedor das vendas descritas no demonstrativo abaixo:")));
+
+                // ── TABELA DE DISTRIBUIÇÃO DO VALOR ──
+                var tableDistribuição = new Table(UnitValue.CreatePercentArray(new float[] { 15, 20, 22, 21, 22 })).UseAllAvailableWidth();
+
+                // Headers
+                string[] headers = { "Cód. Venda", "Data Venda", "Saldo Anterior", "Valor Abatido", "Saldo Restante" };
+                foreach (var h in headers)
+                {
+                    tableDistribuição.AddHeaderCell(new Cell().SetBackgroundColor(azulNinxEscuro).SetPadding(6)
+                        .Add(new Paragraph(h).SetFont(fonteNegrito).SetFontSize(9).SetFontColor(ColorConstants.WHITE).SetTextAlignment(TextAlignment.CENTER)));
+                }
+
+                // Linhas das Vendas
+                foreach (var item in abatimentos)
+                {
+                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.CENTER).Add(new Paragraph($"#{item.VendaId}").SetFontSize(9)));
+                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.CENTER).Add(new Paragraph($"{item.DataVenda:dd/MM/yyyy}").SetFontSize(9)));
+                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.RIGHT).Add(new Paragraph($"R$ {item.SaldoAnterior:N2}").SetFontSize(9)));
+                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.RIGHT).Add(new Paragraph($"R$ {item.ValorAbatido:N2}").SetFont(fonteNegrito).SetFontColor(azulNinxDestaque).SetFontSize(9)));
+                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.RIGHT).Add(new Paragraph($"R$ {item.SaldoRestante:N2}").SetFontSize(9)));
+                }
+                document.Add(tableDistribuição);
+
+                // ── ASSINATURAS ──
+                var tableAssinaturas = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth().SetMarginTop(50);
+                tableAssinaturas.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingRight(20)
+                    .Add(new Paragraph().SetHeight(40).SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
+                        .Add(new Text("ASSINATURA DO CLIENTE\n").SetFont(fonteNegrito).SetFontSize(8f).SetFontColor(cinzaTextoMuted))
+                        .Add(new Text(cliente.Nome).SetFontSize(9f)).SetTextAlignment(TextAlignment.CENTER).SetMarginTop(5)));
+
+                tableAssinaturas.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingLeft(20)
+                    .Add(new Paragraph().SetHeight(40).SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
+                        .Add(new Text("RESPONSÁVEL RECEBIMENTO\n").SetFont(fonteNegrito).SetFontSize(8f).SetFontColor(cinzaTextoMuted))
+                        .Add(new Text(comercio.NomeComercio).SetFontSize(9f)).SetTextAlignment(TextAlignment.CENTER).SetMarginTop(5)));
+                document.Add(tableAssinaturas);
+
+                // ── RODAPÉ ──
+                document.Add(new Paragraph($"Documento Global emitido em: {dataOperacao:dd/MM/yyyy HH:mm:ss} UTC")
+                    .SetTextAlignment(TextAlignment.CENTER).SetFontColor(cinzaTextoMuted).SetFontSize(8f).SetMarginTop(35));
+
+                document.Close();
+                return Convert.ToBase64String(memoryStream.ToArray());
             }
         }
     }

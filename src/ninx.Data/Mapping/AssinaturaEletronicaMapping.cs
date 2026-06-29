@@ -54,8 +54,7 @@ namespace ninx.Data.Mappings
                 "[Status] IN ('Ativa', 'Vencida', 'Cancelada')"));
 
             builder.HasOne(x => x.Venda)
-                .WithOne(x => x.AssinaturaEletronica)
-                .HasForeignKey<AssinaturaEletronica>(x => x.VendaID)
+                .WithMany(x => x.AssinaturasEletronicas)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

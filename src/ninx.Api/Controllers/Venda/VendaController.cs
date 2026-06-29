@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Services;
 using ninx.Communication;
@@ -78,20 +78,37 @@ namespace ninx.Api.Controllers
         }
 
         [HttpPost("{vendaId}/pagamento-fiado")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ReceberPagamentoFiado(int vendaId, [FromBody] ReceberPagamentoFiadoRequest request)
         {
             var usuarioId = GetUsuarioId();
 
-            await _vendaService.ReceberPagamentoFiadoAsync(
+            var response = await _vendaService.ReceberPagamentoFiadoAsync(
                 vendaId,
                 usuarioId,
                 request.ValorPago,
                 request.FormaPagamento);
 
-            return NoContent();
+            return Ok(response);
+        }
+
+        [HttpPost("cliente/{clienteId}/pagamento-geral-fiado")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ReceberPagamentoGeralFiado(int clienteId, [FromBody] ReceberPagamentoFiadoRequest request)
+        {
+            var usuarioId = GetUsuarioId();
+
+            Guid documentoGuid = await _vendaService.ReceberPagamentoGeralFiadoAsync(
+                clienteId,
+                usuarioId,
+                request.ValorPago,
+                request.FormaPagamento);
+
+            return Ok(documentoGuid);
         }
     }
 }

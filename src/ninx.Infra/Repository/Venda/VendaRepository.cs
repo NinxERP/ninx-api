@@ -52,7 +52,7 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .AsNoTracking()
                 .Include(v => v.ItensVenda)
-                .Include(v => v.AssinaturaEletronica)
+                .Include(v => v.AssinaturasEletronicas)
                 .Where(v => v.ClienteID == clienteId)
                 .OrderByDescending(v => v.CriadoEm)
                 .ToListAsync();
@@ -71,7 +71,7 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .Include(v => v.ItensVenda)
                 .Include(v => v.PagamentosVenda)
-                .Include(v => v.AssinaturaEletronica)
+                .Include(v => v.AssinaturasEletronicas)
                 .FirstOrDefaultAsync(v => v.VendaID == id);
         }
 
@@ -88,6 +88,20 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .AsNoTracking()
                 .Where(v => v.ClienteID == clienteId && v.TipoVenda == TipoVenda.Fiado && v.Status != StatusVenda.Cancelada && v.Status != StatusVenda.Estornada)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Venda>> GetVendasFiadoAtivasPorClienteAsync(int clienteId)
+        {
+            return await _context.Vendas
+                .Include(v => v.PagamentosVenda) 
+                .Where(v => v.ClienteID == clienteId &&
+                            v.TipoVenda == TipoVenda.Fiado &&
+                            v.Status == StatusVenda.Finalizada)
+                .Where(v => v.Total > v.PagamentosVenda
+                    .Where(p => p.Status == StatusPagamento.Pago)
+                    .Sum(p => (decimal?)p.Valor)) 
+                .OrderBy(v => v.CriadoEm) 
                 .ToListAsync();
         }
     }
