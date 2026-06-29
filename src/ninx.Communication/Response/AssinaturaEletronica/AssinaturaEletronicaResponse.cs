@@ -1,6 +1,6 @@
 ﻿namespace ninx.Communication
 {
-    public class DocumentosVendaResponse
+    public class AssinaturaEletronicaResponse
     {
         public Guid DocumentoGuid { get; set; }
         public string DocumentoBase64 { get; set; }

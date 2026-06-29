@@ -3,9 +3,9 @@ using ninx.Domain.Entities;
 
 namespace ninx.Application.Validators.Entidades
 {
-    public class DocumentosVendaValidator : AbstractValidator<DocumentosVenda>
+    public class AssinaturaEletronicaValidator : AbstractValidator<AssinaturaEletronica>
     {
-        public DocumentosVendaValidator()
+        public AssinaturaEletronicaValidator()
         {
             RuleFor(x => x.AssinaturaID)
                 .GreaterThanOrEqualTo(0).WithMessage("O ID da assinatura deve ser maior ou igual a zero.");

@@ -19,7 +19,7 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IUsuarioComercioService, UsuarioComercioService>();
             services.AddScoped<IClienteService, ClienteService>();
             services.AddScoped<IVendaService, VendaService>();
-            services.AddScoped<IDocumentosVendaService, DocumentosVendaService>();
+            services.AddScoped<IAssinaturaEletronicaService, AssinaturaEletronicaService>();
             services.AddScoped<IEstoqueService, EstoqueService>();
             services.AddScoped<ICategoriaProdutoService, CategoriaProdutoService>();
             services.AddScoped<ITokenProvider, TokenProvider>();

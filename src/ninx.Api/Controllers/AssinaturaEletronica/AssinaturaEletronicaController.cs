@@ -7,19 +7,19 @@ namespace ninx.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class DocumentosVendaController : ControllerBase
+    public class AssinaturaEletronicaController : ControllerBase
     {
-        private readonly IDocumentosVendaService _documentosVidaService;
+        private readonly IAssinaturaEletronicaService _assinaturaService;
 
-        public DocumentosVendaController(IDocumentosVendaService documentosVidaService)
+        public AssinaturaEletronicaController(IAssinaturaEletronicaService assinaturaService)
         {
-            _documentosVidaService = documentosVidaService;
+            _assinaturaService = assinaturaService;
         }
         [AllowAnonymous]
         [HttpGet("{guid}")]
-        public async Task<ActionResult<DocumentosVendaResponse>> ObterDocumento(Guid guid)
+        public async Task<ActionResult<AssinaturaEletronicaResponse>> ObterDocumento(Guid guid)
         {
-            var response = await _documentosVidaService.ObterDadosParaAssinaturaAsync(guid);
+            var response = await _assinaturaService.ObterDadosParaAssinaturaAsync(guid);
             return Ok(response);
         }
 
@@ -31,7 +31,7 @@ namespace ninx.API.Controllers
                      ?? HttpContext.Connection.RemoteIpAddress?.ToString();
             var dispositivo = Request.Headers["User-Agent"].ToString();
 
-            await _documentosVidaService.ConfirmarAssinaturaAsync(
+            await _assinaturaService.ConfirmarAssinaturaAsync(
                 guid,
                 request.ImagemBase64,
                 ip ?? "IP não identificado",
@@ -44,7 +44,7 @@ namespace ninx.API.Controllers
         [HttpGet("assinado/{guid}")]
         public async Task<IActionResult> ValidaAssinado(Guid guid)
         {
-            var isAssinado = await _documentosVidaService.ValidaAssinado(guid);
+            var isAssinado = await _assinaturaService.ValidaAssinado(guid);
 
             if (!isAssinado) return BadRequest(new { mensagem = "Este documento ainda não foi assinado." });
 

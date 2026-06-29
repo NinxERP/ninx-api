@@ -9,7 +9,7 @@ namespace ninx.Domain.Entities
         public PlanoAssinatura Plano { get; set; }
         public DateTime DataInicio { get; set; }
         public DateTime DataFim { get; set; }
-        public StatusAssinaturaPlano Status { get; set; } = StatusAssinaturaPlano.Ativa;
+        public StatusAssinatura Status { get; set; } = StatusAssinatura.Ativa;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
         public Comercio Comercio { get; set; } = null!;

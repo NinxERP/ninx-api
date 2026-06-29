@@ -3,9 +3,9 @@ using ninx.Communication;
 
 namespace ninx.Application.Validators.Request
 {
-    public class ConfirmarDocumentosVendaRequestValidator : AbstractValidator<ConfirmarAssinaturaEletronicaRequest>
+    public class ConfirmarAssinaturaEletronicaRequestValidator : AbstractValidator<ConfirmarAssinaturaEletronicaRequest>
     {
-        public ConfirmarDocumentosVendaRequestValidator()
+        public ConfirmarAssinaturaEletronicaRequestValidator()
         {
             RuleFor(x => x.ImagemBase64)
                 .NotEmpty().WithMessage("Imagem em base64 é obrigatória.")

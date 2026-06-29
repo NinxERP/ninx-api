@@ -5,11 +5,11 @@ using ninx.Domain.Enums;
 
 namespace ninx.Data.Mappings
 {
-    public class DocumentosVendaMapping : IEntityTypeConfiguration<DocumentosVenda>
+    public class AssinaturaEletronicaMapping : IEntityTypeConfiguration<AssinaturaEletronica>
     {
-        public void Configure(EntityTypeBuilder<DocumentosVenda> builder)
+        public void Configure(EntityTypeBuilder<AssinaturaEletronica> builder)
         {
-            builder.ToTable("DocumentosVida");
+            builder.ToTable("AssinaturasEletronicas");
 
             builder.HasKey(x => x.AssinaturaID);
 
@@ -48,14 +48,14 @@ namespace ninx.Data.Mappings
                 .IsRequired()
                 .HasMaxLength(10)
                 .HasConversion<string>()
-                .HasDefaultValue(StatusAssinaturaEletronica.Pendente);
+                .HasDefaultValue(StatusAssinatura.Ativa);
 
-            builder.ToTable(t => t.HasCheckConstraint("CK_documentosVidasEletronicas_Status", 
+            builder.ToTable(t => t.HasCheckConstraint("CK_AssinaturasEletronicas_Status", 
                 "[Status] IN ('Ativa', 'Vencida', 'Cancelada')"));
 
             builder.HasOne(x => x.Venda)
-                .WithMany(x => x.DocumentosVenda)
-                .HasForeignKey(x => x.VendaID)
+                .WithOne(x => x.AssinaturaEletronica)
+                .HasForeignKey<AssinaturaEletronica>(x => x.VendaID)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

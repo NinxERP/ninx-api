@@ -52,7 +52,7 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .AsNoTracking()
                 .Include(v => v.ItensVenda)
-                .Include(v => v.DocumentosVenda)
+                .Include(v => v.AssinaturaEletronica)
                 .Where(v => v.ClienteID == clienteId)
                 .OrderByDescending(v => v.CriadoEm)
                 .ToListAsync();
@@ -71,7 +71,7 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .Include(v => v.ItensVenda)
                 .Include(v => v.PagamentosVenda)
-                .Include(v => v.DocumentosVenda)
+                .Include(v => v.AssinaturaEletronica)
                 .FirstOrDefaultAsync(v => v.VendaID == id);
         }
 

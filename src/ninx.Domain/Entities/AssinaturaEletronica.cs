@@ -2,10 +2,9 @@
 
 namespace ninx.Domain.Entities
 {
-    public class DocumentosVenda
+    public class AssinaturaEletronica
     {   
         public int AssinaturaID { get; set; }
-        public string DocumentoNome { get; set; }
         public int VendaID { get; set; }
         public Guid DocumentoGuid { get; set; }
         public string? ImagemAssinatura { get; set; }
@@ -15,7 +14,7 @@ namespace ninx.Domain.Entities
         public string? IpAssinante { get; set; }
         public string? DispositivoInfo { get; set; }
         public bool Assinado { get; set; } = false;
-        public StatusAssinaturaEletronica Status { get; set; } = StatusAssinaturaEletronica.Pendente;
+        public StatusAssinatura Status { get; set; } = StatusAssinatura.Ativa;
         public Venda Venda { get; set; } = null!;
     }
 }
