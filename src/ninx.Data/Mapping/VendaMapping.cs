@@ -27,7 +27,7 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
             .IsRequired()
             .HasMaxLength(10)
             .HasConversion<string>()
-            .HasDefaultValue(StatusVenda.Aberta);
+            .HasDefaultValue(StatusVenda.Aguardando);
 
         builder.ToTable(t => 
         {

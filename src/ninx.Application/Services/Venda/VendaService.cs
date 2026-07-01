@@ -195,8 +195,11 @@ namespace ninx.Application.Services
                 if (venda.TipoVenda != TipoVenda.Fiado)
                     throw new BadRequestException("Esta venda não é do tipo fiado.");
 
-                if (venda.Status != StatusVenda.Finalizada)
-                    throw new BadRequestException("Não é possível receber pagamentos para uma venda que não está finalizada.");
+                if (venda.Status == StatusVenda.Finalizada)
+                    throw new BadRequestException("Não é possível receber pagamentos para uma venda que está finalizada.");
+
+                if (venda.Status == StatusVenda.Aguardando)
+                    throw new BadRequestException("Não é possível receber pagamentos para uma venda que não foi aberta.");
 
                 await ValidarPermissaoUsuarioComercioAsync(usuarioId, venda.ComercioID);
 
@@ -236,6 +239,7 @@ namespace ninx.Application.Services
                     ImagemAssinatura = await CriarDocReciboPagamento(venda, novoPagamento, cliente!, comercio!, saldoDevedorVenda)
                 };
 
+                venda.AtualizadoEm = DateTime.UtcNow;
                 await _assinaturaEletronicaRepository.AddAsync(assinatura);
 
                 await _vendaRepository.UpdateAsync(venda);
@@ -262,8 +266,15 @@ namespace ninx.Application.Services
                 await _unitOfWork.BeginTransactionAsync();
 
                 var vendasDoCliente = await _vendaRepository.GetVendasFiadoAtivasPorClienteAsync(clienteId);
+                
                 if (vendasDoCliente == null || !vendasDoCliente.Any())
                     throw new NotFoundException("Nenhuma venda fiada em aberto foi encontrada para este cliente.");
+
+                if (vendasDoCliente.Any(x => x.Status == StatusVenda.Finalizada))
+                    throw new BadRequestException("Não é possível receber pagamentos para uma venda que está finalizada.");
+
+                if (vendasDoCliente.Any(x => x.Status == StatusVenda.Aguardando))
+                    throw new BadRequestException("Não é possível receber pagamentos para uma venda que não foi aberta.");
 
                 var primeiraVenda = vendasDoCliente.First();
                 await ValidarPermissaoUsuarioComercioAsync(usuarioId, primeiraVenda.ComercioID);
@@ -309,7 +320,14 @@ namespace ninx.Application.Services
                         SaldoRestante = saldoDevedorVenda - valorAbatidoNestaVenda
                     });
 
+                    venda.AtualizadoEm = DateTime.UtcNow;
+
+                    await _vendaRepository.UpdateAsync(venda);
                     valorRestanteParaDistribuir -= valorAbatidoNestaVenda;
+
+
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitAsync();
                 }
 
                 if (valorRestanteParaDistribuir > 0)
@@ -423,7 +441,7 @@ namespace ninx.Application.Services
                 ClienteID = request.ClienteID == 0 ? null : request.ClienteID,
                 Total = totalVenda,
                 TipoVenda = ehFiado ? TipoVenda.Fiado : TipoVenda.Normal,
-                Status = StatusVenda.Finalizada,
+                Status = ehFiado ? StatusVenda.Aguardando : StatusVenda.Finalizada,
                 ItensVenda = itensVenda,
                 CriadoEm = dataOperacao,
                 PagamentosVenda = pagamentos

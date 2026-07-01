@@ -9,7 +9,7 @@ namespace ninx.Domain.Entities
         public int UsuarioID { get; set; }
         public int? ClienteID { get; set; }
         public decimal Total { get; set; }
-        public StatusVenda Status { get; set; } = StatusVenda.Aberta;
+        public StatusVenda Status { get; set; } = StatusVenda.Aguardando;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
         public TipoVenda TipoVenda { get; set; }

@@ -10,12 +10,15 @@ namespace ninx.Application.Services
     {
         private readonly IAssinaturaEletronicaRepository _assinaturaEletronicaRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IVendaRepository _vendaRepository;
         public AssinaturaEletronicaService
             (IAssinaturaEletronicaRepository assinaturaEletronicaRepository, 
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            IVendaRepository vendaRepository)
         {
             _assinaturaEletronicaRepository = assinaturaEletronicaRepository;
             _unitOfWork = unitOfWork;
+            _vendaRepository = vendaRepository;
         }
  
         public async Task<IEnumerable<AssinaturaEletronicaResponse>> GetAll()
@@ -44,9 +47,12 @@ namespace ninx.Application.Services
         public async Task ConfirmarAssinaturaAsync(Guid guid, string imagemBase64, string ip, string dispositivo)
         {
             var assinatura = await _assinaturaEletronicaRepository.GetByGuidAsync(guid);
-
             if (assinatura == null) throw new NotFoundException("Documento não encontrado.");
             if (assinatura.Assinado) throw new BadRequestException("Este documento já foi assinado.");
+
+            var venda = await _vendaRepository.GetByIdAsync(assinatura.VendaID);
+            venda.AtualizadoEm = DateTime.UtcNow;
+            venda.Status = Domain.Enums.StatusVenda.Aberta;
 
             assinatura.ImagemAssinatura = imagemBase64;
             assinatura.IpAssinante = ip;
@@ -54,13 +60,14 @@ namespace ninx.Application.Services
             assinatura.DataAssinatura = DateTime.UtcNow;
             assinatura.Assinado = true;
 
+            await _vendaRepository.UpdateAsync(venda);
             await _assinaturaEletronicaRepository.UpdateAsync(assinatura);
             await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task<AssinaturaEletronicaResponse> ObterDadosParaAssinaturaAsync(Guid guid)
         {
-            var assinatura = await _assinaturaEletronicaRepository.GetByGuidAsync(guid);
+            var assinatura = await _assinaturaEletronicaRepository.GetByGuidParaAssinarAsync(guid);
             if (assinatura == null) throw new NotFoundException("Documento não encontrado.");
             return assinatura.Adapt<AssinaturaEletronicaResponse>();
         }
