@@ -53,6 +53,7 @@ namespace ninx.Infra.Repository
                 .AsNoTracking()
                 .Include(v => v.ItensVenda)
                 .Include(v => v.AssinaturasEletronicas)
+                .Include(v => v.PagamentosVenda)
                 .Where(v => v.ClienteID == clienteId)
                 .OrderByDescending(v => v.CriadoEm)
                 .ToListAsync();

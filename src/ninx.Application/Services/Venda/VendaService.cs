@@ -92,7 +92,8 @@ namespace ninx.Application.Services
                 throw new NotFoundException("Nenhuma venda encontrada para o usuário especificado.");
             }
 
-            return vendas.Adapt<IEnumerable<VendaResponse>>();
+            var vendaResponse = PopulaSaldoTotal(vendas);
+            return vendaResponse;
         }
         public async Task<VendaResponse> GetByVendaIdAsync(int id)
         {
@@ -237,10 +238,12 @@ namespace ninx.Application.Services
 
                 await _assinaturaEletronicaRepository.AddAsync(assinatura);
 
+                await _vendaRepository.UpdateAsync(venda);
+
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
 
-                return identificadorAssinatura; // Retorna o GUID para o front-end iniciar o fluxo de assinatura
+                return identificadorAssinatura; 
             }
             catch
             {
@@ -258,12 +261,10 @@ namespace ninx.Application.Services
             {
                 await _unitOfWork.BeginTransactionAsync();
 
-                // 1. Procura todas as vendas fiadas finalizadas do cliente com os seus pagamentos incluídos
                 var vendasDoCliente = await _vendaRepository.GetVendasFiadoAtivasPorClienteAsync(clienteId);
                 if (vendasDoCliente == null || !vendasDoCliente.Any())
                     throw new NotFoundException("Nenhuma venda fiada em aberto foi encontrada para este cliente.");
 
-                // Valida a permissão do utilizador no comércio da primeira venda (assumindo o mesmo contexto)
                 var primeiraVenda = vendasDoCliente.First();
                 await ValidarPermissaoUsuarioComercioAsync(usuarioId, primeiraVenda.ComercioID);
 
@@ -271,7 +272,6 @@ namespace ninx.Application.Services
                 var detalheAbatimentos = new List<ItemAbatimentoGlobal>();
                 decimal valorRestanteParaDistribuir = valorTotalPago;
 
-                // 2. Distribui o valor entre as vendas (da mais antiga para a mais recente - FIFO)
                 foreach (var venda in vendasDoCliente.OrderBy(v => v.CriadoEm))
                 {
                     if (valorRestanteParaDistribuir <= 0)
@@ -283,11 +283,9 @@ namespace ninx.Application.Services
 
                     var saldoDevedorVenda = venda.Total - pagamentosAnteriores;
 
-                    // Se a venda já estiver totalmente paga, avança para a próxima
                     if (saldoDevedorVenda <= 0)
                         continue;
 
-                    // Define quanto esta venda vai receber de abatimento
                     decimal valorAbatidoNestaVenda = Math.Min(valorRestanteParaDistribuir, saldoDevedorVenda);
 
                     var novoPagamento = new PagamentoVenda
@@ -302,7 +300,6 @@ namespace ninx.Application.Services
 
                     await _pagamentoVendaRepository.AddAsync(novoPagamento);
 
-                    // Armazena as informações para o demonstrativo do PDF do recibo
                     detalheAbatimentos.Add(new ItemAbatimentoGlobal
                     {
                         VendaId = venda.VendaID,
@@ -315,27 +312,24 @@ namespace ninx.Application.Services
                     valorRestanteParaDistribuir -= valorAbatidoNestaVenda;
                 }
 
-                // Se após percorrer todas as vendas ainda sobrar dinheiro, lança uma exceção
                 if (valorRestanteParaDistribuir > 0)
                     throw new BadRequestException($"O valor informado é maior do que o total da dívida acumulada do cliente. Sobra: R$ {valorRestanteParaDistribuir:N2}");
 
-                // 3. Gera o documento único de Recibo Global em memória (uma única vez)
                 var identificadorAssinatura = Guid.NewGuid();
                 var cliente = await _clienteRepository.GetByIdAsync(clienteId);
                 var comercio = await _comercioRepository.GetByIdAsync(primeiraVenda.ComercioID);
 
                 var pdfBase64 = await CriarDocReciboGlobalPagamento(detalheAbatimentos, valorTotalPago, (FormaPagamento)formaPagamento, cliente!, comercio!, dataOperacao);
 
-                // 🌟 ALTERAÇÃO CRÍTICA CORRIGIDA: Regista uma assinatura individual para CADA venda afetada pelo abatimento
                 foreach (var abatimento in detalheAbatimentos)
                 {
                     var assinaturaVinculada = new AssinaturaEletronica
                     {
-                        VendaID = abatimento.VendaId,            // Vinculada diretamente à respetiva venda
-                        DocumentoGuid = identificadorAssinatura, // Todas partilham o mesmo identificador único de controlo
+                        VendaID = abatimento.VendaId,           
+                        DocumentoGuid = identificadorAssinatura, 
                         Assinado = false,
                         CriadoEm = dataOperacao,
-                        ImagemAssinatura = pdfBase64             // Guarda o mesmo PDF para consulta individual posterior
+                        ImagemAssinatura = pdfBase64             
                     };
 
                     await _assinaturaEletronicaRepository.AddAsync(assinaturaVinculada);
@@ -344,13 +338,34 @@ namespace ninx.Application.Services
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
 
-                return identificadorAssinatura; // Retorna o GUID para o Front-end gerir o fluxo de recolha de assinatura
+                return identificadorAssinatura;
             }
             catch
             {
                 await RollbackTransacaoAsync();
                 throw;
             }
+        }
+
+        public IEnumerable<VendaResponse> PopulaSaldoTotal(IEnumerable<Venda> vendas)
+        {
+            var responses = vendas.Adapt<List<VendaResponse>>();
+
+            var lookup = responses.ToDictionary(x => x.VendaID);
+
+            foreach (var venda in vendas)
+            {
+                var response = lookup[venda.VendaID];
+
+                var totalPago = venda.PagamentosVenda
+                    .Where(p => p.Status == StatusPagamento.Pago)
+                    .Sum(p => p.Valor);
+
+                response.ValorPago = totalPago;
+                response.SaldoDevedor = venda.Total - totalPago;
+            }
+
+            return responses;
         }
 
         private void ValidarRequestVenda(CriarVendaRequest request)

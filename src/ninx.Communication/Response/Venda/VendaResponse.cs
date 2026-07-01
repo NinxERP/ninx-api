@@ -6,9 +6,11 @@
         public int ComercioID { get; set; }
         public int UsuarioID { get; set; }
         public decimal Total { get; set; }
-        public string? TipoVenda { get; set; }
+        public string? TipoVenda { get; set; }  
         public string? Status { get; set; } 
         public DateTime? CriadoEm { get; set; } 
         public IEnumerable<Guid> DocumentoGuid { get; set; }
+        public decimal ValorPago { get; set; }
+        public decimal SaldoDevedor { get; set; }
     }
 }
