@@ -13,6 +13,7 @@ namespace ninx.Communication
         public int? TotalNormal { get; set; } = 0;
         public int? TotalBaixo { get; set; } = 0;
         public int? TotalZerado { get; set; } = 0;
+        public int? TotalInativos { get; set; } = 0;
 
         public PaginatedResponse()
         {
@@ -27,7 +28,9 @@ namespace ninx.Communication
             int? totalAtivos = 0,
             int? totalNormal = 0,
             int? totalBaixo = 0,
-            int? totalZerado = 0)
+            int? totalZerado = 0,
+            int? totalInativos = 0
+            )
         {
             Data = data;
             PageNumber = pageNumber;
@@ -37,6 +40,7 @@ namespace ninx.Communication
             TotalNormal = totalNormal;
             TotalBaixo = totalBaixo;
             TotalZerado = totalZerado;
+            TotalInativos = totalInativos;
         }
     }
 }

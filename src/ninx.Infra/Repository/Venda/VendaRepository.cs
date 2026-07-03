@@ -75,6 +75,18 @@ namespace ninx.Infra.Repository
                 .Include(v => v.AssinaturasEletronicas)
                 .FirstOrDefaultAsync(v => v.VendaID == id);
         }
+        public async Task<Dictionary<int, decimal>> GetSaldoDevedorClientesPorComercio(int comercioId)
+        {
+            return await _context.Vendas
+                .Where(v => v.ComercioID == comercioId && v.ClienteID != null)
+                .GroupBy(v => v.ClienteID.Value)
+                .Select(g => new
+                {
+                    ClienteID = g.Key,
+                    SaldoDevedor = g.Sum(v => v.Total) - g.Sum(v => v.PagamentosVenda.Sum(p => (decimal?)p.Valor) ?? 0)
+                })
+                .ToDictionaryAsync(x => x.ClienteID, x => x.SaldoDevedor);
+        }
 
         public async Task<IEnumerable<Venda>> GetVendasByClienteIDAsync(int? clienteId)
         {

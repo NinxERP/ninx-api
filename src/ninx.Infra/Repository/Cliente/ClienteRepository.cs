@@ -21,7 +21,7 @@ namespace ninx.Infra.Repository.ClienteRepository
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Cliente> Data, int TotalCount)> GetClienteComercioByComercioId(int comercioId, PaginationRequest request)
+        public async Task<(IEnumerable<Cliente> Data, int TotalCount, int TotalAtivos)> GetClienteComercioByComercioId(int comercioId, PaginationRequest request)
         {
             var query = _context.Clientes
                 .AsNoTracking()
@@ -35,7 +35,8 @@ namespace ninx.Infra.Repository.ClienteRepository
                 .Take(request.PageSize)
                 .ToListAsync();
 
-            return (data, totalCount);
+            var totalAtivos = await query.CountAsync(x => x.Ativo == true);
+            return (data, totalCount, totalAtivos);
         }
 
     }

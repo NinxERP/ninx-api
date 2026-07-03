@@ -10,5 +10,6 @@
         public bool Ativo { get; set; } = true;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public string ComercioNome { get; set; } = null!;
+        public decimal SaldoDevedor { get; set; }
     }
 }

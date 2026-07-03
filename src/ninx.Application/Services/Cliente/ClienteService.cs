@@ -9,23 +9,41 @@ namespace ninx.Application.Services
     public class ClienteService : IClienteService
     {
         private readonly IClienteRepository _clienteRepository;
+        private readonly IVendaRepository _vendaRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public ClienteService(IClienteRepository clienteRepository, IUnitOfWork unitOfWork)
+        public ClienteService(IClienteRepository clienteRepository, IUnitOfWork unitOfWork, IVendaRepository vendaRepository)
         {
             _clienteRepository = clienteRepository;
             _unitOfWork = unitOfWork;
+            _vendaRepository = vendaRepository;
         }
         public async Task<PaginatedResponse<ClienteResponse>> GetAllByComercioId(int comercioId, PaginationRequest request)
         {
-            var (entidades, total) = await _clienteRepository.GetClienteComercioByComercioId(comercioId, request);
+            var (entidades, total, totalAtivo) = await _clienteRepository.GetClienteComercioByComercioId(comercioId, request);
             var listaResponse = entidades.Adapt<List<ClienteResponse>>();
-
+            var saldoDevedor = await _vendaRepository.GetSaldoDevedorClientesPorComercio(comercioId);
+            listaResponse.ForEach(cliente =>
+            {
+                if (saldoDevedor.TryGetValue(cliente.ClienteID, out decimal saldo))
+                {
+                    cliente.SaldoDevedor = saldo;
+                }
+                else
+                {
+                    cliente.SaldoDevedor = 0;
+                }
+            });
             return new PaginatedResponse<ClienteResponse>(
                 listaResponse,
                 request.PageNumber,
                 request.PageSize,
-                total
+                total,
+                totalAtivo,
+                0,
+                0,
+                0,
+                (total - totalAtivo)
             );
         }
 

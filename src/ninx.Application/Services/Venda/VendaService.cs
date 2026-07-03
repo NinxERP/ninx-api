@@ -201,6 +201,9 @@ namespace ninx.Application.Services
                 if (venda.Status == StatusVenda.Aguardando)
                     throw new BadRequestException("Não é possível receber pagamentos para uma venda que não foi aberta.");
 
+                if (venda.AssinaturasEletronicas.Any(x => x.Assinado == false))
+                    throw new BadRequestException("Não é possível receber pagamentos para essa venda, pois ela tem assinaturas pendentes.");
+
                 await ValidarPermissaoUsuarioComercioAsync(usuarioId, venda.ComercioID);
 
                 var pagamentosAnteriores = venda.PagamentosVenda
