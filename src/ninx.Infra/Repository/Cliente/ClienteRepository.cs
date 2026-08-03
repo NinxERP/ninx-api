@@ -21,22 +21,45 @@ namespace ninx.Infra.Repository.ClienteRepository
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Cliente> Data, int TotalCount, int TotalAtivos)> GetClienteComercioByComercioId(int comercioId, PaginationRequest request)
+        public async Task<(IEnumerable<Cliente> Data, int TotalFiltrado, MetricsSummary Metrics)> GetClienteComercioByComercioId(
+            int comercioId,
+            PaginationRequest request)
         {
-            var query = _context.Clientes
+            var queryBase = _context.Clientes
                 .AsNoTracking()
-                .Include(x => x.Comercio)
                 .Where(x => x.ComercioID == comercioId);
 
-            var totalCount = await query.CountAsync();
+            var metrics = await queryBase
+                .GroupBy(_ => 1)
+                .Select(g => new MetricsSummary
+                {
+                    TotalGeral = g.Count(),
+                    TotalAtivos = g.Count(x => x.Ativo)
+                })
+                .FirstOrDefaultAsync() ?? new MetricsSummary();
 
-            var data = await query
+            if (metrics.TotalGeral == 0)
+            {
+                return (Enumerable.Empty<Cliente>(), 0, metrics);
+            }
+
+            var queryData = queryBase;
+
+            if (request.Status != null && request.Status.Any(s => !string.IsNullOrWhiteSpace(s)))
+            {
+                var ativo = request.Status.Any(s => string.Equals(s, "ativos", StringComparison.OrdinalIgnoreCase));
+                queryData = queryData.Where(x => x.Ativo == ativo);
+            }
+
+            int totalFiltrado = await queryData.CountAsync();
+
+            var data = await queryData
+                .Include(x => x.Comercio)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync();
 
-            var totalAtivos = await query.CountAsync(x => x.Ativo == true);
-            return (data, totalCount, totalAtivos);
+            return (data, totalFiltrado, metrics);
         }
 
     }

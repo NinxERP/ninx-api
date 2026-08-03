@@ -20,30 +20,23 @@ namespace ninx.Application.Services
         }
         public async Task<PaginatedResponse<ClienteResponse>> GetAllByComercioId(int comercioId, PaginationRequest request)
         {
-            var (entidades, total, totalAtivo) = await _clienteRepository.GetClienteComercioByComercioId(comercioId, request);
+            var (entidades, totalFiltrado, metrics) = await _clienteRepository.GetClienteComercioByComercioId(comercioId, request);
+
             var listaResponse = entidades.Adapt<List<ClienteResponse>>();
+
             var saldoDevedor = await _vendaRepository.GetSaldoDevedorClientesPorComercio(comercioId);
-            listaResponse.ForEach(cliente =>
+
+            foreach (var cliente in listaResponse)
             {
-                if (saldoDevedor.TryGetValue(cliente.ClienteID, out decimal saldo))
-                {
-                    cliente.SaldoDevedor = saldo;
-                }
-                else
-                {
-                    cliente.SaldoDevedor = 0;
-                }
-            });
+                cliente.SaldoDevedor = saldoDevedor.TryGetValue(cliente.ClienteID, out decimal saldo) ? saldo : 0;
+            }
+
             return new PaginatedResponse<ClienteResponse>(
                 listaResponse,
                 request.PageNumber,
                 request.PageSize,
-                total,
-                totalAtivo,
-                0,
-                0,
-                0,
-                (total - totalAtivo)
+                totalFiltrado,
+                metrics
             );
         }
 

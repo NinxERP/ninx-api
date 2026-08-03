@@ -1,46 +1,45 @@
 namespace ninx.Communication
 {
-    public class PaginatedResponse<T>
+    public class PaginatedResponse<TData, TSummary> where TSummary : class
     {
-        public List<T> Data { get; set; }
-        public int PageNumber { get; set; }
-        public int PageSize { get; set; }
-        public int TotalRecords { get; set; }
-        public int TotalPages => (int)Math.Ceiling(TotalRecords / (double)PageSize);
+        public IReadOnlyCollection<TData> Data { get; init; } = Array.Empty<TData>();
+        public int PageNumber { get; init; }
+        public int PageSize { get; init; }
+        public int TotalRecords { get; init; }
+        public int TotalPages => PageSize > 0 ? (int)Math.Ceiling(TotalRecords / (double)PageSize) : 0;
         public bool HasPreviousPage => PageNumber > 1;
         public bool HasNextPage => PageNumber < TotalPages;
-        public int? TotalAtivos { get; set; } = 0;
-        public int? TotalNormal { get; set; } = 0;
-        public int? TotalBaixo { get; set; } = 0;
-        public int? TotalZerado { get; set; } = 0;
-        public int? TotalInativos { get; set; } = 0;
-
-        public PaginatedResponse()
-        {
-            Data = new List<T>();
-        }
+        public TSummary? Summary { get; init; }
 
         public PaginatedResponse(
-            List<T> data,
+            IEnumerable<TData> data,
             int pageNumber,
             int pageSize,
             int totalRecords,
-            int? totalAtivos = 0,
-            int? totalNormal = 0,
-            int? totalBaixo = 0,
-            int? totalZerado = 0,
-            int? totalInativos = 0
-            )
+            TSummary? summary = null)
         {
-            Data = data;
+            Data = data.ToList().AsReadOnly();
             PageNumber = pageNumber;
             PageSize = pageSize;
             TotalRecords = totalRecords;
-            TotalAtivos = totalAtivos;
-            TotalNormal = totalNormal;
-            TotalBaixo = totalBaixo;
-            TotalZerado = totalZerado;
-            TotalInativos = totalInativos;
+            Summary = summary;
         }
+    }
+    public class PaginatedResponse<TData> : PaginatedResponse<TData, object>
+    {
+        public PaginatedResponse(IEnumerable<TData> data, int pageNumber, int pageSize, int totalRecords)
+            : base(data, pageNumber, pageSize, totalRecords, null) { }
+        public PaginatedResponse(IEnumerable<TData> data, int pageNumber, int pageSize, int totalRecords, object? summary)
+            : base(data, pageNumber, pageSize, totalRecords, summary) { }
+    }
+
+    public class MetricsSummary
+    {
+        public int TotalGeral { get; set; }
+        public int TotalAtivos { get; set; }
+        public int TotalInativos => TotalGeral - TotalAtivos;
+        public int TotalNormal { get; set; }
+        public int TotalBaixo { get; set; }
+        public int TotalZerado { get; set; }
     }
 }

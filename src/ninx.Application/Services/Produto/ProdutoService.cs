@@ -78,21 +78,22 @@ namespace ninx.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
-        public async Task<PaginatedResponse<ProdutoResponse>> GetProdutosEstoqueByComercioIdAsync(int comercioId, PaginationRequest request)
+        public async Task<PaginatedResponse<ProdutoResponse>> GetProdutosEstoqueByComercioIdAsync(
+            int comercioId,
+            PaginationRequest request)
         {
-            var (data, response) = await _produtoRepository.GetProdutosEstoqueByComercioIdPaginatedAsync(comercioId, request);
-
-            if (data == null || !data.Any())
-            {
-                throw new NotFoundException("Produtos não encontrados para o comércio informado");
-            }
+            var (data, totalFiltrado, metrics) = await _produtoRepository
+                .GetProdutosEstoqueByComercioIdPaginatedAsync(comercioId, request);
 
             var produtosResponse = data.Adapt<List<ProdutoResponse>>();
-            response.Data = produtosResponse;
-            response.PageNumber = request.PageNumber;
-            response.PageSize = request.PageSize;
 
-            return response;
+            return new PaginatedResponse<ProdutoResponse>(
+                produtosResponse,
+                request.PageNumber,
+                request.PageSize,
+                totalFiltrado,
+                metrics
+            );
         }
 
         public async Task<ProdutoResponse> GetByIdAsync(int id, int comercioId)
