@@ -107,7 +107,7 @@ namespace ninx.Application.Services
 
             if (venda.AssinaturasEletronicas.Any(x => x.DocumentoGuid != Guid.Empty))
             {
-                response.DocumentoGuid = venda.AssinaturasEletronicas.Select(x => x.DocumentoGuid);
+                response.DocumentoGuid = venda.AssinaturasEletronicas.Select(x => x.DocumentoGuid).ToList();
             }
 
             return response;
@@ -162,7 +162,7 @@ namespace ninx.Application.Services
                     var response = venda.Adapt<VendaResponse>();
                     if (documentoGuid.HasValue)
                     {
-                        response.DocumentoGuid.ToList().Add(documentoGuid.Value);
+                        response.DocumentoGuid.Add(documentoGuid.Value);
                     }
                     return response;
                 }

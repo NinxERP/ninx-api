@@ -31,7 +31,7 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
 
         builder.ToTable(t => 
         {
-            t.HasCheckConstraint("CK_Vendas_Status", "[Status] IN ('Aberta', 'Finalizada', 'Cancelada', 'Estornada')");
+            t.HasCheckConstraint("CK_Vendas_Status", "[Status] IN ('Aberta', 'Finalizada', 'Cancelada', 'Estornada', 'Aguardando')");
             t.HasCheckConstraint("CK_Vendas_TipoVenda", "[TipoVenda] IN ('Normal', 'Fiado')");
         });
 

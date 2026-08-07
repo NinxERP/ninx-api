@@ -69,7 +69,6 @@ namespace ninx.Application.Services
                 Assinatura = assinatura,
                 Valor = 0,
                 DataPagamento = DateTime.UtcNow,
-                DataVencimento = DateTime.UtcNow.AddMonths(1)
             };
             await _pagamentoHistoricoAssinaturaPlanoRepository.AddAsync(primeiroPagamento);
             await _assinaturaPlanoRepository.AddAsync(assinatura);

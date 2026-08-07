@@ -9,7 +9,7 @@
         public string? TipoVenda { get; set; }  
         public string? Status { get; set; } 
         public DateTime? CriadoEm { get; set; }
-        public IEnumerable<Guid> DocumentoGuid { get; set; } = new List<Guid>();
+        public List<Guid> DocumentoGuid { get; set; } = new List<Guid>();
         public decimal ValorPago { get; set; }
         public decimal SaldoDevedor { get; set; }
     }

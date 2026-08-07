@@ -13,20 +13,17 @@ namespace ninx.Application.Services
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
         private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
-        private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
         private readonly IUnitOfWork _unitOfWork;
         public LoginService(ITokenProvider tokenProvider,
             IUsuarioRepository usuarioRepository, 
             IUsuarioComercioRepository usuarioComercioRepository, 
             IAssinaturaPlanoRepository assinaturaPlanoRepository, 
-            IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository,
             IUnitOfWork unitOfWork)
         {
             _tokenProvider = tokenProvider;
             _usuarioRepository = usuarioRepository;
             _usuarioComercioRepository = usuarioComercioRepository;
             _assinaturaPlanoRepository = assinaturaPlanoRepository;
-            _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
             _unitOfWork = unitOfWork;
         }   
 
@@ -48,10 +45,7 @@ namespace ninx.Application.Services
             var plano = await _assinaturaPlanoRepository.GetByComercioIdAsync(usuarioComercios.FirstOrDefault().ComercioID);
             if (plano == null) throw new Exception("Comércio sem plano vinculado.");
             if (plano.Status == StatusAssinatura.Cancelada || plano.Status == StatusAssinatura.Vencida) throw new ForbiddenException("Assinatura vencida ou cancelada.");
-
-            var ultimoPagamento = await _pagamentoHistoricoAssinaturaPlanoRepository.GetUltimoPagamentoByAssinaturaPlanoIdAsync(plano.AssinaturaID);
-            if (ultimoPagamento == null) throw new Exception("Comércio sem pagamentos registrados.");
-            if (ultimoPagamento.DataVencimento < DateTime.UtcNow)
+            if (plano.DataFim < DateTime.UtcNow)
             {
                 plano.Status = StatusAssinatura.Vencida;
                 await _assinaturaPlanoRepository.UpdateAsync(plano);
