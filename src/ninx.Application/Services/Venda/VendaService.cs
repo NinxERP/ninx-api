@@ -97,7 +97,7 @@ namespace ninx.Application.Services
         }
         public async Task<VendaResponse> GetByVendaIdAsync(int id)
         {
-            var venda = await _vendaRepository.GetByIdComItensAsync(id);
+            var venda = await _vendaRepository.GetByIdParaDetalheAsync(id);
             if (venda is null)
             {
                 throw new NotFoundException("Venda não encontrada");
@@ -105,9 +105,10 @@ namespace ninx.Application.Services
 
             var response = venda.Adapt<VendaResponse>();
 
-            if (venda.AssinaturasEletronicas.Any(x => x.DocumentoGuid != Guid.Empty))
+            var documentoGuids = await _assinaturaEletronicaRepository.GetDocumentoGuidsPorVendaAsync(id);
+            if (documentoGuids.Any())
             {
-                response.DocumentoGuid = venda.AssinaturasEletronicas.Select(x => x.DocumentoGuid).ToList();
+                response.DocumentoGuid = documentoGuids;
             }
 
             return response;
@@ -118,7 +119,7 @@ namespace ninx.Application.Services
             {
                 await _unitOfWork.BeginTransactionAsync();
 
-                var venda = await _vendaRepository.GetByIdComItensAsync(vendaId);
+                var venda = await _vendaRepository.GetByIdParaEstornoAsync(vendaId);
                 if (venda == null)
                     throw new NotFoundException("Venda não encontrada.");
 
@@ -188,7 +189,7 @@ namespace ninx.Application.Services
             {
                 await _unitOfWork.BeginTransactionAsync();
 
-                var venda = await _vendaRepository.GetByIdComItensAsync(vendaId);
+                var venda = await _vendaRepository.GetByIdParaPagamentoFiadoAsync(vendaId);
                 if (venda == null)
                     throw new NotFoundException("Venda não encontrada.");
 
@@ -201,7 +202,7 @@ namespace ninx.Application.Services
                 if (venda.Status == StatusVenda.Aguardando)
                     throw new BadRequestException("Não é possível receber pagamentos para uma venda que não foi aberta.");
 
-                if (venda.AssinaturasEletronicas.Any(x => x.Assinado == false))
+                if (await _assinaturaEletronicaRepository.ExisteAssinaturaPendenteAsync(vendaId))
                     throw new BadRequestException("Não é possível receber pagamentos para essa venda, pois ela tem assinaturas pendentes.");
 
                 await ValidarPermissaoUsuarioComercioAsync(usuarioId, venda.ComercioID);
@@ -588,7 +589,6 @@ namespace ninx.Application.Services
 
             var estoquesParaAtualizar = new List<Estoque>();
             var movimentacoesParaInserir = new List<MovimentacaoEstoque>();
-            var assinaturasParaAtualizar = new List<AssinaturaEletronica>();
 
             foreach (var item in venda.ItensVenda)
             {
@@ -635,16 +635,6 @@ namespace ninx.Application.Services
                 pagamentosParaAtualizar.Add(pagamento);
             }
 
-            if (venda.AssinaturasEletronicas != null && venda.AssinaturasEletronicas.Any())
-            {
-                foreach (var assinatura in venda.AssinaturasEletronicas.Where(a => a.Status != StatusAssinatura.Cancelada))
-                {
-                    assinatura.Status = StatusAssinatura.Cancelada;
-                    assinatura.AtualizadoEm = dataOperacao;
-                    assinaturasParaAtualizar.Add(assinatura);
-                }
-            }
-
             await _estoqueRepository.UpdateBatchAsync(estoquesParaAtualizar);
             await _movimentacaoEstoqueRepository.AddBatchAsync(movimentacoesParaInserir);
 
@@ -658,10 +648,7 @@ namespace ninx.Application.Services
                 await _pagamentoVendaRepository.UpdateBatchAsync(pagamentosParaAtualizar);
             }
 
-            if (assinaturasParaAtualizar.Any())
-            {
-                await _assinaturaEletronicaRepository.UpdateBatchAsync(assinaturasParaAtualizar);
-            }
+            await _assinaturaEletronicaRepository.CancelarPorVendaIdAsync(venda.VendaID, dataOperacao);
         }
 
 
@@ -691,8 +678,7 @@ namespace ninx.Application.Services
         }
         private async Task ValidarPermissaoUsuarioComercioAsync(int usuarioId, int comercioId)
         {
-            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
-            if (!usuarioComercio.Any(x => x.ComercioID == comercioId))
+            if (!await _usuarioComercioRepository.ExisteVinculoAsync(usuarioId, comercioId))
                 throw new BadRequestException("Este usuário não tem permissão para acessar este comércio.");
         }
         private async Task<decimal> CalcularSaldoDevedorAsync(int clienteId)

@@ -19,7 +19,6 @@ namespace ninx.Infra.Repository
         {
             var query = _context.Vendas
                 .AsNoTracking()
-                .Include(v => v.ItensVenda) 
                 .AsQueryable();
 
             if (inicio.HasValue)
@@ -51,8 +50,6 @@ namespace ninx.Infra.Repository
         {
             return await _context.Vendas
                 .AsNoTracking()
-                .Include(v => v.ItensVenda)
-                .Include(v => v.AssinaturasEletronicas)
                 .Include(v => v.PagamentosVenda)
                 .Where(v => v.ClienteID == clienteId)
                 .OrderByDescending(v => v.CriadoEm)
@@ -67,12 +64,25 @@ namespace ninx.Infra.Repository
                 .FirstOrDefaultAsync(v => v.VendaID == id);
         }
 
-        public async Task<Venda?> GetByIdComItensAsync(int id)
+        public async Task<Venda?> GetByIdParaEstornoAsync(int id)
         {
             return await _context.Vendas
                 .Include(v => v.ItensVenda)
                 .Include(v => v.PagamentosVenda)
-                .Include(v => v.AssinaturasEletronicas)
+                .FirstOrDefaultAsync(v => v.VendaID == id);
+        }
+
+        public async Task<Venda?> GetByIdParaPagamentoFiadoAsync(int id)
+        {
+            return await _context.Vendas
+                .Include(v => v.PagamentosVenda)
+                .FirstOrDefaultAsync(v => v.VendaID == id);
+        }
+
+        public async Task<Venda?> GetByIdParaDetalheAsync(int id)
+        {
+            return await _context.Vendas
+                .AsNoTracking()
                 .FirstOrDefaultAsync(v => v.VendaID == id);
         }
         public async Task<Dictionary<int, decimal>> GetSaldoDevedorClientesPorComercio(int comercioId)

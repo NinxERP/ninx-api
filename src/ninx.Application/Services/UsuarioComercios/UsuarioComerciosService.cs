@@ -36,9 +36,8 @@ namespace ninx.Application.Services
 
         public async Task<UsuarioComercioResponse> CriarAsync(CriarUsuarioComercioRequest request)
         {
-            var existe = await _usuarioComercioRepository.GetByUsuarioIdAsync(request.UsuarioID);
-            var existeFiltrado = existe.FirstOrDefault(uc => uc.ComercioID == request.ComercioID);
-            if (existeFiltrado != null)
+            var existe = await _usuarioComercioRepository.ExisteVinculoAsync(request.UsuarioID, request.ComercioID);
+            if (existe)
             {
                 throw new BadRequestException("Usuário já vinculado a esse comércio.");
             }
@@ -63,8 +62,7 @@ namespace ninx.Application.Services
         {
             if (usuarioLogadoPermissao == Permissao.Funcionario) throw new ForbiddenException("Funcionários não possuem permissão para atualizar vínculos.");
 
-            var comerciosPorUsuario = await _usuarioComercioRepository.GetByUsuarioIdAsync(request.UsuarioID);
-            var usuarioComercio = comerciosPorUsuario.FirstOrDefault(x => x.ComercioID == request.ComercioID);
+            var usuarioComercio = await _usuarioComercioRepository.GetVinculoAsync(request.UsuarioID, request.ComercioID);
             if (usuarioComercio == null) throw new NotFoundException("Vínculo entre usuário e comércio não encontrado.");
 
             if (request.Permissao != 0 && usuarioComercio.Permissao != (Permissao)request.Permissao)
@@ -84,8 +82,7 @@ namespace ninx.Application.Services
 
         public async Task DesativarAsync(int usuarioId, int comercioId)
         {
-            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
-            var usuarioComercioFiltrado = usuarioComercio.FirstOrDefault(uc => uc.ComercioID == comercioId);
+            var usuarioComercioFiltrado = await _usuarioComercioRepository.GetVinculoAsync(usuarioId, comercioId);
             if (usuarioComercioFiltrado == null)
             {
                 throw new NotFoundException("Usuário não possui vínculo com o comércio.");

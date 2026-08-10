@@ -113,7 +113,7 @@ namespace ninx.Infra.Repository
         public async Task<IEnumerable<Produto>> GetProdutosById(IEnumerable<int> produtoIds)
         {
             return await _context.Produtos
-                .Include(x => x.Estoque)
+                .AsNoTracking()
                 .Where(x => produtoIds.Contains(x.ProdutoID))
                 .ToListAsync();
         }

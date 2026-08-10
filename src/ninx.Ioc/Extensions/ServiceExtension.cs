@@ -22,6 +22,7 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IAssinaturaEletronicaService, AssinaturaEletronicaService>();
             services.AddScoped<IEstoqueService, EstoqueService>();
             services.AddScoped<ICategoriaProdutoService, CategoriaProdutoService>();
+            services.AddScoped<IRelatorioService, RelatorioService>();
             services.AddScoped<ITokenProvider, TokenProvider>();
             return services;
         }

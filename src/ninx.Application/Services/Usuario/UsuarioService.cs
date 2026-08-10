@@ -110,8 +110,7 @@ namespace ninx.Application.Services
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario is null) throw new NotFoundException("Usuario não encontrado");
-            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(id);
-            if (usuarioComercio.Any(x => x.ComercioID == comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
+            if (await _usuarioComercioRepository.ExisteVinculoAsync(id, comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
 
             request.Adapt(usuario);
             await _usuarioRepository.UpdateAsync(usuario);
@@ -123,10 +122,9 @@ namespace ninx.Application.Services
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario == null) throw new NotFoundException("Usuário não encontrado.");
-            var usuarioComercio = await _usuarioComercioRepository.GetByUsuarioIdAsync(id);
-            if (usuarioComercio.Any(x => x.ComercioID == comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
+            if (await _usuarioComercioRepository.ExisteVinculoAsync(id, comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
 
-            
+
             usuario.Ativo = false;
             usuario.AtualizadoEm = DateTime.UtcNow;
             await _usuarioRepository.UpdateAsync(usuario);

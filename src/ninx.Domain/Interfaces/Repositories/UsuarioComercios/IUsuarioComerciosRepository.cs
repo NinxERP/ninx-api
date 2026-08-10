@@ -6,5 +6,7 @@ namespace ninx.Domain.Interfaces
     {
         Task<IEnumerable<UsuarioComercio>> GetByUsuarioIdAsync(int usuarioId);
         Task<IEnumerable<UsuarioComercio>> GetByComercioIdAsync(int comercioId);
+        Task<bool> ExisteVinculoAsync(int usuarioId, int comercioId);
+        Task<UsuarioComercio?> GetVinculoAsync(int usuarioId, int comercioId);
     }
 }

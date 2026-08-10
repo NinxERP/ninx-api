@@ -83,8 +83,7 @@ namespace ninx.Application.Services
             var comercio = await _comercioRepository.GetByIdAsync(id);
             if (comercio == null) throw new NotFoundException("Comércio não encontrado.");
 
-            var usuarioComercio = await _usuarioComercioRepository.GetByComercioIdAsync(comercio.ComercioID);
-            var vinculoLogado = usuarioComercio.FirstOrDefault(x => x.UsuarioID == usuarioLogadoId);
+            var vinculoLogado = await _usuarioComercioRepository.GetVinculoAsync(usuarioLogadoId, comercio.ComercioID);
             if (vinculoLogado == null || (vinculoLogado.Permissao != Permissao.Administrador && vinculoLogado.Permissao != Permissao.Dono))
             {
                 throw new UnauthorizedException("Acesso negado.");
