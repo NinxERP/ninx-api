@@ -270,20 +270,29 @@ namespace ninx.Infra.Repository
 
         public async Task<List<PicoPorDiaSemanaResumo>> GetPicoPorDiaSemanaAsync(int comercioId, DateTime inicio, DateTime fim)
         {
-            return await _context.Vendas
+            var resultado = await _context.Vendas
                 .AsNoTracking()
                 .Where(v => v.ComercioID == comercioId
                     && v.Status == StatusVenda.Finalizada
                     && v.CriadoEm >= inicio && v.CriadoEm <= fim)
                 .GroupBy(v => v.CriadoEm.DayOfWeek)
-                .Select(g => new PicoPorDiaSemanaResumo
+                .Select(g => new
                 {
                     DiaSemana = g.Key,
                     QuantidadeVendas = g.Count(),
                     ValorTotal = g.Sum(v => v.Total)
                 })
-                .OrderBy(x => x.DiaSemana)
                 .ToListAsync();
+
+            return resultado
+                .OrderBy(x => x.DiaSemana)
+                .Select(x => new PicoPorDiaSemanaResumo
+                {
+                    DiaSemana = x.DiaSemana.ToString(),
+                    QuantidadeVendas = x.QuantidadeVendas,
+                    ValorTotal = x.ValorTotal
+                })
+                .ToList();
         }
 
         public async Task<List<ClienteInativoResumo>> GetClientesInativosAsync(int comercioId, int diasSemComprar)

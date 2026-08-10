@@ -15,7 +15,7 @@ namespace ninx.Communication
 
     public class PicoPorDiaSemanaResumo
     {
-        public DayOfWeek DiaSemana { get; set; }
+        public string DiaSemana { get; set; } = null!;
         public int QuantidadeVendas { get; set; }
         public decimal ValorTotal { get; set; }
     }
