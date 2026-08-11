@@ -10,6 +10,7 @@ namespace ninx.Application.Mappings
         {
             config.NewConfig<AssinaturaEletronica, AssinaturaEletronicaResponse>()
             .Map(dest => dest.DocumentoBase64, src => src.DocumentoOriginalBase64)
+            .Map(dest => dest.DocumentoAssinadoBase64, src => src.DocumentoAssinadoBase64)
             .Map(dest => dest.AssinaturaBase64, src => src.ImagemAssinatura);
         }
     }

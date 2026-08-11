@@ -11,14 +11,17 @@ namespace ninx.Application.Services
         private readonly IAssinaturaEletronicaRepository _assinaturaEletronicaRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IVendaRepository _vendaRepository;
+        private readonly IDocumentoRendererService _documentoRendererService;
         public AssinaturaEletronicaService
-            (IAssinaturaEletronicaRepository assinaturaEletronicaRepository, 
+            (IAssinaturaEletronicaRepository assinaturaEletronicaRepository,
             IUnitOfWork unitOfWork,
-            IVendaRepository vendaRepository)
+            IVendaRepository vendaRepository,
+            IDocumentoRendererService documentoRendererService)
         {
             _assinaturaEletronicaRepository = assinaturaEletronicaRepository;
             _unitOfWork = unitOfWork;
             _vendaRepository = vendaRepository;
+            _documentoRendererService = documentoRendererService;
         }
  
         public async Task<IEnumerable<AssinaturaEletronicaResponse>> GetAll()
@@ -46,26 +49,43 @@ namespace ninx.Application.Services
         }
         public async Task ConfirmarAssinaturaAsync(Guid guid, string imagemBase64, string ip, string dispositivo)
         {
-            var assinatura = await _assinaturaEletronicaRepository.GetByGuidAsync(guid);
-            if (assinatura == null) throw new NotFoundException("Documento não encontrado.");
-            if (assinatura.Assinado) throw new BadRequestException("Este documento já foi assinado.");
-            if (assinatura.Status != Domain.Enums.StatusAssinatura.Ativa) throw new BadRequestException("Este documento não está mais disponível para assinatura.");
+            var assinaturas = await _assinaturaEletronicaRepository.GetAllByGuidAsync(guid);
+            if (assinaturas.Count == 0) throw new NotFoundException("Documento não encontrado.");
 
-            var venda = await _vendaRepository.GetByIdAsync(assinatura.VendaID);
-            if (venda.Status == Domain.Enums.StatusVenda.Cancelada || venda.Status == Domain.Enums.StatusVenda.Estornada)
-                throw new BadRequestException("Não é possível assinar o documento de uma venda cancelada ou estornada.");
+            var primeira = assinaturas[0];
+            if (primeira.Assinado) throw new BadRequestException("Este documento já foi assinado.");
+            if (primeira.Status != Domain.Enums.StatusAssinatura.Ativa) throw new BadRequestException("Este documento não está mais disponível para assinatura.");
 
-            venda.AtualizadoEm = DateTime.UtcNow;
-            venda.Status = Domain.Enums.StatusVenda.Aberta;
+            var dataAssinatura = DateTime.UtcNow;
 
-            assinatura.ImagemAssinatura = imagemBase64;
-            assinatura.IpAssinante = ip;
-            assinatura.DispositivoInfo = dispositivo;
-            assinatura.DataAssinatura = DateTime.UtcNow;
-            assinatura.Assinado = true;
+            // Um mesmo DocumentoGuid pode estar vinculado a mais de uma venda (ex: quitação global de fiado
+            // abate várias vendas de uma vez) — todos os registros precisam ser assinados juntos, não só o primeiro.
+            foreach (var assinatura in assinaturas)
+            {
+                var venda = await _vendaRepository.GetByIdAsync(assinatura.VendaID);
+                if (venda.Status == Domain.Enums.StatusVenda.Cancelada || venda.Status == Domain.Enums.StatusVenda.Estornada)
+                    throw new BadRequestException("Não é possível assinar o documento de uma venda cancelada ou estornada.");
 
-            await _vendaRepository.UpdateAsync(venda);
-            await _assinaturaEletronicaRepository.UpdateAsync(assinatura);
+                venda.AtualizadoEm = dataAssinatura;
+                venda.Status = Domain.Enums.StatusVenda.Aberta;
+
+                assinatura.ImagemAssinatura = imagemBase64;
+                assinatura.IpAssinante = ip;
+                assinatura.DispositivoInfo = dispositivo;
+                assinatura.DataAssinatura = dataAssinatura;
+                assinatura.Assinado = true;
+
+                if (assinatura.TipoDocumento.HasValue && !string.IsNullOrEmpty(assinatura.DocumentoHtmlMesclado))
+                {
+                    var blocoAssinado = DocumentoTokenBuilder.BuildBlocoAssinaturaConfirmada(imagemBase64, dataAssinatura, ip, dispositivo);
+                    var htmlAssinado = DocumentoTokenBuilder.SubstituirBlocoAssinatura(assinatura.DocumentoHtmlMesclado, blocoAssinado);
+                    assinatura.DocumentoAssinadoBase64 = await _documentoRendererService.ConverterParaPdfBase64Async(htmlAssinado);
+                }
+
+                await _vendaRepository.UpdateAsync(venda);
+                await _assinaturaEletronicaRepository.UpdateAsync(assinatura);
+            }
+
             await _unitOfWork.SaveChangesAsync();
         }
 

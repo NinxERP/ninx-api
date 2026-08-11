@@ -6,6 +6,7 @@ namespace ninx.Domain.Interfaces
     {
         Task<AssinaturaEletronica?> GetByGuidParaAssinarAsync(Guid guid);
         Task<AssinaturaEletronica?> GetByGuidAsync(Guid guid);
+        Task<List<AssinaturaEletronica>> GetAllByGuidAsync(Guid guid);
         Task<AssinaturaEletronica?> GetClienteLojaAssinaturaByGuidAsync(Guid guid);
         Task<bool> ExisteAssinaturaPendenteAsync(int vendaId);
         Task<List<Guid>> GetDocumentoGuidsPorVendaAsync(int vendaId);

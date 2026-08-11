@@ -29,6 +29,7 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IComercioService, ComercioService>();
             services.AddScoped<IPagamentoHistoricoAssinaturaPlanoRepository, PagamentoHistoricoAssinaturaPlanoRepository>();
             services.AddScoped<IRelatorioRepository, RelatorioRepository>();
+            services.AddScoped<IDocumentoTemplateRepository, DocumentoTemplateRepository>();
 
             return services;
         }

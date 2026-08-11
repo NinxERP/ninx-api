@@ -8,26 +8,30 @@ namespace ninx.Application.Validators.Entidades
         public ComercioValidator()
         {
             RuleFor(x => x.ComercioID)
-                .GreaterThanOrEqualTo(0).WithMessage("O ID do comércio deve ser maior ou igual a zero.");
+                .GreaterThanOrEqualTo(0).WithMessage("O ID do comÃ©rcio deve ser maior ou igual a zero.");
 
             RuleFor(x => x.NomeComercio)
-                .NotEmpty().WithMessage("Nome é obrigatório.")
-                .MinimumLength(3).WithMessage("Nome deve ter no mínimo 3 caracteres.")
-                .MaximumLength(150).WithMessage("Nome deve ter no máximo 150 caracteres.");
+                .NotEmpty().WithMessage("Nome Ã© obrigatÃ³rio.")
+                .MinimumLength(3).WithMessage("Nome deve ter no mÃ­nimo 3 caracteres.")
+                .MaximumLength(150).WithMessage("Nome deve ter no mÃ¡ximo 150 caracteres.");
 
             RuleFor(x => x.Endereco)
-                .MaximumLength(250).WithMessage("Endereço deve ter no máximo 250 caracteres.")
+                .MaximumLength(250).WithMessage("EndereÃ§o deve ter no mÃ¡ximo 250 caracteres.")
                 .When(x => !string.IsNullOrEmpty(x.Endereco));
 
             RuleFor(x => x.CNPJ)
-                .Must(ValidarCNPJ).WithMessage("CNPJ inválido.")
+                .Must(ValidarCNPJ).WithMessage("CNPJ invÃ¡lido.")
                 .When(x => !string.IsNullOrEmpty(x.CNPJ));
 
+            RuleFor(x => x.AssinaturaResponsavelBase64)
+                .Must(ValidarBase64).WithMessage("Imagem de assinatura invÃ¡lida ou nÃ£o estÃ¡ em formato base64.")
+                .When(x => !string.IsNullOrEmpty(x.AssinaturaResponsavelBase64));
+
             RuleFor(x => x.CriadoEm)
-                .LessThanOrEqualTo(DateTime.UtcNow).WithMessage("Data de criação não pode ser futura.");
+                .LessThanOrEqualTo(DateTime.UtcNow).WithMessage("Data de criaÃ§Ã£o nÃ£o pode ser futura.");
 
             RuleFor(x => x.AtualizadoEm)
-                .GreaterThanOrEqualTo(x => x.CriadoEm).WithMessage("Data de atualização deve ser maior que a data de criação.")
+                .GreaterThanOrEqualTo(x => x.CriadoEm).WithMessage("Data de atualizaÃ§Ã£o deve ser maior que a data de criaÃ§Ã£o.")
                 .When(x => x.AtualizadoEm.HasValue);
         }
 
@@ -45,6 +49,22 @@ namespace ninx.Application.Validators.Entidades
                 return false;
 
             return true;
+        }
+
+        private bool ValidarBase64(string? base64String)
+        {
+            if (string.IsNullOrEmpty(base64String))
+                return true;
+
+            try
+            {
+                Convert.FromBase64String(base64String);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

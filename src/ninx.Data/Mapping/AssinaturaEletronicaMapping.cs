@@ -19,7 +19,20 @@ namespace ninx.Data.Mappings
             builder.Property(x => x.DocumentoGuid)
                 .IsRequired();
 
+            builder.Property(x => x.TipoDocumento)
+                .IsRequired(false)
+                .HasConversion<string>()
+                .HasMaxLength(30);
+
             builder.Property(x => x.DocumentoOriginalBase64)
+                .IsRequired(false)
+                .HasColumnType("nvarchar(max)");
+
+            builder.Property(x => x.DocumentoHtmlMesclado)
+                .IsRequired(false)
+                .HasColumnType("nvarchar(max)");
+
+            builder.Property(x => x.DocumentoAssinadoBase64)
                 .IsRequired(false)
                 .HasColumnType("nvarchar(max)");
 

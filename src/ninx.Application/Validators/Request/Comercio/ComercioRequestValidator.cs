@@ -8,17 +8,21 @@ namespace ninx.Application.Validators.Request
         public ComercioRequestValidator()
         {
             RuleFor(x => x.Nome)
-                .NotEmpty().WithMessage("Nome é obrigatório.")
-                .MinimumLength(3).WithMessage("Nome deve ter no mínimo 3 caracteres.")
-                .MaximumLength(150).WithMessage("Nome deve ter no máximo 150 caracteres.");
+                .NotEmpty().WithMessage("Nome Ã© obrigatÃ³rio.")
+                .MinimumLength(3).WithMessage("Nome deve ter no mÃ­nimo 3 caracteres.")
+                .MaximumLength(150).WithMessage("Nome deve ter no mÃ¡ximo 150 caracteres.");
 
             RuleFor(x => x.Endereco)
-                .MaximumLength(250).WithMessage("Endereço deve ter no máximo 250 caracteres.")
+                .MaximumLength(250).WithMessage("EndereÃ§o deve ter no mÃ¡ximo 250 caracteres.")
                 .When(x => !string.IsNullOrEmpty(x.Endereco));
 
             RuleFor(x => x.CNPJ)
-                .Must(ValidarCNPJ).WithMessage("CNPJ inválido.")
+                .Must(ValidarCNPJ).WithMessage("CNPJ invÃ¡lido.")
                 .When(x => !string.IsNullOrEmpty(x.CNPJ));
+
+            RuleFor(x => x.AssinaturaResponsavelBase64)
+                .Must(ValidarBase64).WithMessage("Imagem de assinatura invÃ¡lida ou nÃ£o estÃ¡ em formato base64.")
+                .When(x => !string.IsNullOrEmpty(x.AssinaturaResponsavelBase64));
         }
 
         private bool ValidarCNPJ(string cnpj)
@@ -35,6 +39,22 @@ namespace ninx.Application.Validators.Request
                 return false;
 
             return true;
+        }
+
+        private bool ValidarBase64(string? base64String)
+        {
+            if (string.IsNullOrEmpty(base64String))
+                return true;
+
+            try
+            {
+                Convert.FromBase64String(base64String);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

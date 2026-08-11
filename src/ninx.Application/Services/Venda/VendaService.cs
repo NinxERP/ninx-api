@@ -1,11 +1,4 @@
-﻿using iText.Kernel.Geom;
-using iText.Kernel.Pdf;
-using iText.Layout.Borders;
-using iText.Layout.Element;
-using iText.Layout.Properties;
-using iText.Kernel.Colors;
-using iText.Layout;
-using Mapster;
+﻿using Mapster;
 using ninx.Communication;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
@@ -27,7 +20,8 @@ namespace ninx.Application.Services
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
         private readonly IClienteRepository _clienteRepository;
         private readonly IPagamentoVendaRepository _pagamentoVendaRepository;
-        private readonly IAssinaturaEletronicaRepository _assinaturaEletronicaRepository; 
+        private readonly IAssinaturaEletronicaRepository _assinaturaEletronicaRepository;
+        private readonly IDocumentoRendererService _documentoRendererService;
         public VendaService(
             IVendaRepository vendaRepository,
             IProdutoRepository produtoRepository,
@@ -39,7 +33,8 @@ namespace ninx.Application.Services
             IUsuarioComercioRepository usuarioComercioRepository,
             IClienteRepository clienteRepository,
             IPagamentoVendaRepository pagamentoVendaRepository,
-            IAssinaturaEletronicaRepository assinaturaEletronicaRepository)
+            IAssinaturaEletronicaRepository assinaturaEletronicaRepository,
+            IDocumentoRendererService documentoRendererService)
         {
             _vendaRepository = vendaRepository;
             _produtoRepository = produtoRepository;
@@ -52,6 +47,14 @@ namespace ninx.Application.Services
             _clienteRepository = clienteRepository;
             _pagamentoVendaRepository = pagamentoVendaRepository;
             _assinaturaEletronicaRepository = assinaturaEletronicaRepository;
+            _documentoRendererService = documentoRendererService;
+        }
+
+        private async Task<(string Html, string PdfBase64)> RenderizarDocumentoAsync(TipoDocumento tipoDocumento, Dictionary<string, string> tokens)
+        {
+            var html = await _documentoRendererService.RenderizarHtmlAsync(tipoDocumento, tokens);
+            var pdfBase64 = await _documentoRendererService.ConverterParaPdfBase64Async(html);
+            return (html, pdfBase64);
         }
 
 
@@ -234,13 +237,18 @@ namespace ninx.Application.Services
                 var cliente = await _clienteRepository.GetByIdAsync(venda.ClienteID!.Value);
                 var comercio = await _comercioRepository.GetByIdAsync(venda.ComercioID);
 
+                var tokensRecibo = DocumentoTokenBuilder.BuildReciboPagamentoTokens(venda, novoPagamento, cliente!, comercio!, saldoDevedorVenda);
+                var (htmlRecibo, pdfRecibo) = await RenderizarDocumentoAsync(TipoDocumento.ReciboPagamentoParcial, tokensRecibo);
+
                 var assinatura = new AssinaturaEletronica
                 {
                     Venda = venda,
                     DocumentoGuid = identificadorAssinatura,
                     Assinado = false,
                     CriadoEm = dataOperacao,
-                    DocumentoOriginalBase64 = await CriarDocReciboPagamento(venda, novoPagamento, cliente!, comercio!, saldoDevedorVenda)
+                    TipoDocumento = TipoDocumento.ReciboPagamentoParcial,
+                    DocumentoHtmlMesclado = htmlRecibo,
+                    DocumentoOriginalBase64 = pdfRecibo
                 };
 
                 venda.AtualizadoEm = DateTime.UtcNow;
@@ -337,16 +345,19 @@ namespace ninx.Application.Services
                 var cliente = await _clienteRepository.GetByIdAsync(clienteId);
                 var comercio = await _comercioRepository.GetByIdAsync(primeiraVenda.ComercioID);
 
-                var pdfBase64 = await CriarDocReciboGlobalPagamento(detalheAbatimentos, valorTotalPago, (FormaPagamento)formaPagamento, cliente!, comercio!, dataOperacao);
+                var tokensGlobal = DocumentoTokenBuilder.BuildReciboQuitacaoGlobalTokens(detalheAbatimentos, valorTotalPago, (FormaPagamento)formaPagamento, cliente!, comercio!, dataOperacao);
+                var (htmlGlobal, pdfBase64) = await RenderizarDocumentoAsync(TipoDocumento.ReciboQuitacaoGlobal, tokensGlobal);
 
                 foreach (var abatimento in detalheAbatimentos)
                 {
                     var assinaturaVinculada = new AssinaturaEletronica
                     {
-                        VendaID = abatimento.VendaId,           
-                        DocumentoGuid = identificadorAssinatura, 
+                        VendaID = abatimento.VendaId,
+                        DocumentoGuid = identificadorAssinatura,
                         Assinado = false,
                         CriadoEm = dataOperacao,
+                        TipoDocumento = TipoDocumento.ReciboQuitacaoGlobal,
+                        DocumentoHtmlMesclado = htmlGlobal,
                         DocumentoOriginalBase64 = pdfBase64
                     };
 
@@ -454,13 +465,18 @@ namespace ninx.Application.Services
                 var cliente = await _clienteRepository.GetByIdAsync(request.ClienteID!.Value);
                 var comercio = await _comercioRepository.GetByIdAsync(request.ComercioID);
 
+                var tokensTermo = DocumentoTokenBuilder.BuildTermoCompromissoTokens(venda, cliente!, comercio!);
+                var (htmlTermo, pdfTermo) = await RenderizarDocumentoAsync(TipoDocumento.TermoCompromisso, tokensTermo);
+
                 var assinatura = new AssinaturaEletronica
                 {
                     Venda = venda,
                     DocumentoGuid = identificadorAssinatura.Value,
                     Assinado = false,
                     CriadoEm = dataOperacao,
-                    DocumentoOriginalBase64 = await CriarDocAssinatura(venda, cliente!, comercio!)
+                    TipoDocumento = TipoDocumento.TermoCompromisso,
+                    DocumentoHtmlMesclado = htmlTermo,
+                    DocumentoOriginalBase64 = pdfTermo
                 };
                 await _assinaturaEletronicaRepository.AddAsync(assinatura);
             }
@@ -700,446 +716,5 @@ namespace ninx.Application.Services
             });
         }
 
-        private static string FormatarCpf(string cpf)
-        {
-            if (string.IsNullOrWhiteSpace(cpf) || cpf.Length != 11)
-                return "Não informado";
-
-            return $"{cpf.Substring(0, 3)}.{cpf.Substring(3, 3)}.{cpf.Substring(6, 3)}-{cpf.Substring(9, 2)}";
-        }
-
-        private static string FormatarEnderecoCliente(Cliente cliente)
-        {
-            var complemento = string.IsNullOrWhiteSpace(cliente.EnderecoComplemento) ? "" : $", {cliente.EnderecoComplemento}";
-            return $"{cliente.EnderecoLogradouro}, {cliente.EnderecoNumero}{complemento} - {cliente.EnderecoBairro}, {cliente.EnderecoCidade}/{cliente.EnderecoUF} - CEP {cliente.EnderecoCEP}";
-        }
-
-        private async Task<string> CriarDocAssinatura(Venda venda, Cliente cliente, Comercio comercio)
-        {
-            using (var memoryStream = new MemoryStream())
-            {
-                var writer = new PdfWriter(memoryStream);
-                var pdfDocument = new PdfDocument(writer);
-                var document = new Document(pdfDocument, PageSize.A4);
-
-                // Define margens limpas
-                document.SetMargins(35, 45, 35, 45);
-
-                // 🎨 Definição da Paleta de Cores Ninx (Adaptada para papel)
-                Color azulNinxEscuro = new DeviceRgb(13, 27, 42);   // #0D1B2A (Cor do App)
-                Color azulNinxDestaque = new DeviceRgb(14, 165, 233); // #0EA5E9 (Ciano do App)
-                Color cinzaCardFundo = new DeviceRgb(248, 250, 252); // #F8FAFC
-                Color cinzaLinhaSutil = new DeviceRgb(226, 232, 240); // #E2E8F0
-                Color cinzaTextoMuted = new DeviceRgb(100, 116, 139); // #64748B
-                Color pretoSuveTexto = new DeviceRgb(30, 41, 59);    // #1E293B
-
-                // Fontes padrão
-                var fonteNormal = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
-                var fonteNegrito = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA_BOLD);
-
-                document.SetFont(fonteNormal);
-                document.SetFontColor(pretoSuveTexto);
-
-                // ── 1. CABEÇALHO INSTITUCIONAL ──
-                var titulo = new Paragraph("TERMO DE COMPROMISSO")
-                    .SetFontSize(20)
-                    .SetFont(fonteNegrito)
-                    .SetFontColor(azulNinxEscuro)
-                    .SetMarginBottom(0);
-                document.Add(titulo);
-
-                var textoSubtitulo = new Text("PAGAMENTO E VENDA A PRAZO")
-                    .SetFont(fonteNegrito)
-                    .SetFontColor(azulNinxDestaque)
-                    .SetHorizontalScaling(1.1f); // Expandido sutilmente em 10% para criar o efeito "spacing"
-
-                var subtitulo = new Paragraph()
-                    .Add(textoSubtitulo)
-                    .SetFontSize(10)
-                    .SetMarginBottom(25);
-
-                document.Add(subtitulo);
-
-                // ── 2. CARDS DO CREDOR E DEVEDOR (Lado a lado usando tabela invisível) ──
-                var tableEnvolvidos = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth();
-
-                // Card Credor
-                var cellCredor = new Cell()
-                    .SetBackgroundColor(cinzaCardFundo)
-                    .SetBorder(new SolidBorder(cinzaLinhaSutil, 1))
-                    .SetPadding(12)
-                    .SetBorderRadius(new BorderRadius(6));
-
-                cellCredor.Add(new Paragraph("CREDOR (EMPRESA)").SetFont(fonteNegrito).SetFontSize(9.5f).SetFontColor(cinzaTextoMuted).SetMarginBottom(6));
-                cellCredor.Add(new Paragraph($"Razão Social: {comercio.NomeComercio}").SetFontSize(10));
-                cellCredor.Add(new Paragraph($"CNPJ: {comercio.CNPJ ?? "Não informado"}").SetFontSize(10));
-                cellCredor.Add(new Paragraph($"Endereço: {comercio.Endereco ?? "Não informado"}").SetFontSize(10));
-
-                // Card Devedor
-                var cellDevedor = new Cell()
-                    .SetBackgroundColor(cinzaCardFundo)
-                    .SetBorder(new SolidBorder(cinzaLinhaSutil, 1))
-                    .SetPadding(12)
-                    .SetBorderRadius(new BorderRadius(6));
-
-                cellDevedor.Add(new Paragraph("DEVEDOR (CLIENTE)").SetFont(fonteNegrito).SetFontSize(9.5f).SetFontColor(cinzaTextoMuted).SetMarginBottom(6));
-                cellDevedor.Add(new Paragraph($"Nome: {cliente.Nome}").SetFontSize(10));
-                cellDevedor.Add(new Paragraph($"CPF: {FormatarCpf(cliente.Cpf)}").SetFontSize(10));
-                cellDevedor.Add(new Paragraph($"Endereço: {FormatarEnderecoCliente(cliente)}").SetFontSize(10));
-                cellDevedor.Add(new Paragraph($"Telefone: {cliente.Telefone ?? "Não informado"}").SetFontSize(10));
-
-                // Adiciona à tabela estrutural com margem de separação
-                tableEnvolvidos.AddCell(cellCredor.SetMarginRight(6));
-                tableEnvolvidos.AddCell(cellDevedor.SetMarginLeft(6));
-                document.Add(tableEnvolvidos);
-
-
-                // ── 3. TABELA DE ITENS (Sem bordas pesadas) ──
-                document.Add(new Paragraph("ITENS DA VENDA")
-                    .SetFont(fonteNegrito).SetFontSize(11).SetFontColor(azulNinxEscuro).SetMarginTop(25).SetMarginBottom(8));
-
-                var tableItens = new Table(UnitValue.CreatePercentArray(new float[] { 50, 15, 15, 20 })).UseAllAvailableWidth();
-
-                string[] cabecalhos = { "Descrição do Produto", "Qtd.", "VL. Unitário", "Subtotal" };
-                foreach (var text in cabecalhos)
-                {
-                    var textAlignment = text == "Descrição do Produto" ? TextAlignment.LEFT : (text == "Qtd." ? TextAlignment.CENTER : TextAlignment.RIGHT);
-
-                    tableItens.AddHeaderCell(new Cell()
-                        .SetBackgroundColor(cinzaCardFundo)
-                        .SetBorder(Border.NO_BORDER)
-                        .SetBorderBottom(new SolidBorder(cinzaTextoMuted, 1.5f))
-                        .SetPadding(8)
-                        .Add(new Paragraph(text).SetFontSize(9.5f).SetFont(fonteNegrito).SetFontColor(cinzaTextoMuted).SetTextAlignment(textAlignment)));
-                }
-
-                foreach (var item in venda.ItensVenda)
-                {
-                    tableItens.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetBorderBottom(new SolidBorder(cinzaLinhaSutil, 0.5f)).SetPadding(10).Add(new Paragraph(item.ProdutoNome).SetFontSize(10)));
-                    tableItens.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetBorderBottom(new SolidBorder(cinzaLinhaSutil, 0.5f)).SetPadding(10).Add(new Paragraph(item.Quantidade.ToString("N2")).SetFontSize(10).SetTextAlignment(TextAlignment.CENTER)));
-                    tableItens.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetBorderBottom(new SolidBorder(cinzaLinhaSutil, 0.5f)).SetPadding(10).Add(new Paragraph($"R$ {item.PrecoUnitario:N2}").SetFontSize(10).SetTextAlignment(TextAlignment.RIGHT)));
-                    tableItens.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetBorderBottom(new SolidBorder(cinzaLinhaSutil, 0.5f)).SetPadding(10).Add(new Paragraph($"R$ {item.Subtotal:N2}").SetFontSize(10).SetTextAlignment(TextAlignment.RIGHT)));
-                }
-                document.Add(tableItens);
-
-
-                // ── 4. RESUMO FINANCEIRO (Formato de Card Focado) ──
-                document.Add(new Paragraph("RESUMO FINANCEIRO E CONDIÇÕES")
-                    .SetFont(fonteNegrito).SetFontSize(11).SetFontColor(azulNinxEscuro).SetMarginTop(20).SetMarginBottom(8));
-
-                var pagamentosValidos = venda.PagamentosVenda
-                    .Where(p => p.Status == StatusPagamento.Pago)
-                    .ToList();
-
-                decimal totalPago = pagamentosValidos.Sum(p => p.Valor);
-                decimal saldoDevedor = venda.Total - totalPago;
-
-                var tableResumo = new Table(UnitValue.CreatePercentArray(new float[] { 75, 25 })).UseAllAvailableWidth();
-                var cardResumo = new Cell(1, 2)
-                    .SetBackgroundColor(cinzaCardFundo)
-                    .SetBorder(new SolidBorder(cinzaLinhaSutil, 1))
-                    .SetBorderRadius(new BorderRadius(6))
-                    .SetPadding(14);
-
-                var innerTable = new Table(UnitValue.CreatePercentArray(new float[] { 75, 25 })).UseAllAvailableWidth();
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph("Valor Total da Venda").SetFontSize(10).SetFontColor(cinzaTextoMuted)));
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph($"R$ {venda.Total:N2}").SetFontSize(10).SetTextAlignment(TextAlignment.RIGHT)));
-
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph("Valor Pago de Entrada").SetFontSize(10).SetFontColor(cinzaTextoMuted)));
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph($"R$ {totalPago:N2}").SetFontSize(10).SetTextAlignment(TextAlignment.RIGHT)));
-
-                // Linha divisória interna pontilhada para o totalizador importante
-                innerTable.AddCell(new Cell(1, 2).SetBorder(Border.NO_BORDER).SetBorderTop(new DashedBorder(cinzaLinhaSutil, 1)).SetMarginTop(6));
-
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingTop(6).Add(new Paragraph("Saldo Devedor Remanescente").SetFont(fonteNegrito).SetFontSize(11.5f)));
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingTop(6).Add(new Paragraph($"R$ {saldoDevedor:N2}").SetFont(fonteNegrito).SetFontSize(11.5f).SetFontColor(azulNinxDestaque).SetTextAlignment(TextAlignment.RIGHT)));
-
-                cardResumo.Add(innerTable);
-                tableResumo.AddCell(cardResumo);
-                document.Add(tableResumo);
-
-
-                // ── 5. SEÇÃO DE ASSINATURAS MINIMALISTA ──
-                var tableAssinaturas = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth().SetMarginTop(50);
-
-                tableAssinaturas.AddCell(new Cell()
-                    .SetBorder(Border.NO_BORDER)
-                    .SetPaddingRight(20)
-                    .Add(new Paragraph()
-                        .SetHeight(45) // Espaço para a caneta/vetor assinar
-                        .SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
-                        .Add(new Text("ASSINATURA DO DEVEDOR\n").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted))
-                        .Add(new Text(cliente.Nome).SetFontSize(9.5f))
-                        .SetTextAlignment(TextAlignment.CENTER).SetMarginTop(10)));
-
-                tableAssinaturas.AddCell(new Cell()
-                    .SetBorder(Border.NO_BORDER)
-                    .SetPaddingLeft(20)
-                    .Add(new Paragraph()
-                        .SetHeight(45)
-                        .SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
-                        .Add(new Text("ASSINATURA DO CREDOR\n").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted))
-                        .Add(new Text(comercio.NomeComercio).SetFontSize(9.5f))
-                        .SetTextAlignment(TextAlignment.CENTER).SetMarginTop(10)));
-
-                document.Add(tableAssinaturas);
-
-                // ── 6. RODAPÉ DE EMISSÃO ──
-                document.Add(new Paragraph($"Data de Emissão: {venda.CriadoEm:dd/MM/yyyy}")
-                    .SetTextAlignment(TextAlignment.CENTER)
-                    .SetFontColor(cinzaTextoMuted)
-                    .SetFontSize(8.5f)
-                    .SetMarginTop(40));
-
-                document.Close();
-
-                var pdfBytes = memoryStream.ToArray();
-                return Convert.ToBase64String(pdfBytes);
-            }
-        }
-
-        private async Task<string> CriarDocReciboPagamento(Venda venda, PagamentoVenda pagamento, Cliente cliente, Comercio comercio, decimal saldoDevedorAnterior)
-        {
-            using (var memoryStream = new MemoryStream())
-            {
-                var writer = new PdfWriter(memoryStream);
-                var pdfDocument = new PdfDocument(writer);
-                var document = new Document(pdfDocument, PageSize.A4);
-
-                document.SetMargins(35, 45, 35, 45);
-
-                // 🎨 Paleta Ninx
-                Color azulNinxEscuro = new DeviceRgb(13, 27, 42);
-                Color azulNinxDestaque = new DeviceRgb(14, 165, 233);
-                Color cinzaCardFundo = new DeviceRgb(248, 250, 252);
-                Color cinzaLinhaSutil = new DeviceRgb(226, 232, 240);
-                Color cinzaTextoMuted = new DeviceRgb(100, 116, 139);
-                Color pretoSuveTexto = new DeviceRgb(30, 41, 59);
-
-                var fonteNormal = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
-                var fonteNegrito = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA_BOLD);
-
-                document.SetFont(fonteNormal);
-                document.SetFontColor(pretoSuveTexto);
-
-                // ── 1. CABEÇALHO ──
-                var titulo = new Paragraph("RECIBO DE PAGAMENTO PARCIAL")
-                    .SetFontSize(20)
-                    .SetFont(fonteNegrito)
-                    .SetFontColor(azulNinxEscuro)
-                    .SetMarginBottom(0);
-                document.Add(titulo);
-
-                var subtitulo = new Paragraph()
-                    .Add(new Text($"REFERENTE À VENDA #{venda.VendaID}").SetFont(fonteNegrito).SetFontColor(azulNinxDestaque).SetHorizontalScaling(1.1f))
-                    .SetFontSize(10)
-                    .SetMarginBottom(25);
-                document.Add(subtitulo);
-
-                // ── 2. ENVOLVIDOS ──
-                var tableEnvolvidos = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth();
-
-                var cellCredor = new Cell()
-                    .SetBackgroundColor(cinzaCardFundo)
-                    .SetBorder(new SolidBorder(cinzaLinhaSutil, 1))
-                    .SetPadding(12)
-                    .SetBorderRadius(new BorderRadius(6));
-                cellCredor.Add(new Paragraph("CREDOR").SetFont(fonteNegrito).SetFontSize(9.5f).SetFontColor(cinzaTextoMuted).SetMarginBottom(6));
-                cellCredor.Add(new Paragraph($"{comercio.NomeComercio}").SetFontSize(10));
-                cellCredor.Add(new Paragraph($"CNPJ: {comercio.CNPJ ?? "Não informado"}").SetFontSize(10));
-
-                var cellDevedor = new Cell()
-                    .SetBackgroundColor(cinzaCardFundo)
-                    .SetBorder(new SolidBorder(cinzaLinhaSutil, 1))
-                    .SetPadding(12)
-                    .SetBorderRadius(new BorderRadius(6));
-                cellDevedor.Add(new Paragraph("DEVEDOR").SetFont(fonteNegrito).SetFontSize(9.5f).SetFontColor(cinzaTextoMuted).SetMarginBottom(6));
-                cellDevedor.Add(new Paragraph($"{cliente.Nome}").SetFontSize(10));
-                cellDevedor.Add(new Paragraph($"CPF: {FormatarCpf(cliente.Cpf)}").SetFontSize(10));
-                cellDevedor.Add(new Paragraph($"Endereço: {FormatarEnderecoCliente(cliente)}").SetFontSize(10));
-                cellDevedor.Add(new Paragraph($"Telefone: {cliente.Telefone ?? "Não informado"}").SetFontSize(10));
-
-                tableEnvolvidos.AddCell(cellCredor.SetMarginRight(6));
-                tableEnvolvidos.AddCell(cellDevedor.SetMarginLeft(6));
-                document.Add(tableEnvolvidos);
-
-                var declaracao = new Paragraph()
-                    .SetMarginTop(30)
-                    .SetMarginBottom(30)
-                    .SetFontSize(11)
-                    .SetMultipliedLeading(1.3f) 
-                    .Add(new Text("Declaramos para os devidos fins que o devedor acima identificado realizou o pagamento manual da quantia de "))
-                    .Add(new Text($"R$ {pagamento.Valor:N2}").SetFont(fonteNegrito).SetFontColor(azulNinxEscuro))
-                    .Add(new Text($" através da forma de pagamento "))
-                    .Add(new Text($"{pagamento.FormaPagamento}").SetFont(fonteNegrito))
-                    .Add(new Text(", abatendo do saldo devedor remanescente desta transação comercial."));
-                document.Add(declaracao);
-
-                // ── 4. RESUMO FINANCEIRO ATUALIZADO ──
-                document.Add(new Paragraph("DEMONSTRATIVO DO SALDO")
-                    .SetFont(fonteNegrito).SetFontSize(11).SetFontColor(azulNinxEscuro).SetMarginBottom(8));
-
-                decimal novoSaldoDevedor = saldoDevedorAnterior - pagamento.Valor;
-
-                var tableResumo = new Table(UnitValue.CreatePercentArray(new float[] { 100 })).UseAllAvailableWidth();
-                var cardResumo = new Cell()
-                    .SetBackgroundColor(cinzaCardFundo)
-                    .SetBorder(new SolidBorder(cinzaLinhaSutil, 1))
-                    .SetBorderRadius(new BorderRadius(6))
-                    .SetPadding(14);
-
-                var innerTable = new Table(UnitValue.CreatePercentArray(new float[] { 75, 25 })).UseAllAvailableWidth();
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph("Saldo Devedor Antes deste Pagamento").SetFontSize(10).SetFontColor(cinzaTextoMuted)));
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph($"R$ {saldoDevedorAnterior:N2}").SetFontSize(10).SetTextAlignment(TextAlignment.RIGHT)));
-
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph("Valor Pago Neste Ato (-)").SetFontSize(10).SetFontColor(azulNinxDestaque).SetFont(fonteNegrito)));
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).Add(new Paragraph($"R$ {pagamento.Valor:N2}").SetFontSize(10).SetFontColor(azulNinxDestaque).SetFont(fonteNegrito).SetTextAlignment(TextAlignment.RIGHT)));
-
-                innerTable.AddCell(new Cell(1, 2).SetBorder(Border.NO_BORDER).SetBorderTop(new DashedBorder(cinzaLinhaSutil, 1)).SetMarginTop(6));
-
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingTop(6).Add(new Paragraph("Saldo Devedor Atual Restante").SetFont(fonteNegrito).SetFontSize(11.5f)));
-                innerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingTop(6).Add(new Paragraph($"R$ {novoSaldoDevedor:N2}").SetFont(fonteNegrito).SetFontSize(11.5f).SetFontColor(azulNinxEscuro).SetTextAlignment(TextAlignment.RIGHT)));
-
-                cardResumo.Add(innerTable);
-                tableResumo.AddCell(cardResumo);
-                document.Add(tableResumo);
-
-                // ── 5. SEÇÃO DE ASSINATURAS ──
-                var tableAssinaturas = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth().SetMarginTop(60);
-
-                tableAssinaturas.AddCell(new Cell()
-                    .SetBorder(Border.NO_BORDER)
-                    .SetPaddingRight(20)
-                    .Add(new Paragraph()
-                        .SetHeight(45)
-                        .SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
-                        .Add(new Text("ASSINATURA DO CLIENTE\n").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted))
-                        .Add(new Text(cliente.Nome).SetFontSize(9.5f))
-                        .SetTextAlignment(TextAlignment.CENTER).SetMarginTop(10)));
-
-                tableAssinaturas.AddCell(new Cell()
-                    .SetBorder(Border.NO_BORDER)
-                    .SetPaddingLeft(20)
-                    .Add(new Paragraph()
-                        .SetHeight(45)
-                        .SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
-                        .Add(new Text("RESPONSÁVEL RECEBIMENTO\n").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted))
-                        .Add(new Text(comercio.NomeComercio).SetFontSize(9.5f))
-                        .SetTextAlignment(TextAlignment.CENTER).SetMarginTop(10)));
-
-                document.Add(tableAssinaturas);
-
-                // ── 6. RODAPÉ ──
-                document.Add(new Paragraph($"Recibo emitido em: {pagamento.CriadoEm:dd/MM/yyyy HH:mm:ss} UTC")
-                    .SetTextAlignment(TextAlignment.CENTER)
-                    .SetFontColor(cinzaTextoMuted)
-                    .SetFontSize(8.5f)
-                    .SetMarginTop(40));
-
-                document.Close();
-
-                var pdfBytes = memoryStream.ToArray();
-                return Convert.ToBase64String(pdfBytes);
-            }
-        }
-
-        private async Task<string> CriarDocReciboGlobalPagamento(List<ItemAbatimentoGlobal> abatimentos, decimal valorTotal, FormaPagamento formaPagamento, Cliente cliente, Comercio comercio, DateTime dataOperacao)
-        {
-            using (var memoryStream = new MemoryStream())
-            {
-                var writer = new PdfWriter(memoryStream);
-                var pdfDocument = new PdfDocument(writer);
-                var document = new Document(pdfDocument, PageSize.A4);
-
-                document.SetMargins(35, 45, 35, 45);
-
-                Color azulNinxEscuro = new DeviceRgb(13, 27, 42);
-                Color azulNinxDestaque = new DeviceRgb(14, 165, 233);
-                Color cinzaCardFundo = new DeviceRgb(248, 250, 252);
-                Color cinzaLinhaSutil = new DeviceRgb(226, 232, 240);
-                Color cinzaTextoMuted = new DeviceRgb(100, 116, 139);
-                Color pretoSuveTexto = new DeviceRgb(30, 41, 59);
-
-                var fonteNormal = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
-                var fonteNegrito = iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA_BOLD);
-
-                document.SetFont(fonteNormal).SetFontColor(pretoSuveTexto);
-
-                // ── CABEÇALHO ──
-                document.Add(new Paragraph("RECIBO DE QUITAÇÃO GLOBAL / ABATIMENTO")
-                    .SetFontSize(18).SetFont(fonteNegrito).SetFontColor(azulNinxEscuro).SetMarginBottom(0));
-
-                document.Add(new Paragraph("CONTA FIADO - MULTIPLAS TRANSAÇÕES")
-                    .SetFontSize(9).SetFont(fonteNegrito).SetFontColor(azulNinxDestaque).SetMarginBottom(20));
-
-                // ── ENVOLVIDOS ──
-                var tableEnvolvidos = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth();
-
-                var cellCredor = new Cell().SetBackgroundColor(cinzaCardFundo).SetBorder(new SolidBorder(cinzaLinhaSutil, 1)).SetPadding(10).SetBorderRadius(new BorderRadius(4));
-                cellCredor.Add(new Paragraph("CREDOR").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted));
-                cellCredor.Add(new Paragraph(comercio.NomeComercio).SetFontSize(9.5f));
-
-                var cellDevedor = new Cell().SetBackgroundColor(cinzaCardFundo).SetBorder(new SolidBorder(cinzaLinhaSutil, 1)).SetPadding(10).SetBorderRadius(new BorderRadius(4));
-                cellDevedor.Add(new Paragraph("DEVEDOR").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted));
-                cellDevedor.Add(new Paragraph(cliente.Nome).SetFontSize(9.5f));
-                cellDevedor.Add(new Paragraph($"CPF: {FormatarCpf(cliente.Cpf)}").SetFontSize(9.5f));
-                cellDevedor.Add(new Paragraph($"Endereço: {FormatarEnderecoCliente(cliente)}").SetFontSize(9.5f));
-
-                tableEnvolvidos.AddCell(cellCredor.SetMarginRight(4));
-                tableEnvolvidos.AddCell(cellDevedor.SetMarginLeft(4));
-                document.Add(tableEnvolvidos);
-
-                // ── DECLARAÇÃO ──
-                document.Add(new Paragraph()
-                    .SetMarginTop(20).SetMarginBottom(20).SetFontSize(10.5f).SetMultipliedLeading(1.3f)
-                    .Add(new Text("Confirmamos o recebimento do valor total de "))
-                    .Add(new Text($"R$ {valorTotal:N2}").SetFont(fonteNegrito).SetFontColor(azulNinxEscuro))
-                    .Add(new Text($" via de pagamento "))
-                    .Add(new Text($"{formaPagamento}").SetFont(fonteNegrito))
-                    .Add(new Text(", utilizado para abater e/ou quitar o saldo devedor das vendas descritas no demonstrativo abaixo:")));
-
-                // ── TABELA DE DISTRIBUIÇÃO DO VALOR ──
-                var tableDistribuição = new Table(UnitValue.CreatePercentArray(new float[] { 15, 20, 22, 21, 22 })).UseAllAvailableWidth();
-
-                // Headers
-                string[] headers = { "Cód. Venda", "Data Venda", "Saldo Anterior", "Valor Abatido", "Saldo Restante" };
-                foreach (var h in headers)
-                {
-                    tableDistribuição.AddHeaderCell(new Cell().SetBackgroundColor(azulNinxEscuro).SetPadding(6)
-                        .Add(new Paragraph(h).SetFont(fonteNegrito).SetFontSize(9).SetFontColor(ColorConstants.WHITE).SetTextAlignment(TextAlignment.CENTER)));
-                }
-
-                // Linhas das Vendas
-                foreach (var item in abatimentos)
-                {
-                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.CENTER).Add(new Paragraph($"#{item.VendaId}").SetFontSize(9)));
-                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.CENTER).Add(new Paragraph($"{item.DataVenda:dd/MM/yyyy}").SetFontSize(9)));
-                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.RIGHT).Add(new Paragraph($"R$ {item.SaldoAnterior:N2}").SetFontSize(9)));
-                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.RIGHT).Add(new Paragraph($"R$ {item.ValorAbatido:N2}").SetFont(fonteNegrito).SetFontColor(azulNinxDestaque).SetFontSize(9)));
-                    tableDistribuição.AddCell(new Cell().SetPadding(5).SetTextAlignment(TextAlignment.RIGHT).Add(new Paragraph($"R$ {item.SaldoRestante:N2}").SetFontSize(9)));
-                }
-                document.Add(tableDistribuição);
-
-                // ── ASSINATURAS ──
-                var tableAssinaturas = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).UseAllAvailableWidth().SetMarginTop(50);
-                tableAssinaturas.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingRight(20)
-                    .Add(new Paragraph().SetHeight(40).SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
-                        .Add(new Text("ASSINATURA DO CLIENTE\n").SetFont(fonteNegrito).SetFontSize(8f).SetFontColor(cinzaTextoMuted))
-                        .Add(new Text(cliente.Nome).SetFontSize(9f)).SetTextAlignment(TextAlignment.CENTER).SetMarginTop(5)));
-
-                tableAssinaturas.AddCell(new Cell().SetBorder(Border.NO_BORDER).SetPaddingLeft(20)
-                    .Add(new Paragraph().SetHeight(40).SetBorderTop(new SolidBorder(cinzaTextoMuted, 0.75f))
-                        .Add(new Text("RESPONSÁVEL RECEBIMENTO\n").SetFont(fonteNegrito).SetFontSize(8f).SetFontColor(cinzaTextoMuted))
-                        .Add(new Text(comercio.NomeComercio).SetFontSize(9f)).SetTextAlignment(TextAlignment.CENTER).SetMarginTop(5)));
-                document.Add(tableAssinaturas);
-
-                // ── RODAPÉ ──
-                document.Add(new Paragraph($"Documento Global emitido em: {dataOperacao:dd/MM/yyyy HH:mm:ss} UTC")
-                    .SetTextAlignment(TextAlignment.CENTER).SetFontColor(cinzaTextoMuted).SetFontSize(8f).SetMarginTop(35));
-
-                document.Close();
-                return Convert.ToBase64String(memoryStream.ToArray());
-            }
-        }
     }
 }

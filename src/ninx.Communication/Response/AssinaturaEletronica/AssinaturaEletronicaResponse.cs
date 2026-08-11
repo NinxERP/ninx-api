@@ -4,6 +4,7 @@
     {
         public Guid DocumentoGuid { get; set; }
         public string DocumentoBase64 { get; set; }
+        public string? DocumentoAssinadoBase64 { get; set; }
         public string? AssinaturaBase64 { get; set; }
         public bool Assinado { get; set; }
     }

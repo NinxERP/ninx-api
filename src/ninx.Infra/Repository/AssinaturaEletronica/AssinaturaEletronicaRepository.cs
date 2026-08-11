@@ -44,6 +44,13 @@ namespace ninx.Infra.Repository
             return await _context.AssinaturaEletronica
             .FirstOrDefaultAsync(a => a.DocumentoGuid == guid);
         }
+
+        public async Task<List<AssinaturaEletronica>> GetAllByGuidAsync(Guid guid)
+        {
+            return await _context.AssinaturaEletronica
+            .Where(a => a.DocumentoGuid == guid)
+            .ToListAsync();
+        }
         public async Task<AssinaturaEletronica?> GetByGuidParaAssinarAsync(Guid guid)
         {
             return await _context.AssinaturaEletronica

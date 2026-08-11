@@ -25,6 +25,10 @@ public class ComercioMapping : IEntityTypeConfiguration<Comercio>
             .IsRequired(false)
             .HasMaxLength(18);
 
+        builder.Property(x => x.AssinaturaResponsavelBase64)
+            .IsRequired(false)
+            .HasColumnType("nvarchar(max)");
+
         builder.HasIndex(x => x.CNPJ)
             .IsUnique();
 

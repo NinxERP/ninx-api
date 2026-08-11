@@ -15,6 +15,7 @@ namespace ninx.Data.Context
         public DbSet<Comercio> Comercio { get; set; }
         public DbSet<CategoriaProduto> CategoriaProduto { get; set; }
         public DbSet<Cliente> Clientes { get; set; }
+        public DbSet<DocumentoTemplate> DocumentosTemplate { get; set; }
         public DbSet<Estoque> Estoques { get; set; }
         public DbSet<ItemVenda> ItemVendas { get; set; }
         public DbSet<MovimentacaoEstoque> MovimentacaoEstoque { get; set; }
