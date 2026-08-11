@@ -19,6 +19,10 @@ namespace ninx.Data.Mappings
                 .IsRequired()
                 .HasMaxLength(100);
 
+            builder.HasOne(x => x.Comercio)
+                .WithMany(x => x.CategoriasProduto)
+                .HasForeignKey(x => x.ComercioID);
+
             builder.HasMany(x => x.Produtos)
                 .WithOne(x => x.Categoria)
                 .HasForeignKey(x => x.CategoriaID);

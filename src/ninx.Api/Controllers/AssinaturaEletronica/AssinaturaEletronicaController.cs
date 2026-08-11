@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Services;
 using ninx.Communication;
 
-namespace ninx.API.Controllers
+namespace ninx.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class AssinaturaEletronicaController : ControllerBase
+    public class AssinaturaEletronicaController : NinxControllerBase
     {
         private readonly IAssinaturaEletronicaService _assinaturaService;
 
@@ -20,6 +21,16 @@ namespace ninx.API.Controllers
         public async Task<ActionResult<AssinaturaEletronicaResponse>> ObterDocumento(Guid guid)
         {
             var response = await _assinaturaService.ObterDadosParaAssinaturaAsync(guid);
+            return Ok(response);
+        }
+
+        [HttpGet("comercio/{guid}")]
+        [ProducesResponseType(typeof(AssinaturaEletronicaResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ObterDocumentoAssinado(Guid guid)
+        {
+            var comercioId = GetComercioId();
+            var response = await _assinaturaService.ObterDocumentoAssinadoAsync(guid, comercioId);
             return Ok(response);
         }
 

@@ -36,35 +36,36 @@ namespace ninx.Application.Services
                 throw new BadRequestException("E-mail ou senha incorretos");
             }
 
-            var usuarioComercios = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuario.UsuarioID);
-            if (usuarioComercios == null || !usuarioComercios.Any())
+            if (!usuario.Ativo)
+            {
+                throw new ForbiddenException("Este usuário está desativado.");
+            }
+
+            var todosVinculos = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuario.UsuarioID);
+            var usuarioComercios = (todosVinculos ?? Enumerable.Empty<UsuarioComercio>())
+                .Where(x => x.Ativo)
+                .ToList();
+
+            if (!usuarioComercios.Any())
             {
                 throw new ForbiddenException("Este usuário não possui nenhum comércio vinculado.");
             }
 
-            var plano = await _assinaturaPlanoRepository.GetByComercioIdAsync(usuarioComercios.FirstOrDefault().ComercioID);
-            if (plano == null) throw new Exception("Comércio sem plano vinculado.");
-            if (plano.Status == StatusAssinatura.Cancelada || plano.Status == StatusAssinatura.Vencida) throw new ForbiddenException("Assinatura vencida ou cancelada.");
-            if (plano.DataFim < DateTime.UtcNow)
-            {
-                plano.Status = StatusAssinatura.Vencida;
-                await _assinaturaPlanoRepository.UpdateAsync(plano);
-                await _unitOfWork.CommitAsync();
-                throw new ForbiddenException("Sua assinatura está vencida.");
-            }
-                
             if (request.ComercioID.HasValue && request.ComercioID > 0)
             {
                 var usuarioC = usuarioComercios.FirstOrDefault(x => x.ComercioID == request.ComercioID);
                 if (usuarioC == null)
                     throw new UnauthorizedException("Acesso negado ao comércio selecionado.");
 
+                await ValidarPlanoAsync(usuarioC.ComercioID);
+
                 return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, usuarioC.ComercioID, usuarioC.Permissao, usuarioC.Comercio.NomeComercio) };
             }
 
-            if (usuarioComercios.Count() == 1)
+            if (usuarioComercios.Count == 1)
             {
                 var unico = usuarioComercios.First();
+                await ValidarPlanoAsync(unico.ComercioID);
                 return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, unico.ComercioID, unico.Permissao, unico.Comercio.NomeComercio) };
             }
             else
@@ -77,6 +78,20 @@ namespace ninx.Application.Services
                         Nome = x.Comercio.NomeComercio
                     }).ToList()
                 };
+            }
+        }
+
+        private async Task ValidarPlanoAsync(int comercioId)
+        {
+            var plano = await _assinaturaPlanoRepository.GetByComercioIdAsync(comercioId);
+            if (plano == null) throw new NotFoundException("Comércio sem plano vinculado.");
+            if (plano.Status == StatusAssinatura.Cancelada || plano.Status == StatusAssinatura.Vencida) throw new ForbiddenException("Assinatura vencida ou cancelada.");
+            if (plano.DataFim < DateTime.UtcNow)
+            {
+                plano.Status = StatusAssinatura.Vencida;
+                await _assinaturaPlanoRepository.UpdateAsync(plano);
+                await _unitOfWork.SaveChangesAsync();
+                throw new ForbiddenException("Sua assinatura está vencida.");
             }
         }
     }

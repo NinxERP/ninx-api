@@ -21,6 +21,13 @@ namespace ninx.Infra.Repository.ClienteRepository
                 .ToListAsync();
         }
 
+        public async Task<Cliente?> GetByIdAndComercioIdAsync(int clienteId, int comercioId)
+        {
+            return await _context.Clientes
+                .Include(x => x.Comercio)
+                .FirstOrDefaultAsync(x => x.ClienteID == clienteId && x.ComercioID == comercioId);
+        }
+
         public async Task<(IEnumerable<Cliente> Data, int TotalFiltrado, MetricsSummary Metrics)> GetClienteComercioByComercioId(
             int comercioId,
             PaginationRequest request)

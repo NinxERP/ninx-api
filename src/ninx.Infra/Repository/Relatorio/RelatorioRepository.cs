@@ -248,16 +248,23 @@ namespace ninx.Infra.Repository
                 .ToListAsync();
         }
 
-        // Vendas.CriadoEm é gravado em UTC (sem conversão de fuso em nenhum outro ponto da API);
-        // hora e dia da semana aqui refletem UTC, não o horário local do comércio.
+        // Vendas.CriadoEm é gravado em UTC. Não há fuso por comércio persistido no banco;
+        // assume-se o fuso padrão da operação (America/Sao_Paulo, UTC-3, sem horário de verão)
+        // para que "hora de pico"/"dia da semana" reflitam o horário local da loja.
+        private static readonly TimeSpan FusoHorarioPadrao = TimeSpan.FromHours(-3);
+
         public async Task<List<PicoPorHoraResumo>> GetPicoPorHoraAsync(int comercioId, DateTime inicio, DateTime fim)
         {
-            return await _context.Vendas
+            var vendas = await _context.Vendas
                 .AsNoTracking()
                 .Where(v => v.ComercioID == comercioId
                     && v.Status == StatusVenda.Finalizada
                     && v.CriadoEm >= inicio && v.CriadoEm <= fim)
-                .GroupBy(v => v.CriadoEm.Hour)
+                .Select(v => new { v.CriadoEm, v.Total })
+                .ToListAsync();
+
+            return vendas
+                .GroupBy(v => (v.CriadoEm + FusoHorarioPadrao).Hour)
                 .Select(g => new PicoPorHoraResumo
                 {
                     Hora = g.Key,
@@ -265,26 +272,27 @@ namespace ninx.Infra.Repository
                     ValorTotal = g.Sum(v => v.Total)
                 })
                 .OrderBy(x => x.Hora)
-                .ToListAsync();
+                .ToList();
         }
 
         public async Task<List<PicoPorDiaSemanaResumo>> GetPicoPorDiaSemanaAsync(int comercioId, DateTime inicio, DateTime fim)
         {
-            var resultado = await _context.Vendas
+            var vendas = await _context.Vendas
                 .AsNoTracking()
                 .Where(v => v.ComercioID == comercioId
                     && v.Status == StatusVenda.Finalizada
                     && v.CriadoEm >= inicio && v.CriadoEm <= fim)
-                .GroupBy(v => v.CriadoEm.DayOfWeek)
+                .Select(v => new { v.CriadoEm, v.Total })
+                .ToListAsync();
+
+            return vendas
+                .GroupBy(v => (v.CriadoEm + FusoHorarioPadrao).DayOfWeek)
                 .Select(g => new
                 {
                     DiaSemana = g.Key,
                     QuantidadeVendas = g.Count(),
                     ValorTotal = g.Sum(v => v.Total)
                 })
-                .ToListAsync();
-
-            return resultado
                 .OrderBy(x => x.DiaSemana)
                 .Select(x => new PicoPorDiaSemanaResumo
                 {

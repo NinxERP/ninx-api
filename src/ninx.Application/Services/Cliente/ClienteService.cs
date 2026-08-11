@@ -40,12 +40,11 @@ namespace ninx.Application.Services
             );
         }
 
-        public async Task<IEnumerable<ClienteResponse>> GetByIdAsync(int clienteId, int comercioId)
+        public async Task<ClienteResponse> GetByIdAsync(int clienteId, int comercioId)
         {
-            var clientes = await _clienteRepository.GetByIdAsync(clienteId);
-            if (clientes == null) throw new NotFoundException("Cliente não encontrado.");
-            if (clientes.ComercioID != comercioId) throw new NotFoundException("Cliente não pertence ao seu comercio.");
-            return clientes.Adapt<IEnumerable<ClienteResponse>>();
+            var cliente = await _clienteRepository.GetByIdAndComercioIdAsync(clienteId, comercioId);
+            if (cliente == null) throw new NotFoundException("Cliente não encontrado.");
+            return cliente.Adapt<ClienteResponse>();
         }
 
         public async Task<ClienteResponse> CriarAsync(ClienteRequest request, int comercioId)
@@ -91,8 +90,6 @@ namespace ninx.Application.Services
         public async Task<IEnumerable<ClienteResponse>> GetByNomeAsync(string Nome, int comercioId)
         {
             var clientes = await _clienteRepository.GetByNomeAsync(Nome, comercioId);
-            if (clientes == null) throw new NotFoundException("Cliente não encontrado.");
-            if (!clientes.Any(x => x.ComercioID == comercioId)) throw new NotFoundException("Cliente não pertence ao seu comercio.");
             return clientes.Adapt<IEnumerable<ClienteResponse>>();
         }
     }

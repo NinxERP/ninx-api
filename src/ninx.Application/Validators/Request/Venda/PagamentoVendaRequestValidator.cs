@@ -1,5 +1,6 @@
 using FluentValidation;
 using ninx.Communication.Venda;
+using ninx.Domain.Enums;
 
 namespace ninx.Application.Validators.Request
 {
@@ -8,7 +9,7 @@ namespace ninx.Application.Validators.Request
         public PagamentoVendaRequestValidator()
         {
             RuleFor(x => x.FormaPagamento)
-                .GreaterThan(0).WithMessage("Forma de pagamento inválida.");
+                .Must(v => Enum.IsDefined(typeof(FormaPagamento), v)).WithMessage("Forma de pagamento invï¿½lida.");
 
             RuleFor(x => x.Valor)
                 .GreaterThan(0).WithMessage("Valor deve ser maior que zero.");

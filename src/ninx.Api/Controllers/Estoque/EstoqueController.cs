@@ -33,7 +33,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int id)
         {
-            var estoque = await _estoqueService.GetByIdAsync(id);
+            var comercioId = GetComercioId();
+            var estoque = await _estoqueService.GetByIdAsync(id, comercioId);
             return Ok(estoque);
         }
 

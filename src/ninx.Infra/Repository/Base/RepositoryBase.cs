@@ -52,10 +52,10 @@ namespace ninx.Infra.Repository
             return entity;
         }
 
-        public void Delete(TEntity entity)
+        public Task DeleteAsync(TEntity entity)
         {
             _dbSet.Remove(entity);
-            _context.SaveChanges();
+            return Task.CompletedTask;
         }
 
         public async Task AddBatchAsync(IEnumerable<TEntity> entities)

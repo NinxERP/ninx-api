@@ -24,8 +24,7 @@ namespace ninx.Application.Services
 
         public async Task<PaginatedResponse<EstoqueResponse>> GetAllByComercioIdAsync(int comercioId, PaginationRequest request)
         {
-            var (entidades, total) = await _estoqueRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
-            entidades = entidades.Where(e => e.ComercioID == comercioId).ToList();
+            var (entidades, total) = await _estoqueRepository.GetByComercioIdPaginatedAsync(comercioId, request.PageNumber, request.PageSize);
             var listaResponse = entidades.Adapt<List<EstoqueResponse>>();
 
             return new PaginatedResponse<EstoqueResponse>(
@@ -36,11 +35,14 @@ namespace ninx.Application.Services
             );
         }
 
-        public async Task<EstoqueResponse> GetByIdAsync(int estoqueId)
+        public async Task<EstoqueResponse> GetByIdAsync(int estoqueId, int comercioId)
         {
             var estoque = await _estoqueRepository.GetByIdAsync(estoqueId);
             if (estoque == null)
-                throw new NotFoundException($"Estoque com ID {estoqueId} não encontrado.");
+                throw new NotFoundException($"Estoque com ID {estoqueId} nï¿½o encontrado.");
+
+            if (estoque.ComercioID != comercioId)
+                throw new NotFoundException($"Estoque com ID {estoqueId} nï¿½o encontrado.");
 
             return estoque.Adapt<EstoqueResponse>();
         }
@@ -49,7 +51,7 @@ namespace ninx.Application.Services
         {
             var comercio = await _comercioRepository.GetByIdAsync(comercioId);
             if (comercio == null)
-                throw new NotFoundException($"Comércio com ID {comercioId} não encontrado.");
+                throw new NotFoundException($"Comï¿½rcio com ID {comercioId} nï¿½o encontrado.");
 
             var estoque = new Estoque
             {
@@ -70,10 +72,13 @@ namespace ninx.Application.Services
         {
             var estoque = await _estoqueRepository.GetByIdAsync(estoqueId);
             if (estoque == null)
-                throw new NotFoundException($"Estoque com ID {estoqueId} não encontrado.");
+                throw new NotFoundException($"Estoque com ID {estoqueId} nï¿½o encontrado.");
 
             if (estoque.ComercioID != comercioId)
-                throw new ForbiddenException("Você não tem permissão para atualizar este estoque.");
+                throw new ForbiddenException("Vocï¿½ nï¿½o tem permissï¿½o para atualizar este estoque.");
+
+            if (request.Quantidade < 0)
+                throw new BadRequestException("A quantidade em estoque nï¿½o pode ser negativa.");
 
             estoque.Quantidade = request.Quantidade;
             estoque.QuantidadeMinima = request.QuantidadeMinima;
@@ -89,12 +94,12 @@ namespace ninx.Application.Services
         {
             var estoque = await _estoqueRepository.GetByIdAsync(estoqueId);
             if (estoque == null)
-                throw new NotFoundException($"Estoque com ID {estoqueId} não encontrado.");
+                throw new NotFoundException($"Estoque com ID {estoqueId} nï¿½o encontrado.");
 
             if (estoque.ComercioID != comercioId)
-                throw new ForbiddenException("Você não tem permissão para deletar este estoque.");
+                throw new ForbiddenException("Vocï¿½ nï¿½o tem permissï¿½o para deletar este estoque.");
 
-            _estoqueRepository.Delete(estoque);
+            await _estoqueRepository.DeleteAsync(estoque);
             await _unitOfWork.SaveChangesAsync();
         }
     }

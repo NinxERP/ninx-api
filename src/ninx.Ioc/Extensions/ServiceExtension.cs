@@ -24,6 +24,8 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<ICategoriaProdutoService, CategoriaProdutoService>();
             services.AddScoped<IRelatorioService, RelatorioService>();
             services.AddScoped<ITokenProvider, TokenProvider>();
+            services.AddScoped<IAssinaturaPlanoService, AssinaturaPlanoService>();
+            services.AddScoped<IPagamentoHistoricoAssinaturaPlanoService, PagamentoHistoricoAssinaturaPlanoService>();
             return services;
         }
     }

@@ -7,6 +7,7 @@ namespace ninx.Domain.Entities
         public int AssinaturaID { get; set; }
         public int VendaID { get; set; }
         public Guid DocumentoGuid { get; set; }
+        public string? DocumentoOriginalBase64 { get; set; }
         public string? ImagemAssinatura { get; set; }
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime AtualizadoEm { get; set; } = DateTime.UtcNow;

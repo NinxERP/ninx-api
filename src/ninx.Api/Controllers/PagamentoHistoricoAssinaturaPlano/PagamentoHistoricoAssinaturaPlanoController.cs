@@ -26,6 +26,7 @@ namespace ninx.API.Controllers
         public async Task<IActionResult> RegistrarPagamento([FromBody] PagamentoHistoricoAssinaturaPlanoRequest request)
         {
             var permissao = GetPermissao();
+            request.ComercioId = GetComercioId();
 
             await _pagamentoService.RegistrarPagamentos(request, permissao);
 

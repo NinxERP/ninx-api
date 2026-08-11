@@ -8,14 +8,15 @@ namespace ninx.Application.Validators.Request
         public AtualizarUsuarioComercioRequestValidator()
         {
             RuleFor(x => x.UsuarioID)
-                .GreaterThan(0).WithMessage("O ID do usuário deve ser maior que zero.");
+                .GreaterThan(0).WithMessage("O ID do usuï¿½rio deve ser maior que zero.");
 
             RuleFor(x => x.ComercioID)
-                .GreaterThan(0).WithMessage("O ID do comércio deve ser maior que zero.");
+                .GreaterThan(0).WithMessage("O ID do comï¿½rcio deve ser maior que zero.");
 
             RuleFor(x => x.Permissao)
-                .GreaterThan(0).WithMessage("Permissão deve ser maior que zero.")
-                .LessThanOrEqualTo(3).WithMessage("Permissão inválida.");
+                .GreaterThan(0).WithMessage("Permissï¿½o deve ser maior que zero.")
+                .LessThanOrEqualTo(3).WithMessage("Permissï¿½o invï¿½lida.")
+                .When(x => x.Permissao != 0);
         }
     }
 }

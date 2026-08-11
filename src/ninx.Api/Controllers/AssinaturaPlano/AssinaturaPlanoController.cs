@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Services;
-using ninx.Communication; 
+using ninx.Communication;
 
-namespace ninx.API.Controllers
+namespace ninx.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class AssinaturaPlanoController : ControllerBase
+    public class AssinaturaPlanoController : NinxControllerBase
     {
         private readonly IAssinaturaPlanoService _assinaturaService;
 

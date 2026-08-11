@@ -42,10 +42,10 @@ namespace ninx.Api.Controllers
         [HttpGet("id/{id}")]
         [ProducesResponseType(typeof(ClienteResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetById(int clienteId)
+        public async Task<IActionResult> GetById(int id)
         {
             var comercioId = GetComercioId();
-            var cliente = await _clienteService.GetByIdAsync(clienteId, comercioId);
+            var cliente = await _clienteService.GetByIdAsync(id, comercioId);
             return Ok(cliente);
         }
 

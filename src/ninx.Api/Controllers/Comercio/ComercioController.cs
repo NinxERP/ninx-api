@@ -23,7 +23,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ComercioResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetByUsuarioId(int usuarioId)
         {
-            var result = await _comercioService.GetByUsuarioId(usuarioId);
+            var usuarioIdLogado = GetUsuarioId();
+            var result = await _comercioService.GetByUsuarioId(usuarioId, usuarioIdLogado);
             return Ok(result);
         }
 
@@ -32,7 +33,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int comercioId)
         {
-            var result = await _comercioService.GetByIdAsync(comercioId);
+            var usuarioIdLogado = GetUsuarioId();
+            var result = await _comercioService.GetByIdAsync(comercioId, usuarioIdLogado);
             return Ok(result);
         }
 

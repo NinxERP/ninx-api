@@ -19,6 +19,10 @@ namespace ninx.Data.Mappings
             builder.Property(x => x.DocumentoGuid)
                 .IsRequired();
 
+            builder.Property(x => x.DocumentoOriginalBase64)
+                .IsRequired(false)
+                .HasColumnType("nvarchar(max)");
+
             builder.Property(x => x.ImagemAssinatura)
                 .IsRequired(false)
                 .HasColumnType("nvarchar(max)");

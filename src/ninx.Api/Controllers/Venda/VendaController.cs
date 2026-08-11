@@ -24,7 +24,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetVendasFiltro([FromQuery] FiltroRequest request)
         {
-            var result = await _vendaService.GetVendasFiltroAsync(request);
+            var comercioId = GetComercioId();
+            var result = await _vendaService.GetVendasFiltroAsync(request, comercioId);
             return Ok(result);
         }
 
@@ -33,16 +34,18 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetByUsuarioId(int usuarioId)
         {
-            var result = await _vendaService.GetByUsuarioIdAsync(usuarioId);
+            var comercioId = GetComercioId();
+            var result = await _vendaService.GetByUsuarioIdAsync(usuarioId, comercioId);
             return Ok(result);
         }
 
         [HttpGet("cliente/{clienteId}")]
         [ProducesResponseType(typeof(IEnumerable<VendaResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]    
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetByClienteId(int clienteId)
         {
-            var result = await _vendaService.GetByClienteIdAsync(clienteId);
+            var comercioId = GetComercioId();
+            var result = await _vendaService.GetByClienteIdAsync(clienteId, comercioId);
             return Ok(result);
         }
 
@@ -51,7 +54,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetByVendaId(int vendaId)
         {
-            var result = await _vendaService.GetByVendaIdAsync(vendaId);
+            var comercioId = GetComercioId();
+            var result = await _vendaService.GetByVendaIdAsync(vendaId, comercioId);
             return Ok(result);
         }
 

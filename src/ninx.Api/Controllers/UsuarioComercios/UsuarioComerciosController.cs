@@ -26,8 +26,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Atualizar([FromBody] AtualizarUsuarioComercioRequest request)
         {
-            var usuarioLogadoPermissao = GetPermissao();
-            var result = await _usuarioComercioService.AtualizarAsync(request, usuarioLogadoPermissao);
+            var usuarioLogadoId = GetUsuarioId();
+            var result = await _usuarioComercioService.AtualizarAsync(request, usuarioLogadoId);
             return Ok(result);
         }
 
@@ -37,7 +37,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Desativar([FromQuery] int usuarioId, [FromQuery] int comercioId)
         {
-            await _usuarioComercioService.DesativarAsync(usuarioId, comercioId);
+            var usuarioLogadoId = GetUsuarioId();
+            await _usuarioComercioService.DesativarAsync(usuarioId, comercioId, usuarioLogadoId);
             return NoContent();
         }
     }

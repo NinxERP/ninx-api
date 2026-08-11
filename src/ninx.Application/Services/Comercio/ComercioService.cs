@@ -13,16 +13,14 @@ namespace ninx.Application.Services
         private readonly IComercioRepository _comercioRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
-        private readonly IUsuarioRepository _usuarioRepository;
         private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
         private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
 
-        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IUsuarioRepository usuarioRepository, IAssinaturaPlanoRepository assinaturaPlanoRepository, IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository)
+        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IAssinaturaPlanoRepository assinaturaPlanoRepository, IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository)
         {
             _comercioRepository = comercioRepository;
             _unitOfWork = unitOfWork;
             _usuarioComercioRepository = usuarioComercioRepository;
-            _usuarioRepository = usuarioRepository;
             _assinaturaPlanoRepository = assinaturaPlanoRepository;
             _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
         }
@@ -40,16 +38,23 @@ namespace ninx.Application.Services
                 total
             );
         }
-        public async Task<ComercioResponse> GetByIdAsync(int id)
+        public async Task<ComercioResponse> GetByIdAsync(int id, int usuarioIdLogado)
         {
             var comercio = await _comercioRepository.GetByIdAsync(id);
             if (comercio == null)
                 throw new NotFoundException("Comércio não encontrado.");
 
+            var vinculo = await _usuarioComercioRepository.GetVinculoAsync(usuarioIdLogado, id);
+            if (vinculo == null)
+                throw new NotFoundException("Comércio não encontrado.");
+
             return comercio.Adapt<ComercioResponse>();
         }
-        public async Task<IEnumerable<ComercioResponse>> GetByUsuarioId(int usuarioId)
+        public async Task<IEnumerable<ComercioResponse>> GetByUsuarioId(int usuarioId, int usuarioIdLogado)
         {
+            if (usuarioId != usuarioIdLogado)
+                throw new UnauthorizedException("Acesso negado.");
+
             var comercios = await _comercioRepository.GetByUsuarioId(usuarioId);
             return comercios.Adapt<IEnumerable<ComercioResponse>>();
         }
@@ -100,11 +105,14 @@ namespace ninx.Application.Services
 
         public async Task DesativarAsync(int id, int usuarioIdLogado)
         {
-
-            var usuario = await _usuarioRepository.GetByIdAsync(usuarioIdLogado);
-            if (usuario.Permissao != Permissao.Administrador) throw new UnauthorizedException("Você não tem permissão pra excluir comercios");
             var comercio = await _comercioRepository.GetByIdAsync(id);
             if (comercio == null) throw new NotFoundException("Comércio não encontrado.");
+
+            var vinculoLogado = await _usuarioComercioRepository.GetVinculoAsync(usuarioIdLogado, comercio.ComercioID);
+            if (vinculoLogado == null || (vinculoLogado.Permissao != Permissao.Administrador && vinculoLogado.Permissao != Permissao.Dono))
+            {
+                throw new UnauthorizedException("Você não tem permissão pra excluir comercios");
+            }
 
             comercio.Ativo = false;
             comercio.AtualizadoEm = DateTime.UtcNow;

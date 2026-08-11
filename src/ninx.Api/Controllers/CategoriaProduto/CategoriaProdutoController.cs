@@ -24,7 +24,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<CategoriaProdutoResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll(PaginationRequest request)
         {
-            var categorias = await _categoriaProdutoService.GetAllAsync(request);
+            var comercioId = GetComercioId();
+            var categorias = await _categoriaProdutoService.GetAllAsync(comercioId, request);
             return Ok(categorias);
         }
 
@@ -33,7 +34,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int id)
         {
-            var categoria = await _categoriaProdutoService.GetByIdAsync(id);
+            var comercioId = GetComercioId();
+            var categoria = await _categoriaProdutoService.GetByIdAsync(id, comercioId);
             return Ok(categoria);
         }
 
@@ -42,7 +44,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CategoriaProdutoRequest request)
         {
-            var categoria = await _categoriaProdutoService.CreateAsync(request);
+            var comercioId = GetComercioId();
+            var categoria = await _categoriaProdutoService.CreateAsync(request, comercioId);
             return CreatedAtAction(nameof(GetById), new { id = categoria.CategoriaID }, categoria);
         }
 
@@ -52,7 +55,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update(int id, [FromBody] CategoriaProdutoRequest request)
         {
-            var categoria = await _categoriaProdutoService.UpdateAsync(id, request);
+            var comercioId = GetComercioId();
+            var categoria = await _categoriaProdutoService.UpdateAsync(id, request, comercioId);
             return Ok(categoria);
         }
 
@@ -61,7 +65,8 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(int id)
         {
-            await _categoriaProdutoService.DeleteAsync(id);
+            var comercioId = GetComercioId();
+            await _categoriaProdutoService.DeleteAsync(id, comercioId);
             return NoContent();
         }
     }
