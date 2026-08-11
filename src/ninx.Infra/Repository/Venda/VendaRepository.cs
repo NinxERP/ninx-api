@@ -92,7 +92,7 @@ namespace ninx.Infra.Repository
                 .Where(v => v.ComercioID == comercioId
                     && v.ClienteID != null
                     && v.TipoVenda == TipoVenda.Fiado
-                    && v.Status == StatusVenda.Finalizada)
+                    && v.Status == StatusVenda.Aberta)
                 .GroupBy(v => v.ClienteID.Value)
                 .Select(g => new
                 {
