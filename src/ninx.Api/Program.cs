@@ -53,20 +53,8 @@ builder.Services.AddCors(options =>
 });
 var app = builder.Build();
 
-<<<<<<< HEAD
-app.UseSwagger();
-app.UseSwaggerUI();
-=======
-if (app.Environment.IsDevelopment())
-{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
-else
-{
-    app.UseHsts();
-}
->>>>>>> 95bb36d8605641ba30819c4e5f031848f694f391
 
 app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionMiddleware>();
