@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>296ff145-0e6f-440e-adc4-4341411c86b5</UserSecretsId>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,6 +23,7 @@
 	   <PrivateAssets>all</PrivateAssets>
 	 </PackageReference>
 	 <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.5" />
+	 <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.5" />
 	 <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
   </ItemGroup>
 

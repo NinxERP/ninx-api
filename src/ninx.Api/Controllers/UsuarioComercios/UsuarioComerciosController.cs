@@ -1,14 +1,19 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Services;
 using ninx.Communication;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace ninx.Api.Controllers
 {
+    /// <summary>
+    /// Vínculo entre usuário e comércio (permissões de acesso).
+    /// </summary>
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
+    [SwaggerTag("Vínculo entre usuário e comércio, incluindo permissão de acesso.")]
     public class UsuarioComercioController : NinxControllerBase
     {
         private readonly IUsuarioComercioService _usuarioComercioService;
@@ -18,7 +23,16 @@ namespace ninx.Api.Controllers
             _usuarioComercioService = usuarioComercioService;
         }
 
+        /// <summary>
+        /// Atualiza o vínculo entre um usuário e um comércio.
+        /// </summary>
+        /// <param name="request">Dados do vínculo a serem atualizados, incluindo permissão.</param>
+        /// <response code="200">Vínculo atualizado com sucesso.</response>
+        /// <response code="400">Dados inválidos.</response>
+        /// <response code="403">Usuário autenticado não tem permissão para essa alteração.</response>
+        /// <response code="404">Vínculo entre usuário e comércio não encontrado.</response>
         [HttpPut]
+        [SwaggerOperation(Summary = "Atualizar vínculo usuário-comércio", Description = "Atualiza o vínculo (incluindo permissão) entre um usuário e um comércio.")]
         [ProducesResponseType(typeof(UsuarioComercioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
@@ -31,7 +45,15 @@ namespace ninx.Api.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Desativa o vínculo entre um usuário e um comércio.
+        /// </summary>
+        /// <param name="usuarioId">Identificador do usuário.</param>
+        /// <param name="comercioId">Identificador do comércio.</param>
+        /// <response code="204">Vínculo desativado com sucesso.</response>
+        /// <response code="404">Vínculo entre usuário e comércio não encontrado.</response>
         [HttpDelete]
+        [SwaggerOperation(Summary = "Desativar vínculo usuário-comércio", Description = "Remove o acesso de um usuário a um comércio, desativando o vínculo entre eles.")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
@@ -43,4 +65,3 @@ namespace ninx.Api.Controllers
         }
     }
 }
-

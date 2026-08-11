@@ -2,6 +2,7 @@ using Microsoft.OpenApi;
 using ninx.Api.Filters;
 using ninx.Api.Middlewares;
 using ninx.Ioc;
+using Swashbuckle.AspNetCore.Annotations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,13 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Ninx API",
+        Version = "v1",
+        Description = "API de gestão de comércio, estoque e vendas."
+    });
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -23,10 +31,15 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Digite seu token JWT"
     });
 
-    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
     {
-        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-    });
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
+
+    c.EnableAnnotations();
+    c.OperationFilter<AuthorizeOperationFilter>();
 });
 
 builder.Services.AddCors(options =>
