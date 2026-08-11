@@ -20,9 +20,9 @@ namespace ninx.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<PaginatedResponse<CategoriaProdutoResponse>> GetAllAsync(PaginationRequest request)
+        public async Task<PaginatedResponse<CategoriaProdutoResponse>> GetAllAsync(int comercioId, PaginationRequest request)
         {
-            var (entidades, total) = await _categoriaProdutoRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
+            var (entidades, total) = await _categoriaProdutoRepository.GetByComercioIdPaginatedAsync(comercioId, request.PageNumber, request.PageSize);
             var listaResponse = entidades.Adapt<List<CategoriaProdutoResponse>>();
 
             return new PaginatedResponse<CategoriaProdutoResponse>(
@@ -33,20 +33,21 @@ namespace ninx.Application.Services
             );
         }
 
-        public async Task<CategoriaProdutoResponse> GetByIdAsync(int categoriaId)
+        public async Task<CategoriaProdutoResponse> GetByIdAsync(int categoriaId, int comercioId)
         {
-            var categoria = await _categoriaProdutoRepository.GetByIdAsync(categoriaId);
+            var categoria = await _categoriaProdutoRepository.GetByIdAndComercioIdAsync(categoriaId, comercioId);
             if (categoria == null)
-                throw new NotFoundException($"Categoria com ID {categoriaId} não encontrada.");
+                throw new NotFoundException($"Categoria com ID {categoriaId} nï¿½o encontrada.");
 
             return categoria.Adapt<CategoriaProdutoResponse>();
         }
 
-        public async Task<CategoriaProdutoResponse> CreateAsync(CategoriaProdutoRequest request)
+        public async Task<CategoriaProdutoResponse> CreateAsync(CategoriaProdutoRequest request, int comercioId)
         {
             var categoria = new CategoriaProduto
             {
-                Nome = request.Nome
+                Nome = request.Nome,
+                ComercioID = comercioId
             };
 
             var novaCategoria = await _categoriaProdutoRepository.AddAsync(categoria);
@@ -55,11 +56,11 @@ namespace ninx.Application.Services
             return novaCategoria.Adapt<CategoriaProdutoResponse>();
         }
 
-        public async Task<CategoriaProdutoResponse> UpdateAsync(int categoriaId, CategoriaProdutoRequest request)
+        public async Task<CategoriaProdutoResponse> UpdateAsync(int categoriaId, CategoriaProdutoRequest request, int comercioId)
         {
-            var categoria = await _categoriaProdutoRepository.GetByIdAsync(categoriaId);
+            var categoria = await _categoriaProdutoRepository.GetByIdAndComercioIdAsync(categoriaId, comercioId);
             if (categoria == null)
-                throw new NotFoundException($"Categoria com ID {categoriaId} não encontrada.");
+                throw new NotFoundException($"Categoria com ID {categoriaId} nï¿½o encontrada.");
 
             categoria.Nome = request.Nome;
 
@@ -69,13 +70,16 @@ namespace ninx.Application.Services
             return categoriaAtualizada.Adapt<CategoriaProdutoResponse>();
         }
 
-        public async Task DeleteAsync(int categoriaId)
+        public async Task DeleteAsync(int categoriaId, int comercioId)
         {
-            var categoria = await _categoriaProdutoRepository.GetByIdAsync(categoriaId);
+            var categoria = await _categoriaProdutoRepository.GetByIdAndComercioIdAsync(categoriaId, comercioId);
             if (categoria == null)
-                throw new NotFoundException($"Categoria com ID {categoriaId} não encontrada.");
+                throw new NotFoundException($"Categoria com ID {categoriaId} nï¿½o encontrada.");
 
-            _categoriaProdutoRepository.Delete(categoria);
+            if (await _categoriaProdutoRepository.ExisteProdutoVinculadoAsync(categoriaId))
+                throw new BadRequestException("Nï¿½o ï¿½ possï¿½vel excluir uma categoria que possui produtos vinculados.");
+
+            await _categoriaProdutoRepository.DeleteAsync(categoria);
             await _unitOfWork.SaveChangesAsync();
         }
     }

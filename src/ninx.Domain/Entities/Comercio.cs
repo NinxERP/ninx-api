@@ -15,5 +15,6 @@
         public ICollection<Cliente> Clientes { get; set; } = [];
         public ICollection<Venda> Vendas { get; set; } = [];
         public ICollection<AssinaturaPlano> Assinaturas { get; set; } = [];
+        public ICollection<CategoriaProduto> CategoriasProduto { get; set; } = [];
     }
 }

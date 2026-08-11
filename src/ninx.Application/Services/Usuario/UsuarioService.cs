@@ -51,12 +51,16 @@ namespace ninx.Application.Services
 
         public async Task<PaginatedResponse<UsuarioResponse>> GetAllByComercioId(int comercioId, PaginationRequest request)
         {
-            var usuarios = await _usuarioRepository.GetAllByComercioIdAsync(comercioId);
-            if (usuarios is null || !usuarios.Any()) 
+            var usuarios = (await _usuarioRepository.GetAllByComercioIdAsync(comercioId)).ToList();
+            if (usuarios is null || !usuarios.Any())
                 throw new NotFoundException("Nenhum usuário foi encontrado");
 
-            var (entidades, total) = await _usuarioRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
-            var listaResponse = entidades.Adapt<List<UsuarioResponse>>();
+            var total = usuarios.Count;
+            var pagina = usuarios
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToList();
+            var listaResponse = pagina.Adapt<List<UsuarioResponse>>();
 
             return new PaginatedResponse<UsuarioResponse>(
                 listaResponse,
@@ -68,7 +72,7 @@ namespace ninx.Application.Services
 
         public async Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioid)
         {
-            var usuario = await _usuarioRepository.GetByIdAsync(id);
+            var usuario = await _usuarioRepository.GetByIdAndComercioIdAsync(id, comercioid);
             if (usuario is null) throw new NotFoundException("Usuário não encontrado");
 
             return usuario.Adapt<UsuarioResponse>();
@@ -81,7 +85,7 @@ namespace ninx.Application.Services
             int? comercioIdLogado)
         {
 
-            if (request.ComercioId == comercioIdLogado) throw new BadRequestException("Contexto de comércio inválido.");
+            if (request.ComercioId != comercioIdLogado) throw new BadRequestException("Contexto de comércio inválido.");
             if (permissao == Permissao.Funcionario) throw new ForbiddenException("Funcionários não podem cadastrar novos usuários.");
             if (permissao == Permissao.Dono) request.Permissao = (int)Permissao.Funcionario;
 
@@ -110,7 +114,7 @@ namespace ninx.Application.Services
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario is null) throw new NotFoundException("Usuario não encontrado");
-            if (await _usuarioComercioRepository.ExisteVinculoAsync(id, comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
+            if (!await _usuarioComercioRepository.ExisteVinculoAsync(id, comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
 
             request.Adapt(usuario);
             await _usuarioRepository.UpdateAsync(usuario);
@@ -122,7 +126,7 @@ namespace ninx.Application.Services
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario == null) throw new NotFoundException("Usuário não encontrado.");
-            if (await _usuarioComercioRepository.ExisteVinculoAsync(id, comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
+            if (!await _usuarioComercioRepository.ExisteVinculoAsync(id, comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
 
 
             usuario.Ativo = false;

@@ -7,30 +7,24 @@ namespace ninx.Application.Validators.Request
     {
         public CriarVendaRequestValidator()
         {
-            RuleFor(x => x.ComercioID)
-                .GreaterThan(0).WithMessage("O ID do comércio deve ser maior que zero.");
-
-            RuleFor(x => x.UsuarioID)
-                .GreaterThan(0).WithMessage("O ID do usuário deve ser maior que zero.");
-
             RuleFor(x => x.ClienteID)
                 .GreaterThan(0).WithMessage("O ID do cliente deve ser maior que zero.")
                 .When(x => x.ClienteID.HasValue);
 
             RuleFor(x => x.Observacoes)
-                .MaximumLength(500).WithMessage("Observações deve ter no máximo 500 caracteres.")
+                .MaximumLength(500).WithMessage("Observaï¿½ï¿½es deve ter no mï¿½ximo 500 caracteres.")
                 .When(x => !string.IsNullOrEmpty(x.Observacoes));
 
             RuleFor(x => x.TipoVenda)
-                .GreaterThan(0).WithMessage("Tipo de venda inválido.");
+                .GreaterThan(0).WithMessage("Tipo de venda invï¿½lido.");
 
             RuleFor(x => x.ItensVenda)
-                .NotEmpty().WithMessage("Venda deve ter no mínimo um item.")
-                .Must(itens => itens.Count > 0).WithMessage("Lista de itens não pode estar vazia.");
+                .NotEmpty().WithMessage("Venda deve ter no mï¿½nimo um item.")
+                .Must(itens => itens.Count > 0).WithMessage("Lista de itens nï¿½o pode estar vazia.");
 
             RuleFor(x => x.Pagamentos)
-                .NotEmpty().WithMessage("Venda deve ter no mínimo um pagamento.")
-                .Must(pagamentos => pagamentos.Count > 0).WithMessage("Lista de pagamentos não pode estar vazia.");
+                .NotEmpty().WithMessage("Venda deve ter no mï¿½nimo um pagamento.")
+                .Must(pagamentos => pagamentos.Count > 0).WithMessage("Lista de pagamentos nï¿½o pode estar vazia.");
 
             RuleForEach(x => x.ItensVenda).SetValidator(new ItemVendaRequestValidator());
             RuleForEach(x => x.Pagamentos).SetValidator(new PagamentoVendaRequestValidator());

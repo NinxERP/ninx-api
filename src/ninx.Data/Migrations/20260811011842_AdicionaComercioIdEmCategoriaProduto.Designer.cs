@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ninx.Data.Context;
 
@@ -11,9 +12,11 @@ using ninx.Data.Context;
 namespace ninx.Data.Migrations
 {
     [DbContext(typeof(NinxDB))]
-    partial class NinxDBModelSnapshot : ModelSnapshot
+    [Migration("20260811011842_AdicionaComercioIdEmCategoriaProduto")]
+    partial class AdicionaComercioIdEmCategoriaProduto
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,9 +57,6 @@ namespace ninx.Data.Migrations
 
                     b.Property<Guid>("DocumentoGuid")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("DocumentoOriginalBase64")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ImagemAssinatura")
                         .HasColumnType("nvarchar(max)");

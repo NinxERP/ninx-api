@@ -58,9 +58,11 @@ namespace ninx.Application.Services
             return usuarioComercio.Adapt<UsuarioComercioResponse>();
         }
 
-        public async Task<UsuarioComercioResponse> AtualizarAsync(AtualizarUsuarioComercioRequest request, Permissao usuarioLogadoPermissao)
+        public async Task<UsuarioComercioResponse> AtualizarAsync(AtualizarUsuarioComercioRequest request, int usuarioLogadoId)
         {
-            if (usuarioLogadoPermissao == Permissao.Funcionario) throw new ForbiddenException("Funcionários não possuem permissão para atualizar vínculos.");
+            var vinculoChamador = await _usuarioComercioRepository.GetVinculoAsync(usuarioLogadoId, request.ComercioID);
+            if (vinculoChamador == null || vinculoChamador.Permissao == Permissao.Funcionario)
+                throw new ForbiddenException("Funcionários não possuem permissão para atualizar vínculos.");
 
             var usuarioComercio = await _usuarioComercioRepository.GetVinculoAsync(request.UsuarioID, request.ComercioID);
             if (usuarioComercio == null) throw new NotFoundException("Vínculo entre usuário e comércio não encontrado.");
@@ -68,7 +70,7 @@ namespace ninx.Application.Services
             if (request.Permissao != 0 && usuarioComercio.Permissao != (Permissao)request.Permissao)
             {
                 if (!Enum.IsDefined(typeof(Permissao), request.Permissao)) throw new BadRequestException($"A permissão não foi informada ou está invalida");
-                if (usuarioLogadoPermissao != Permissao.Administrador) throw new ForbiddenException("Apenas administradores podem alterar o nível de permissão.");
+                if (vinculoChamador.Permissao != Permissao.Administrador) throw new ForbiddenException("Apenas administradores podem alterar o nível de permissão.");
                 usuarioComercio.Permissao = (Permissao)request.Permissao;
             }
 
@@ -80,8 +82,12 @@ namespace ninx.Application.Services
             return usuarioComercio.Adapt<UsuarioComercioResponse>();
         }
 
-        public async Task DesativarAsync(int usuarioId, int comercioId)
+        public async Task DesativarAsync(int usuarioId, int comercioId, int usuarioLogadoId)
         {
+            var vinculoChamador = await _usuarioComercioRepository.GetVinculoAsync(usuarioLogadoId, comercioId);
+            if (vinculoChamador == null || (vinculoChamador.Permissao != Permissao.Administrador && vinculoChamador.Permissao != Permissao.Dono))
+                throw new ForbiddenException("Você não tem permissão para desativar vínculos deste comércio.");
+
             var usuarioComercioFiltrado = await _usuarioComercioRepository.GetVinculoAsync(usuarioId, comercioId);
             if (usuarioComercioFiltrado == null)
             {

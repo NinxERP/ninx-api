@@ -3,8 +3,8 @@
     public class AssinaturaPlanoResponse
     {
         public int ComercioID { get; set; }
-        public int Plano { get; set; }
-        public int Status { get; set; }
+        public string Plano { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
         public DateTime DataInicio { get; set; }
         public DateTime DataFim { get; set; }
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;

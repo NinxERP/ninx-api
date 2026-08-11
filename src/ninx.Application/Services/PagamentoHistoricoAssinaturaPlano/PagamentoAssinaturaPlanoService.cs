@@ -56,7 +56,7 @@ namespace ninx.Application.Services
             newPagamento.AtualizadoEm = hoje;
 
             await _pagamentoHistoricoAssinaturaPlanoRepository.AddAsync(newPagamento);
-            await _unitOfWork.CommitAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             _logger.LogInformation($"Pagamento registrado com sucesso. AssinaturaID: {assinatura.AssinaturaID} ComercioID: {request.ComercioId} DataVencimento: {novoVencimento}" 
            );

@@ -24,5 +24,20 @@ namespace ninx.Infra.Repository
                 .Where(e => produtoIds.Contains(e.ProdutoID) && e.ComercioID == comercioId)
                 .ToListAsync();
         }
+
+        public async Task<(IEnumerable<Estoque> Data, int TotalCount)> GetByComercioIdPaginatedAsync(int comercioId, int pageNumber, int pageSize)
+        {
+            var query = _context.Estoques
+                .AsNoTracking()
+                .Where(e => e.ComercioID == comercioId);
+
+            var totalCount = await query.CountAsync();
+            var data = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (data, totalCount);
+        }
     }
 }

@@ -55,37 +55,37 @@ namespace ninx.Application.Services
         }
 
 
-        public async Task<IEnumerable<VendaResponse>> GetVendasFiltroAsync(FiltroRequest request)
+        public async Task<IEnumerable<VendaResponse>> GetVendasFiltroAsync(FiltroRequest request, int comercioId)
         {
             if (request is null)
             {
                 throw new BadRequestException("Pelo menos um filtro deve ser fornecido.");
             }
 
-            var vendas = await _vendaRepository.GetVendasFiltroAsync(request.inicio, request.fim, request.comercioID, request.usuarioID);
+            var vendas = await _vendaRepository.GetVendasFiltroAsync(request.inicio, request.fim, comercioId, request.usuarioID);
 
             if (vendas is null || !vendas.Any())
             {
                 throw new NotFoundException("Nenhuma venda foi encontrada para os filtros.");
             }
 
-            return vendas.Adapt<IEnumerable<VendaResponse>>();
+            return PopulaSaldoTotal(vendas);
         }
-        public async Task<IEnumerable<VendaResponse>> GetByUsuarioIdAsync(int usuarioID)
+        public async Task<IEnumerable<VendaResponse>> GetByUsuarioIdAsync(int usuarioID, int comercioId)
         {
-            var vendas = await _vendaRepository.GetVendasByUsuarioIdAsync(usuarioID);
+            var vendas = await _vendaRepository.GetVendasByUsuarioIdAsync(usuarioID, comercioId);
 
             if (vendas is null || !vendas.Any())
             {
                 throw new NotFoundException("Nenhuma venda encontrada para o usuário especificado.");
             }
 
-            return vendas.Adapt<IEnumerable<VendaResponse>>();
+            return PopulaSaldoTotal(vendas);
         }
 
-        public async Task<IEnumerable<VendaResponse>> GetByClienteIdAsync(int clienteId)
+        public async Task<IEnumerable<VendaResponse>> GetByClienteIdAsync(int clienteId, int comercioId)
         {
-            var vendas = await _vendaRepository.GetVendasByClienteIdAsync(clienteId);
+            var vendas = await _vendaRepository.GetVendasByClienteIdAsync(clienteId, comercioId);
 
             if (vendas is null || !vendas.Any())
             {
@@ -95,15 +95,15 @@ namespace ninx.Application.Services
             var vendaResponse = PopulaSaldoTotal(vendas);
             return vendaResponse;
         }
-        public async Task<VendaResponse> GetByVendaIdAsync(int id)
+        public async Task<VendaResponse> GetByVendaIdAsync(int id, int comercioId)
         {
             var venda = await _vendaRepository.GetByIdParaDetalheAsync(id);
-            if (venda is null)
+            if (venda is null || venda.ComercioID != comercioId)
             {
                 throw new NotFoundException("Venda não encontrada");
             }
 
-            var response = venda.Adapt<VendaResponse>();
+            var response = PopulaSaldoTotal(new[] { venda }).First();
 
             var documentoGuids = await _assinaturaEletronicaRepository.GetDocumentoGuidsPorVendaAsync(id);
             if (documentoGuids.Any())
@@ -240,7 +240,7 @@ namespace ninx.Application.Services
                     DocumentoGuid = identificadorAssinatura,
                     Assinado = false,
                     CriadoEm = dataOperacao,
-                    ImagemAssinatura = await CriarDocReciboPagamento(venda, novoPagamento, cliente!, comercio!, saldoDevedorVenda)
+                    DocumentoOriginalBase64 = await CriarDocReciboPagamento(venda, novoPagamento, cliente!, comercio!, saldoDevedorVenda)
                 };
 
                 venda.AtualizadoEm = DateTime.UtcNow;
@@ -328,10 +328,6 @@ namespace ninx.Application.Services
 
                     await _vendaRepository.UpdateAsync(venda);
                     valorRestanteParaDistribuir -= valorAbatidoNestaVenda;
-
-
-                    await _unitOfWork.SaveChangesAsync();
-                    await _unitOfWork.CommitAsync();
                 }
 
                 if (valorRestanteParaDistribuir > 0)
@@ -351,7 +347,7 @@ namespace ninx.Application.Services
                         DocumentoGuid = identificadorAssinatura, 
                         Assinado = false,
                         CriadoEm = dataOperacao,
-                        ImagemAssinatura = pdfBase64             
+                        DocumentoOriginalBase64 = pdfBase64
                     };
 
                     await _assinaturaEletronicaRepository.AddAsync(assinaturaVinculada);
@@ -464,7 +460,7 @@ namespace ninx.Application.Services
                     DocumentoGuid = identificadorAssinatura.Value,
                     Assinado = false,
                     CriadoEm = dataOperacao,
-                    ImagemAssinatura = await CriarDocAssinatura(venda, cliente!, comercio!)
+                    DocumentoOriginalBase64 = await CriarDocAssinatura(venda, cliente!, comercio!)
                 };
                 await _assinaturaEletronicaRepository.AddAsync(assinatura);
             }
@@ -552,15 +548,16 @@ namespace ninx.Application.Services
                 throw new BadRequestException("Uma venda fiado não pode estar totalmente paga no ato da criação.");
 
             var cliente = await _clienteRepository.GetByIdAsync(request.ClienteID);
-            if (cliente == null)
+            if (cliente == null || cliente.ComercioID != request.ComercioID)
                 throw new NotFoundException("Cliente não encontrado.");
 
             var saldoDevedorAtual = await CalcularSaldoDevedorAsync(request.ClienteID.Value);
             decimal valorFiadoDestaVenda = totalVenda - totalPago;
+            decimal limiteCredito = cliente.LimiteCredito ?? 0m;
 
-            if ((saldoDevedorAtual + valorFiadoDestaVenda) > cliente.LimiteCredito)
+            if ((saldoDevedorAtual + valorFiadoDestaVenda) > limiteCredito)
             {
-                var limiteDisponivel = cliente.LimiteCredito - saldoDevedorAtual;
+                var limiteDisponivel = limiteCredito - saldoDevedorAtual;
                 throw new BadRequestException(
                     $"Limite excedido! O cliente já deve R$ {saldoDevedorAtual:N2}. " +
                     $"Disponível para esta compra: R$ {limiteDisponivel:N2}");

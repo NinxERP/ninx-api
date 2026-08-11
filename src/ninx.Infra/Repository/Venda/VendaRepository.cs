@@ -15,11 +15,12 @@ namespace ninx.Infra.Repository
             _context = context;
         }
 
-        public async Task<IEnumerable<Venda>> GetVendasFiltroAsync(DateTime? inicio, DateTime? fim, int? comercioID, int? usuarioID)
+        public async Task<IEnumerable<Venda>> GetVendasFiltroAsync(DateTime? inicio, DateTime? fim, int comercioID, int? usuarioID)
         {
             var query = _context.Vendas
                 .AsNoTracking()
-                .AsQueryable();
+                .Include(v => v.PagamentosVenda)
+                .Where(v => v.ComercioID == comercioID);
 
             if (inicio.HasValue)
                 query = query.Where(v => v.CriadoEm >= inicio.Value);
@@ -30,28 +31,26 @@ namespace ninx.Infra.Repository
             if (usuarioID.HasValue)
                 query = query.Where(v => v.UsuarioID == usuarioID.Value);
 
-            if (comercioID.HasValue)
-                query = query.Where(v => v.ComercioID == comercioID.Value);
-
             return await query.OrderByDescending(v => v.CriadoEm).ToListAsync();
         }
 
-        public async Task<IEnumerable<Venda>> GetVendasByUsuarioIdAsync(int usuarioId)
+        public async Task<IEnumerable<Venda>> GetVendasByUsuarioIdAsync(int usuarioId, int comercioId)
         {
             return await _context.Vendas
                 .AsNoTracking()
-                .Include(v => v.ItensVenda) 
-                .Where(v => v.UsuarioID == usuarioId)
+                .Include(v => v.ItensVenda)
+                .Include(v => v.PagamentosVenda)
+                .Where(v => v.UsuarioID == usuarioId && v.ComercioID == comercioId)
                 .OrderByDescending(v => v.CriadoEm)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Venda>> GetVendasByClienteIdAsync(int clienteId)
+        public async Task<IEnumerable<Venda>> GetVendasByClienteIdAsync(int clienteId, int comercioId)
         {
             return await _context.Vendas
                 .AsNoTracking()
                 .Include(v => v.PagamentosVenda)
-                .Where(v => v.ClienteID == clienteId)
+                .Where(v => v.ClienteID == clienteId && v.ComercioID == comercioId)
                 .OrderByDescending(v => v.CriadoEm)
                 .ToListAsync();
         }
@@ -83,12 +82,17 @@ namespace ninx.Infra.Repository
         {
             return await _context.Vendas
                 .AsNoTracking()
+                .Include(v => v.ItensVenda)
+                .Include(v => v.PagamentosVenda)
                 .FirstOrDefaultAsync(v => v.VendaID == id);
         }
         public async Task<Dictionary<int, decimal>> GetSaldoDevedorClientesPorComercio(int comercioId)
         {
             return await _context.Vendas
-                .Where(v => v.ComercioID == comercioId && v.ClienteID != null)
+                .Where(v => v.ComercioID == comercioId
+                    && v.ClienteID != null
+                    && v.TipoVenda == TipoVenda.Fiado
+                    && v.Status == StatusVenda.Finalizada)
                 .GroupBy(v => v.ClienteID.Value)
                 .Select(g => new
                 {
@@ -96,14 +100,6 @@ namespace ninx.Infra.Repository
                     SaldoDevedor = g.Sum(v => v.Total) - g.Sum(v => v.PagamentosVenda.Sum(p => (decimal?)p.Valor) ?? 0)
                 })
                 .ToDictionaryAsync(x => x.ClienteID, x => x.SaldoDevedor);
-        }
-
-        public async Task<IEnumerable<Venda>> GetVendasByClienteIDAsync(int? clienteId)
-        {
-            return await _context.Vendas
-                .AsNoTracking()
-                .Where(v => v.ClienteID == clienteId)
-                .ToListAsync();
         }
 
         public async Task<IEnumerable<Venda>> GetVendasFiadoByClienteIDAsync(int? clienteId)

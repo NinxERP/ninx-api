@@ -1,4 +1,5 @@
 using ninx.Communication;
+using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
 
@@ -8,6 +9,7 @@ namespace ninx.Application.Services
     {
         private const int QuantidadeProdutosRanking = 5;
         private const int QuantidadeEstoqueBaixo = 20;
+        private const int IntervaloMaximoEmDias = 731; // ~2 anos
 
         private readonly IRelatorioRepository _relatorioRepository;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
@@ -171,10 +173,14 @@ namespace ninx.Application.Services
             var (inicio, fim) = ResolverPeriodo(request);
 
             var vinculos = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
-            var comercioIds = vinculos.Where(v => v.Ativo).Select(v => v.ComercioID).Distinct().ToList();
+            var comercioIds = vinculos
+                .Where(v => v.Ativo && (v.Permissao == Permissao.Administrador || v.Permissao == Permissao.Dono))
+                .Select(v => v.ComercioID)
+                .Distinct()
+                .ToList();
 
             if (!comercioIds.Any())
-                throw new BadRequestException("Usuário não possui comércios vinculados.");
+                throw new ForbiddenException("Apenas Donos ou Administradores podem acessar o comparativo entre comércios.");
 
             var comparativo = await _relatorioRepository.GetComparativoComerciosAsync(comercioIds, inicio, fim);
 
@@ -191,6 +197,9 @@ namespace ninx.Application.Services
 
             if (inicio > fim)
                 throw new BadRequestException("A data de início não pode ser maior que a data de fim.");
+
+            if ((fim - inicio).TotalDays > IntervaloMaximoEmDias)
+                throw new BadRequestException($"O intervalo entre as datas não pode ser maior que {IntervaloMaximoEmDias} dias.");
 
             return (inicio, fim);
         }

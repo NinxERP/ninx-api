@@ -9,13 +9,15 @@ namespace ninx.Application.Services
     public class ProdutoService : IProdutoService
     {
         private readonly IProdutoRepository _produtoRepository;
-        private readonly IEstoqueRepository _estoqueRepository; 
-        private readonly IUnitOfWork _unitOfWork; 
+        private readonly IEstoqueRepository _estoqueRepository;
+        private readonly ICategoriaProdutoRepository _categoriaProdutoRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public ProdutoService(IProdutoRepository produtoRepository, IEstoqueRepository estoqueRepository, IUnitOfWork unitOfWork)
+        public ProdutoService(IProdutoRepository produtoRepository, IEstoqueRepository estoqueRepository, ICategoriaProdutoRepository categoriaProdutoRepository, IUnitOfWork unitOfWork)
         {
             _produtoRepository = produtoRepository;
             _estoqueRepository = estoqueRepository;
+            _categoriaProdutoRepository = categoriaProdutoRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -26,6 +28,11 @@ namespace ninx.Application.Services
                 throw new BadRequestException("Usuário não tem permissão nesse comércio.");
             }
 
+            if (request.CategoriaID.HasValue &&
+                await _categoriaProdutoRepository.GetByIdAndComercioIdAsync(request.CategoriaID.Value, comercioID) == null)
+            {
+                throw new BadRequestException("Categoria informada não existe para este comércio.");
+            }
 
             var produto = request.Adapt<Produto>();
             produto.ComercioID = request.ComercioID; 
@@ -53,6 +60,12 @@ namespace ninx.Application.Services
         {
             var produto = await _produtoRepository.GetByIdAndComercioAsync(id, comercioId)
                 ?? throw new NotFoundException("Produto não encontrado.");
+
+            if (request.CategoriaID.HasValue &&
+                await _categoriaProdutoRepository.GetByIdAndComercioIdAsync(request.CategoriaID.Value, comercioId) == null)
+            {
+                throw new BadRequestException("Categoria informada não existe para este comércio.");
+            }
 
             request.Adapt(produto);
             produto.AtualizadoEm = DateTime.UtcNow;

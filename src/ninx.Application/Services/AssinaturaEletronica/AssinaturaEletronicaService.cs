@@ -49,8 +49,12 @@ namespace ninx.Application.Services
             var assinatura = await _assinaturaEletronicaRepository.GetByGuidAsync(guid);
             if (assinatura == null) throw new NotFoundException("Documento não encontrado.");
             if (assinatura.Assinado) throw new BadRequestException("Este documento já foi assinado.");
+            if (assinatura.Status != Domain.Enums.StatusAssinatura.Ativa) throw new BadRequestException("Este documento não está mais disponível para assinatura.");
 
             var venda = await _vendaRepository.GetByIdAsync(assinatura.VendaID);
+            if (venda.Status == Domain.Enums.StatusVenda.Cancelada || venda.Status == Domain.Enums.StatusVenda.Estornada)
+                throw new BadRequestException("Não é possível assinar o documento de uma venda cancelada ou estornada.");
+
             venda.AtualizadoEm = DateTime.UtcNow;
             venda.Status = Domain.Enums.StatusVenda.Aberta;
 
@@ -69,6 +73,15 @@ namespace ninx.Application.Services
         {
             var assinatura = await _assinaturaEletronicaRepository.GetByGuidParaAssinarAsync(guid);
             if (assinatura == null) throw new NotFoundException("Documento não encontrado.");
+            return assinatura.Adapt<AssinaturaEletronicaResponse>();
+        }
+
+        public async Task<AssinaturaEletronicaResponse> ObterDocumentoAssinadoAsync(Guid guid, int comercioId)
+        {
+            var assinatura = await _assinaturaEletronicaRepository.GetClienteLojaAssinaturaByGuidAsync(guid);
+            if (assinatura == null || assinatura.Venda.ComercioID != comercioId)
+                throw new NotFoundException("Documento não encontrado.");
+
             return assinatura.Adapt<AssinaturaEletronicaResponse>();
         }
 
