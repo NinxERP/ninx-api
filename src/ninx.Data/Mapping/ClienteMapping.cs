@@ -23,6 +23,49 @@ namespace ninx.Data.Mappings
                 .IsRequired(false)
                 .HasMaxLength(20);
 
+            builder.Property(x => x.Cpf)
+                .IsRequired()
+                .HasMaxLength(11)
+                .HasDefaultValue(string.Empty);
+
+            builder.Property(x => x.Email)
+                .IsRequired(false)
+                .HasMaxLength(150);
+
+            builder.Property(x => x.EnderecoLogradouro)
+                .IsRequired()
+                .HasMaxLength(200)
+                .HasDefaultValue(string.Empty);
+
+            builder.Property(x => x.EnderecoNumero)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasDefaultValue(string.Empty);
+
+            builder.Property(x => x.EnderecoComplemento)
+                .IsRequired(false)
+                .HasMaxLength(100);
+
+            builder.Property(x => x.EnderecoBairro)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasDefaultValue(string.Empty);
+
+            builder.Property(x => x.EnderecoCidade)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasDefaultValue(string.Empty);
+
+            builder.Property(x => x.EnderecoUF)
+                .IsRequired()
+                .HasMaxLength(2)
+                .HasDefaultValue(string.Empty);
+
+            builder.Property(x => x.EnderecoCEP)
+                .IsRequired()
+                .HasMaxLength(8)
+                .HasDefaultValue(string.Empty);
+
             builder.Property(x => x.LimiteCredito)
                 .IsRequired(false)
                 .HasColumnType("decimal(10,2)");
@@ -39,6 +82,10 @@ namespace ninx.Data.Mappings
             builder.HasOne(x => x.Comercio)
                 .WithMany(x => x.Clientes)
                 .HasForeignKey(x => x.ComercioID);
+
+            builder.HasIndex(x => new { x.ComercioID, x.Cpf })
+                .IsUnique()
+                .HasFilter("[Cpf] <> ''");
 
         }
     }

@@ -700,6 +700,20 @@ namespace ninx.Application.Services
             });
         }
 
+        private static string FormatarCpf(string cpf)
+        {
+            if (string.IsNullOrWhiteSpace(cpf) || cpf.Length != 11)
+                return "Não informado";
+
+            return $"{cpf.Substring(0, 3)}.{cpf.Substring(3, 3)}.{cpf.Substring(6, 3)}-{cpf.Substring(9, 2)}";
+        }
+
+        private static string FormatarEnderecoCliente(Cliente cliente)
+        {
+            var complemento = string.IsNullOrWhiteSpace(cliente.EnderecoComplemento) ? "" : $", {cliente.EnderecoComplemento}";
+            return $"{cliente.EnderecoLogradouro}, {cliente.EnderecoNumero}{complemento} - {cliente.EnderecoBairro}, {cliente.EnderecoCidade}/{cliente.EnderecoUF} - CEP {cliente.EnderecoCEP}";
+        }
+
         private async Task<string> CriarDocAssinatura(Venda venda, Cliente cliente, Comercio comercio)
         {
             using (var memoryStream = new MemoryStream())
@@ -770,6 +784,8 @@ namespace ninx.Application.Services
 
                 cellDevedor.Add(new Paragraph("DEVEDOR (CLIENTE)").SetFont(fonteNegrito).SetFontSize(9.5f).SetFontColor(cinzaTextoMuted).SetMarginBottom(6));
                 cellDevedor.Add(new Paragraph($"Nome: {cliente.Nome}").SetFontSize(10));
+                cellDevedor.Add(new Paragraph($"CPF: {FormatarCpf(cliente.Cpf)}").SetFontSize(10));
+                cellDevedor.Add(new Paragraph($"Endereço: {FormatarEnderecoCliente(cliente)}").SetFontSize(10));
                 cellDevedor.Add(new Paragraph($"Telefone: {cliente.Telefone ?? "Não informado"}").SetFontSize(10));
 
                 // Adiciona à tabela estrutural com margem de separação
@@ -939,6 +955,8 @@ namespace ninx.Application.Services
                     .SetBorderRadius(new BorderRadius(6));
                 cellDevedor.Add(new Paragraph("DEVEDOR").SetFont(fonteNegrito).SetFontSize(9.5f).SetFontColor(cinzaTextoMuted).SetMarginBottom(6));
                 cellDevedor.Add(new Paragraph($"{cliente.Nome}").SetFontSize(10));
+                cellDevedor.Add(new Paragraph($"CPF: {FormatarCpf(cliente.Cpf)}").SetFontSize(10));
+                cellDevedor.Add(new Paragraph($"Endereço: {FormatarEnderecoCliente(cliente)}").SetFontSize(10));
                 cellDevedor.Add(new Paragraph($"Telefone: {cliente.Telefone ?? "Não informado"}").SetFontSize(10));
 
                 tableEnvolvidos.AddCell(cellCredor.SetMarginRight(6));
@@ -1064,6 +1082,8 @@ namespace ninx.Application.Services
                 var cellDevedor = new Cell().SetBackgroundColor(cinzaCardFundo).SetBorder(new SolidBorder(cinzaLinhaSutil, 1)).SetPadding(10).SetBorderRadius(new BorderRadius(4));
                 cellDevedor.Add(new Paragraph("DEVEDOR").SetFont(fonteNegrito).SetFontSize(8.5f).SetFontColor(cinzaTextoMuted));
                 cellDevedor.Add(new Paragraph(cliente.Nome).SetFontSize(9.5f));
+                cellDevedor.Add(new Paragraph($"CPF: {FormatarCpf(cliente.Cpf)}").SetFontSize(9.5f));
+                cellDevedor.Add(new Paragraph($"Endereço: {FormatarEnderecoCliente(cliente)}").SetFontSize(9.5f));
 
                 tableEnvolvidos.AddCell(cellCredor.SetMarginRight(4));
                 tableEnvolvidos.AddCell(cellDevedor.SetMarginLeft(4));

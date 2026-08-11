@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using ninx.Application.Validators.Entidades;
 using ninx.Application.Validators.Request;
+using ninx.Application.Validators.Request.Pagination;
 using ninx.Communication;
 using ninx.Communication.Venda;
 using ninx.Domain.Entities;
@@ -28,6 +29,13 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IValidator<AtualizarUsuarioComercioRequest>, AtualizarUsuarioComercioRequestValidator>();
             services.AddScoped<IValidator<ConfirmarAssinaturaEletronicaRequest>, ConfirmarAssinaturaEletronicaRequestValidator>();
             services.AddScoped<IValidator<FiltroRequest>, FiltroRequestValidator>();
+            services.AddScoped<IValidator<PaginationRequest>, PaginationRequestValidator>();
+            services.AddScoped<IValidator<CategoriaProdutoRequest>, CategoriaProdutoRequestValidator>();
+            services.AddScoped<IValidator<EstoqueRequest>, EstoqueRequestValidator>();
+            services.AddScoped<IValidator<PagamentoHistoricoAssinaturaPlanoRequest>, PagamentoHistoricoAssinaturaPlanoRequestValidator>();
+            services.AddScoped<IValidator<RelatorioDashboardRequest>, RelatorioDashboardRequestValidator>();
+            services.AddScoped<IValidator<RelatorioClientesInativosRequest>, RelatorioClientesInativosRequestValidator>();
+            services.AddScoped<IValidator<RelatorioProdutosVencendoRequest>, RelatorioProdutosVencendoRequestValidator>();
 
             services.AddScoped<IValidator<Usuario>, UsuarioValidator>();
             services.AddScoped<IValidator<Comercio>, ComercioValidator>();

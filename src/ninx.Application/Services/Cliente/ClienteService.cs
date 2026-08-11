@@ -51,6 +51,7 @@ namespace ninx.Application.Services
         {
             var cliente = request.Adapt<Cliente>();
             cliente.ComercioID = comercioId;
+            NormalizarDocumentos(cliente);
 
             await _clienteRepository.AddAsync(cliente);
             await _unitOfWork.SaveChangesAsync();
@@ -66,12 +67,20 @@ namespace ninx.Application.Services
             if (cliente.ComercioID != comercioId) throw new NotFoundException("Cliente não pertence ao seu comercio.");
 
             request.Adapt(cliente);
+            NormalizarDocumentos(cliente);
             cliente.AtualizadoEm = DateTime.UtcNow;
 
             await _clienteRepository.UpdateAsync(cliente);
             await _unitOfWork.SaveChangesAsync();
 
             return cliente.Adapt<ClienteResponse>();
+        }
+
+        private static void NormalizarDocumentos(Cliente cliente)
+        {
+            cliente.Cpf = new string(cliente.Cpf.Where(char.IsDigit).ToArray());
+            cliente.EnderecoCEP = new string(cliente.EnderecoCEP.Where(char.IsDigit).ToArray());
+            cliente.EnderecoUF = cliente.EnderecoUF.ToUpperInvariant();
         }
 
         public async Task DesativarAsync(int id, int comercioId)
