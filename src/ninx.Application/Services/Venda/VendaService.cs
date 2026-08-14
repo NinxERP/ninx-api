@@ -697,7 +697,7 @@ namespace ninx.Application.Services
         private async Task<decimal> CalcularSaldoDevedorAsync(int clienteId)
         {
             var vendasFiadoCliente = await _vendaRepository.GetVendasFiadoByClienteIDAsync(clienteId);
-            var vendasAtivas = vendasFiadoCliente.Where(v => v.Status == StatusVenda.Finalizada).ToList();
+            var vendasAtivas = vendasFiadoCliente.Where(v => v.Status == StatusVenda.Aberta).ToList();
 
             if (!vendasAtivas.Any())
                 return 0m;

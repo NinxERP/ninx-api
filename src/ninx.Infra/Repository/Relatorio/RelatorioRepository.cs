@@ -10,6 +10,11 @@ namespace ninx.Infra.Repository
     {
         private readonly NinxDB _context;
 
+        // Vendas normais concluem em Finalizada; vendas fiado confirmadas ficam em Aberta
+        // (pagas ou não) e nunca transicionam para Finalizada. Os relatórios de faturamento/
+        // vendas devem considerar ambos os status para incluir também as vendas fiado.
+        private static readonly StatusVenda[] StatusVendasConcluidas = { StatusVenda.Finalizada, StatusVenda.Aberta };
+
         public RelatorioRepository(NinxDB context)
         {
             _context = context;
@@ -20,7 +25,7 @@ namespace ninx.Infra.Repository
             var resumo = await _context.Vendas
                 .AsNoTracking()
                 .Where(v => v.ComercioID == comercioId
-                    && v.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(v.Status)
                     && v.CriadoEm >= inicio && v.CriadoEm <= fim)
                 .GroupBy(_ => 1)
                 .Select(g => new FaturamentoResumo
@@ -57,7 +62,7 @@ namespace ninx.Infra.Repository
                 .AsNoTracking()
                 .Where(v => v.ComercioID == comercioId
                     && v.TipoVenda == TipoVenda.Fiado
-                    && v.Status == StatusVenda.Finalizada)
+                    && v.Status == StatusVenda.Aberta)
                 .Select(v => new
                 {
                     v.Total,
@@ -96,7 +101,7 @@ namespace ninx.Infra.Repository
             return _context.ItemVendas
                 .AsNoTracking()
                 .Where(i => i.Venda.ComercioID == comercioId
-                    && i.Venda.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(i.Venda.Status)
                     && i.Venda.CriadoEm >= inicio && i.Venda.CriadoEm <= fim)
                 .GroupBy(i => new { i.ProdutoID, i.ProdutoNome })
                 .Select(g => new ProdutoVendidoResumo
@@ -157,7 +162,7 @@ namespace ninx.Infra.Repository
             return await _context.ItemVendas
                 .AsNoTracking()
                 .Where(i => i.Venda.ComercioID == comercioId
-                    && i.Venda.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(i.Venda.Status)
                     && i.Venda.CriadoEm >= inicio && i.Venda.CriadoEm <= fim
                     && i.Produto.PrecoCusto != null)
                 .GroupBy(i => new { i.ProdutoID, i.ProdutoNome })
@@ -178,7 +183,7 @@ namespace ninx.Infra.Repository
             return await _context.ItemVendas
                 .AsNoTracking()
                 .Where(i => i.Venda.ComercioID == comercioId
-                    && i.Venda.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(i.Venda.Status)
                     && i.Venda.CriadoEm >= inicio && i.Venda.CriadoEm <= fim
                     && i.Produto.PrecoCusto != null)
                 .GroupBy(i => i.Produto.CategoriaID)
@@ -198,7 +203,7 @@ namespace ninx.Infra.Repository
             return await _context.ItemVendas
                 .AsNoTracking()
                 .Where(i => i.Venda.ComercioID == comercioId
-                    && i.Venda.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(i.Venda.Status)
                     && i.Venda.CriadoEm >= inicio && i.Venda.CriadoEm <= fim
                     && i.Produto.PrecoCusto == null)
                 .Select(i => i.ProdutoID)
@@ -214,7 +219,7 @@ namespace ninx.Infra.Repository
                 .AsNoTracking()
                 .Where(v => v.ComercioID == comercioId
                     && v.TipoVenda == TipoVenda.Fiado
-                    && v.Status == StatusVenda.Finalizada)
+                    && v.Status == StatusVenda.Aberta)
                 .Select(v => new VendaEmAbertoResumo
                 {
                     VendaID = v.VendaID,
@@ -234,7 +239,7 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .AsNoTracking()
                 .Where(v => v.ComercioID == comercioId
-                    && v.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(v.Status)
                     && v.CriadoEm >= inicio && v.CriadoEm <= fim)
                 .GroupBy(v => new { v.UsuarioID, v.Usuario.Nome })
                 .Select(g => new VendedorDesempenhoResumo
@@ -258,7 +263,7 @@ namespace ninx.Infra.Repository
             var vendas = await _context.Vendas
                 .AsNoTracking()
                 .Where(v => v.ComercioID == comercioId
-                    && v.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(v.Status)
                     && v.CriadoEm >= inicio && v.CriadoEm <= fim)
                 .Select(v => new { v.CriadoEm, v.Total })
                 .ToListAsync();
@@ -280,7 +285,7 @@ namespace ninx.Infra.Repository
             var vendas = await _context.Vendas
                 .AsNoTracking()
                 .Where(v => v.ComercioID == comercioId
-                    && v.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(v.Status)
                     && v.CriadoEm >= inicio && v.CriadoEm <= fim)
                 .Select(v => new { v.CriadoEm, v.Total })
                 .ToListAsync();
@@ -317,7 +322,7 @@ namespace ninx.Infra.Repository
                     ClienteNome = c.Nome,
                     Telefone = c.Telefone,
                     UltimaCompra = _context.Vendas
-                        .Where(v => v.ClienteID == c.ClienteID && v.Status == StatusVenda.Finalizada)
+                        .Where(v => v.ClienteID == c.ClienteID && StatusVendasConcluidas.Contains(v.Status))
                         .Max(v => (DateTime?)v.CriadoEm)
                 })
                 .Where(x => x.UltimaCompra == null || x.UltimaCompra < referencia)
@@ -347,7 +352,7 @@ namespace ninx.Infra.Repository
                     SaldoDevedor = _context.Vendas
                         .Where(v => v.ClienteID == c.ClienteID
                             && v.TipoVenda == TipoVenda.Fiado
-                            && v.Status == StatusVenda.Finalizada)
+                            && v.Status == StatusVenda.Aberta)
                         .Sum(v => v.Total - (v.PagamentosVenda.Where(p => p.Status == StatusPagamento.Pago).Sum(p => (decimal?)p.Valor) ?? 0))
                 })
                 .Where(x => x.SaldoDevedor > 0)
@@ -361,7 +366,7 @@ namespace ninx.Infra.Repository
             return await _context.ItemVendas
                 .AsNoTracking()
                 .Where(i => i.Venda.ComercioID == comercioId
-                    && i.Venda.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(i.Venda.Status)
                     && i.Venda.CriadoEm >= inicio && i.Venda.CriadoEm <= fim)
                 .GroupBy(i => new { i.ProdutoID, i.ProdutoNome })
                 .Select(g => new GiroEstoqueResumo
@@ -387,7 +392,7 @@ namespace ninx.Infra.Repository
                     && e.Quantidade > 0
                     && !_context.ItemVendas.Any(i => i.ProdutoID == e.ProdutoID
                         && i.Venda.ComercioID == comercioId
-                        && i.Venda.Status == StatusVenda.Finalizada
+                        && StatusVendasConcluidas.Contains(i.Venda.Status)
                         && i.Venda.CriadoEm >= inicio && i.Venda.CriadoEm <= fim))
                 .Select(e => new ProdutoParadoResumo
                 {
@@ -434,7 +439,7 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .AsNoTracking()
                 .Where(v => comercioIds.Contains(v.ComercioID)
-                    && v.Status == StatusVenda.Finalizada
+                    && StatusVendasConcluidas.Contains(v.Status)
                     && v.CriadoEm >= inicio && v.CriadoEm <= fim)
                 .GroupBy(v => new { v.ComercioID, v.Comercio.NomeComercio })
                 .Select(g => new ComercioComparativoResumo

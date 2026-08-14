@@ -116,7 +116,7 @@ namespace ninx.Infra.Repository
                 .Include(v => v.PagamentosVenda) 
                 .Where(v => v.ClienteID == clienteId &&
                             v.TipoVenda == TipoVenda.Fiado &&
-                            v.Status == StatusVenda.Finalizada)
+                            v.Status == StatusVenda.Aberta)
                 .Where(v => v.Total > v.PagamentosVenda
                     .Where(p => p.Status == StatusPagamento.Pago)
                     .Sum(p => (decimal?)p.Valor)) 
