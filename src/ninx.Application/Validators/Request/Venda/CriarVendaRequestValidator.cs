@@ -9,7 +9,7 @@ namespace ninx.Application.Validators.Request
         {
             RuleFor(x => x.ClienteID)
                 .GreaterThan(0).WithMessage("O ID do cliente deve ser maior que zero.")
-                .When(x => x.ClienteID.HasValue);
+                .When(x => x.ClienteID.HasValue && x.ClienteID.Value != 0);
 
             RuleFor(x => x.Observacoes)
                 .MaximumLength(500).WithMessage("Observa��es deve ter no m�ximo 500 caracteres.")
