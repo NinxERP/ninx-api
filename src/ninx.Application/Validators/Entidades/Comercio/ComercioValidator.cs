@@ -27,6 +27,10 @@ namespace ninx.Application.Validators.Entidades
                 .Must(ValidarBase64).WithMessage("Imagem de assinatura inválida ou não está em formato base64.")
                 .When(x => !string.IsNullOrEmpty(x.AssinaturaResponsavelBase64));
 
+            RuleFor(x => x.LimiteCreditoPadrao)
+                .GreaterThan(0).WithMessage("Limite de crédito padrão deve ser maior que zero.")
+                .When(x => x.LimiteCreditoPadrao.HasValue);
+
             RuleFor(x => x.CriadoEm)
                 .LessThanOrEqualTo(DateTime.UtcNow).WithMessage("Data de criação não pode ser futura.");
 

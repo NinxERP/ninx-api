@@ -23,6 +23,10 @@ namespace ninx.Application.Validators.Request
             RuleFor(x => x.AssinaturaResponsavelBase64)
                 .Must(ValidarBase64).WithMessage("Imagem de assinatura inválida ou não está em formato base64.")
                 .When(x => !string.IsNullOrEmpty(x.AssinaturaResponsavelBase64));
+
+            RuleFor(x => x.LimiteCreditoPadrao)
+                .GreaterThan(0).WithMessage("Limite de crédito padrão deve ser maior que zero.")
+                .When(x => x.LimiteCreditoPadrao.HasValue);
         }
 
         private bool ValidarCNPJ(string cnpj)

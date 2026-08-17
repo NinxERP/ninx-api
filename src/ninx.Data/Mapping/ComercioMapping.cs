@@ -29,6 +29,10 @@ public class ComercioMapping : IEntityTypeConfiguration<Comercio>
             .IsRequired(false)
             .HasColumnType("nvarchar(max)");
 
+        builder.Property(x => x.LimiteCreditoPadrao)
+            .IsRequired(false)
+            .HasColumnType("decimal(10,2)");
+
         builder.HasIndex(x => x.CNPJ)
             .IsUnique();
 

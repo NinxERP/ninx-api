@@ -7,6 +7,7 @@
         public string? Endereco { get; set; }
         public string? CNPJ { get; set; }
         public string? AssinaturaResponsavelBase64 { get; set; }
+        public decimal? LimiteCreditoPadrao { get; set; }
         public bool Ativo { get; set; } = true;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
