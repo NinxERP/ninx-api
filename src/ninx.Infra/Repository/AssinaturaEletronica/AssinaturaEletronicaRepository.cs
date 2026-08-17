@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ninx.Communication;
 using ninx.Data.Context;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
@@ -21,12 +22,17 @@ namespace ninx.Infra.Repository
                 .AnyAsync(a => a.VendaID == vendaId && a.Assinado == false);
         }
 
-        public async Task<List<Guid>> GetDocumentoGuidsPorVendaAsync(int vendaId)
+        public async Task<List<VendaDocumentoResumo>> GetDocumentosPorVendaIdsAsync(IEnumerable<int> vendaIds)
         {
             return await _context.AssinaturaEletronica
                 .AsNoTracking()
-                .Where(a => a.VendaID == vendaId && a.DocumentoGuid != Guid.Empty)
-                .Select(a => a.DocumentoGuid)
+                .Where(a => vendaIds.Contains(a.VendaID) && a.DocumentoGuid != Guid.Empty)
+                .Select(a => new VendaDocumentoResumo
+                {
+                    VendaID = a.VendaID,
+                    DocumentoGuid = a.DocumentoGuid,
+                    Assinado = a.Assinado
+                })
                 .ToListAsync();
         }
 

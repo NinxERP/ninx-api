@@ -1,4 +1,5 @@
-﻿using ninx.Domain.Entities;
+﻿using ninx.Communication;
+using ninx.Domain.Entities;
 
 namespace ninx.Domain.Interfaces
 {
@@ -9,7 +10,7 @@ namespace ninx.Domain.Interfaces
         Task<List<AssinaturaEletronica>> GetAllByGuidAsync(Guid guid);
         Task<AssinaturaEletronica?> GetClienteLojaAssinaturaByGuidAsync(Guid guid);
         Task<bool> ExisteAssinaturaPendenteAsync(int vendaId);
-        Task<List<Guid>> GetDocumentoGuidsPorVendaAsync(int vendaId);
+        Task<List<VendaDocumentoResumo>> GetDocumentosPorVendaIdsAsync(IEnumerable<int> vendaIds);
         Task<int> CancelarPorVendaIdAsync(int vendaId, DateTime dataOperacao);
     }
 }

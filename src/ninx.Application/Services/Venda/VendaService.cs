@@ -72,7 +72,7 @@ namespace ninx.Application.Services
                 throw new NotFoundException("Nenhuma venda foi encontrada para os filtros.");
             }
 
-            return PopulaSaldoTotal(vendas);
+            return await PopulaSaldoTotalAsync(vendas);
         }
         public async Task<IEnumerable<VendaResponse>> GetByUsuarioIdAsync(int usuarioID, int comercioId)
         {
@@ -83,7 +83,7 @@ namespace ninx.Application.Services
                 throw new NotFoundException("Nenhuma venda encontrada para o usuário especificado.");
             }
 
-            return PopulaSaldoTotal(vendas);
+            return await PopulaSaldoTotalAsync(vendas);
         }
 
         public async Task<IEnumerable<VendaResponse>> GetByClienteIdAsync(int clienteId, int comercioId)
@@ -95,8 +95,7 @@ namespace ninx.Application.Services
                 throw new NotFoundException("Nenhuma venda encontrada para o usuário especificado.");
             }
 
-            var vendaResponse = PopulaSaldoTotal(vendas);
-            return vendaResponse;
+            return await PopulaSaldoTotalAsync(vendas);
         }
         public async Task<VendaResponse> GetByVendaIdAsync(int id, int comercioId)
         {
@@ -106,13 +105,7 @@ namespace ninx.Application.Services
                 throw new NotFoundException("Venda não encontrada");
             }
 
-            var response = PopulaSaldoTotal(new[] { venda }).First();
-
-            var documentoGuids = await _assinaturaEletronicaRepository.GetDocumentoGuidsPorVendaAsync(id);
-            if (documentoGuids.Any())
-            {
-                response.DocumentoGuid = documentoGuids;
-            }
+            var response = (await PopulaSaldoTotalAsync(new[] { venda })).First();
 
             return response;
         }
@@ -166,7 +159,7 @@ namespace ninx.Application.Services
                     var response = venda.Adapt<VendaResponse>();
                     if (documentoGuid.HasValue)
                     {
-                        response.DocumentoGuid.Add(documentoGuid.Value);
+                        response.Documentos.Add(new DocumentoAssinaturaResponse { DocumentoGuid = documentoGuid.Value, Assinado = false });
                     }
                     return response;
                 }
@@ -376,13 +369,14 @@ namespace ninx.Application.Services
             }
         }
 
-        public IEnumerable<VendaResponse> PopulaSaldoTotal(IEnumerable<Venda> vendas)
+        private async Task<List<VendaResponse>> PopulaSaldoTotalAsync(IEnumerable<Venda> vendas)
         {
-            var responses = vendas.Adapt<List<VendaResponse>>();
+            var vendasList = vendas as IList<Venda> ?? vendas.ToList();
+            var responses = vendasList.Adapt<List<VendaResponse>>();
 
             var lookup = responses.ToDictionary(x => x.VendaID);
 
-            foreach (var venda in vendas)
+            foreach (var venda in vendasList)
             {
                 var response = lookup[venda.VendaID];
 
@@ -392,6 +386,19 @@ namespace ninx.Application.Services
 
                 response.ValorPago = totalPago;
                 response.SaldoDevedor = venda.Total - totalPago;
+            }
+
+            var vendaIds = vendasList.Select(v => v.VendaID).ToList();
+            var documentos = await _assinaturaEletronicaRepository.GetDocumentosPorVendaIdsAsync(vendaIds);
+
+            foreach (var grupo in documentos.GroupBy(d => d.VendaID))
+            {
+                if (!lookup.TryGetValue(grupo.Key, out var response))
+                    continue;
+
+                response.Documentos = grupo
+                    .Select(d => new DocumentoAssinaturaResponse { DocumentoGuid = d.DocumentoGuid, Assinado = d.Assinado })
+                    .ToList();
             }
 
             return responses;

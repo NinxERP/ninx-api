@@ -50,7 +50,7 @@ namespace ninx.Infra.Repository
             return await _context.Vendas
                 .AsNoTracking()
                 .Include(v => v.PagamentosVenda)
-                .Where(v => v.ClienteID == clienteId && v.ComercioID == comercioId)
+                .Where(v => v.ClienteID == clienteId && v.ComercioID == comercioId && v.Status == StatusVenda.Aberta)
                 .OrderByDescending(v => v.CriadoEm)
                 .ToListAsync();
         }
