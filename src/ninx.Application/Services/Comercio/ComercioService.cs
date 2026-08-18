@@ -13,21 +13,29 @@ namespace ninx.Application.Services
         private readonly IComercioRepository _comercioRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
+        private readonly IUsuarioRepository _usuarioRepository;
         private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
         private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
+        private readonly IAutorizacaoGlobalService _autorizacaoGlobalService;
+        private readonly ILogAuditoriaService _logAuditoriaService;
 
-        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IAssinaturaPlanoRepository assinaturaPlanoRepository, IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository)
+        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IUsuarioRepository usuarioRepository, IAssinaturaPlanoRepository assinaturaPlanoRepository, IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository, IAutorizacaoGlobalService autorizacaoGlobalService, ILogAuditoriaService logAuditoriaService)
         {
             _comercioRepository = comercioRepository;
             _unitOfWork = unitOfWork;
             _usuarioComercioRepository = usuarioComercioRepository;
+            _usuarioRepository = usuarioRepository;
             _assinaturaPlanoRepository = assinaturaPlanoRepository;
             _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
+            _autorizacaoGlobalService = autorizacaoGlobalService;
+            _logAuditoriaService = logAuditoriaService;
         }
 
 
-        public async Task<PaginatedResponse<ComercioResponse>> GetAll(PaginationRequest request)
+        public async Task<PaginatedResponse<ComercioResponse>> GetAll(PaginationRequest request, int usuarioIdLogado)
         {
+            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
+
             var (entidades, total) = await _comercioRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
             var listaResponse = entidades.Adapt<List<ComercioResponse>>();
 
@@ -59,8 +67,10 @@ namespace ninx.Application.Services
             return comercios.Adapt<IEnumerable<ComercioResponse>>();
         }
 
-        public async Task<ComercioResponse> CriarAsync(ComercioRequest request)
+        public async Task<ComercioResponse> CriarAsync(ComercioRequest request, int usuarioIdLogado)
         {
+            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
+
             var comercio = request.Adapt<Comercio>();
             var assinatura = new AssinaturaPlano
             {
@@ -78,6 +88,9 @@ namespace ninx.Application.Services
             await _pagamentoHistoricoAssinaturaPlanoRepository.AddAsync(primeiroPagamento);
             await _assinaturaPlanoRepository.AddAsync(assinatura);
             await _comercioRepository.AddAsync(comercio);
+            await _unitOfWork.SaveChangesAsync();
+
+            await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, comercio.ComercioID, "ComercioCriado", "Comercio", comercio.ComercioID);
             await _unitOfWork.SaveChangesAsync();
 
             return comercio.Adapt<ComercioResponse>();
@@ -118,6 +131,7 @@ namespace ninx.Application.Services
             comercio.AtualizadoEm = DateTime.UtcNow;
 
             await _comercioRepository.UpdateAsync(comercio);
+            await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, comercio.ComercioID, "ComercioDesativado", "Comercio", comercio.ComercioID);
             await _unitOfWork.SaveChangesAsync();
         }
 

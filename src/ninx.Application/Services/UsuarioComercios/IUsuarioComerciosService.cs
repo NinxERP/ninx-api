@@ -7,7 +7,7 @@ namespace ninx.Application.Services
     {
         Task<IEnumerable<UsuarioComercioResponse>> GetByUsuarioIdAsync(int usuarioId);
         Task<IEnumerable<UsuarioComercioResponse>> GetByComercioIdAsync(int comercioId);
-        Task<UsuarioComercioResponse> CriarAsync(CriarUsuarioComercioRequest request);
+        Task<UsuarioComercioResponse> CriarAsync(CriarUsuarioComercioRequest request, int usuarioLogadoId);
         Task<UsuarioComercioResponse> AtualizarAsync(AtualizarUsuarioComercioRequest request, int usuarioLogadoId);
         Task DesativarAsync(int usuarioId, int comercioId, int usuarioLogadoId);
     }

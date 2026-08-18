@@ -6,5 +6,6 @@ namespace ninx.Application.Services
     public interface IPagamentoHistoricoAssinaturaPlanoService
     {
         Task RegistrarPagamentos(PagamentoHistoricoAssinaturaPlanoRequest request, Permissao permissao);
+        Task<PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>> GetHistoricoByComercioIdAsync(int comercioId, Permissao permissaoLogado, PaginationRequest request);
     }
 }

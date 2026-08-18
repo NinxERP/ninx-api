@@ -11,18 +11,23 @@ namespace ninx.Application.Services
     {
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
+        private readonly IUsuarioComercioService _usuarioComercioService;
+        private readonly IAutorizacaoGlobalService _autorizacaoGlobalService;
+        private readonly ILogAuditoriaService _logAuditoriaService;
         private readonly IUnitOfWork _unitOfWork;
-        public UsuarioService(IUsuarioRepository usuarioRepository, IUsuarioComercioRepository usuarioComercioRepository, IUnitOfWork unitOfWork)
+        public UsuarioService(IUsuarioRepository usuarioRepository, IUsuarioComercioRepository usuarioComercioRepository, IUsuarioComercioService usuarioComercioService, IAutorizacaoGlobalService autorizacaoGlobalService, ILogAuditoriaService logAuditoriaService, IUnitOfWork unitOfWork)
         {
             _usuarioRepository = usuarioRepository;
             _usuarioComercioRepository = usuarioComercioRepository;
+            _usuarioComercioService = usuarioComercioService;
+            _autorizacaoGlobalService = autorizacaoGlobalService;
+            _logAuditoriaService = logAuditoriaService;
             _unitOfWork = unitOfWork;
         }
 
         public async Task<UsuarioResponse> GetById(int id, int usuarioIdLogado)
         {
-            var usuarioLogado = await _usuarioRepository.GetByIdAsync(usuarioIdLogado);
-            if (usuarioLogado.Permissao != Permissao.Administrador) throw new UnauthorizedException("Você não possui permissão para utilizar esse endpoint");
+            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
 
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario is null) throw new NotFoundException("Usuário não encontrado");
@@ -32,8 +37,7 @@ namespace ninx.Application.Services
 
         public async Task<PaginatedResponse<UsuarioResponse>> GetAll(int usuarioIdLogado, PaginationRequest request)
         {
-            var usuarioLogado = await _usuarioRepository.GetByIdAsync(usuarioIdLogado);
-            if (usuarioLogado.Permissao != Permissao.Administrador) throw new UnauthorizedException("Você não possui permissão para utilizar esse endpoint");
+            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
 
             var usuarios = await _usuarioRepository.GetAllAsync();
             if (usuarios is null || !usuarios.Any()) throw new NotFoundException("Nenhum usuário foi encontrado");
@@ -126,44 +130,102 @@ namespace ninx.Application.Services
             return novoUsuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int comercioId, Permissao permissaoLogado)
+        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int usuarioIdLogado)
         {
-            if (permissaoLogado == Permissao.Funcionario)
-                throw new ForbiddenException("Funcionários não podem atualizar usuários.");
+            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
 
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario is null) throw new NotFoundException("Usuario não encontrado");
 
-            var vinculo = await _usuarioComercioRepository.GetVinculoAsync(id, comercioId);
-            if (vinculo is null) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
-
-            if (permissaoLogado == Permissao.Dono && vinculo.Permissao != Permissao.Funcionario)
-                throw new ForbiddenException("Você só pode atualizar usuários com permissão de funcionário.");
+            await GarantirEmailDisponivelAsync(request.Email, id);
 
             request.Adapt(usuario);
+            usuario.AtualizadoEm = DateTime.UtcNow;
+            await _usuarioRepository.UpdateAsync(usuario);
+            await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, null, "UsuarioIdentidadeAtualizada", "Usuario", id);
+            await _unitOfWork.SaveChangesAsync();
+            return usuario.Adapt<UsuarioResponse>();
+        }
+
+        public async Task<UsuarioResponse> AtualizarMeuPerfilAsync(int usuarioIdLogado, AtualizarMeuPerfilRequest request)
+        {
+            var usuario = await _usuarioRepository.GetByIdAsync(usuarioIdLogado);
+            if (usuario is null) throw new NotFoundException("Usuario não encontrado");
+
+            await GarantirEmailDisponivelAsync(request.Email, usuarioIdLogado);
+
+            usuario.Nome = request.Nome;
+            usuario.Email = request.Email;
+            if (!string.IsNullOrWhiteSpace(request.Senha))
+                usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha);
+
+            usuario.AtualizadoEm = DateTime.UtcNow;
             await _usuarioRepository.UpdateAsync(usuario);
             await _unitOfWork.SaveChangesAsync();
             return usuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task DesativarAsync(int id, int comercioId, Permissao permissaoLogado)
+        public async Task DesativarAsync(int id, int comercioId, int usuarioIdLogado)
         {
-            if (permissaoLogado == Permissao.Funcionario)
-                throw new ForbiddenException("Funcionários não podem desativar usuários.");
+            await _usuarioComercioService.DesativarAsync(id, comercioId, usuarioIdLogado);
+        }
+
+        public async Task DesativarGlobalAsync(int id, int usuarioIdLogado)
+        {
+            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
 
             var usuario = await _usuarioRepository.GetByIdAsync(id);
-            if (usuario == null) throw new NotFoundException("Usuário não encontrado.");
-
-            var vinculo = await _usuarioComercioRepository.GetVinculoAsync(id, comercioId);
-            if (vinculo is null) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
-
-            if (permissaoLogado == Permissao.Dono && vinculo.Permissao != Permissao.Funcionario)
-                throw new ForbiddenException("Você só pode desativar usuários com permissão de funcionário.");
+            if (usuario is null) throw new NotFoundException("Usuário não encontrado.");
 
             usuario.Ativo = false;
             usuario.AtualizadoEm = DateTime.UtcNow;
             await _usuarioRepository.UpdateAsync(usuario);
+            await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, null, "UsuarioDesativadoGlobal", "Usuario", id);
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task ResetarSenhaAsync(int id, int usuarioIdLogado, ResetarSenhaRequest request)
+        {
+            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
+
+            var usuario = await _usuarioRepository.GetByIdAsync(id);
+            if (usuario is null) throw new NotFoundException("Usuário não encontrado.");
+
+            usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(request.NovaSenha);
+            usuario.AtualizadoEm = DateTime.UtcNow;
+            await _usuarioRepository.UpdateAsync(usuario);
+            await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, null, "UsuarioSenhaResetada", "Usuario", id);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<UsuarioResponse> AtualizarAdminAsync(int id, int usuarioIdLogado, AtualizarAdminRequest request)
+        {
+            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
+
+            var usuario = await _usuarioRepository.GetByIdAsync(id);
+            if (usuario is null) throw new NotFoundException("Usuário não encontrado.");
+
+            if (usuario.Admin && !request.Admin)
+            {
+                var todosUsuarios = await _usuarioRepository.GetAllAsync();
+                var restamOutrosAdmins = todosUsuarios.Any(u => u.Admin && u.UsuarioID != id);
+                if (!restamOutrosAdmins)
+                    throw new BadRequestException("Não é possível remover o último administrador de plataforma.");
+            }
+
+            usuario.Admin = request.Admin;
+            usuario.AtualizadoEm = DateTime.UtcNow;
+            await _usuarioRepository.UpdateAsync(usuario);
+            await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, null, request.Admin ? "UsuarioPromovidoAdmin" : "UsuarioRebaixadoAdmin", "Usuario", id);
+            await _unitOfWork.SaveChangesAsync();
+            return usuario.Adapt<UsuarioResponse>();
+        }
+
+        private async Task GarantirEmailDisponivelAsync(string email, int usuarioId)
+        {
+            var existente = await _usuarioRepository.GetUsuarioByEmail(email);
+            if (existente != null && existente.UsuarioID != usuarioId)
+                throw new BadRequestException("E-mail já cadastrado.");
         }
     }
 }

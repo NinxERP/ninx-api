@@ -4,5 +4,6 @@
     {
         public int UsuarioID { get; set; }
         public int ComercioID { get; set; }
+        public int Permissao { get; set; }
     }
 }

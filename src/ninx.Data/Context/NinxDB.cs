@@ -18,6 +18,7 @@ namespace ninx.Data.Context
         public DbSet<DocumentoTemplate> DocumentosTemplate { get; set; }
         public DbSet<Estoque> Estoques { get; set; }
         public DbSet<ItemVenda> ItemVendas { get; set; }
+        public DbSet<LogAuditoria> LogsAuditoria { get; set; }
         public DbSet<MovimentacaoEstoque> MovimentacaoEstoque { get; set; }
         public DbSet<PagamentoVenda> PagamentoVendas { get; set; }
         public DbSet<PagamentoHistoricoAssinaturaPlano> PagamentoHistoricoAssinaturaPlano { get; set; }

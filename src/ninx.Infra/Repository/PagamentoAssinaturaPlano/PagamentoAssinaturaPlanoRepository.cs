@@ -21,5 +21,22 @@ namespace ninx.Infra.Repository
                 .OrderByDescending(x => x.DataPagamento)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<(IEnumerable<PagamentoHistoricoAssinaturaPlano> Data, int TotalCount)> GetPaginadoByComercioIdAsync(int comercioId, int pageNumber, int pageSize)
+        {
+            var query = _context.PagamentoHistoricoAssinaturaPlano
+                .AsNoTracking()
+                .Where(x => x.Assinatura.ComercioID == comercioId)
+                .OrderByDescending(x => x.DataPagamento);
+
+            var totalCount = await query.CountAsync();
+
+            var data = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (data, totalCount);
+        }
     }
 }

@@ -24,6 +24,23 @@ namespace ninx.Api.Controllers
         }
 
         /// <summary>
+        /// Lista todos os comércios cadastrados na plataforma.
+        /// </summary>
+        /// <param name="request">Parâmetros de paginação e busca.</param>
+        /// <response code="200">Comércios retornados com sucesso.</response>
+        /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
+        [HttpGet("All")]
+        [SwaggerOperation(Summary = "Listar todos os comércios", Description = "Retorna todos os comércios cadastrados na plataforma, sem restringir por vínculo. Restrito a administradores globais (Usuario.Admin == true).")]
+        [ProducesResponseType(typeof(PaginatedResponse<ComercioResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
+        {
+            var usuarioIdLogado = GetUsuarioId();
+            var result = await _comercioService.GetAll(request, usuarioIdLogado);
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Lista os comércios vinculados a um usuário.
         /// </summary>
         /// <param name="usuarioId">Identificador do usuário.</param>
@@ -61,13 +78,16 @@ namespace ninx.Api.Controllers
         /// <param name="request">Dados do comércio a ser criado.</param>
         /// <response code="201">Comércio criado com sucesso.</response>
         /// <response code="400">Dados inválidos.</response>
+        /// <response code="401">Apenas administradores globais podem criar comércios.</response>
         [HttpPost]
-        [SwaggerOperation(Summary = "Criar comércio", Description = "Cadastra um novo comércio.")]
+        [SwaggerOperation(Summary = "Criar comércio", Description = "Cadastra um novo comércio. Restrito a administradores globais (Usuario.Admin == true).")]
         [ProducesResponseType(typeof(ComercioResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Criar([FromBody] ComercioRequest request)
         {
-            var result = await _comercioService.CriarAsync(request);
+            var usuarioIdLogado = GetUsuarioId();
+            var result = await _comercioService.CriarAsync(request, usuarioIdLogado);
             return CreatedAtAction(nameof(GetById), new { id = result.ComercioID }, result);
         }
 

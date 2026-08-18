@@ -24,6 +24,27 @@ namespace ninx.Api.Controllers
         }
 
         /// <summary>
+        /// Vincula um usuário existente a um comércio.
+        /// </summary>
+        /// <param name="request">Dados do vínculo a ser criado, incluindo permissão.</param>
+        /// <response code="201">Vínculo criado com sucesso.</response>
+        /// <response code="400">Dados inválidos ou usuário já vinculado a esse comércio.</response>
+        /// <response code="403">Usuário autenticado não tem permissão para vincular usuários a esse comércio.</response>
+        /// <response code="404">Usuário não encontrado.</response>
+        [HttpPost]
+        [SwaggerOperation(Summary = "Vincular usuário a comércio", Description = "Vincula um usuário já cadastrado na plataforma a um comércio, com a permissão informada. Restrito a Administrador/Dono do comércio; Donos só podem vincular com permissão de funcionário (a permissão informada é forçada para Funcionario).")]
+        [ProducesResponseType(typeof(UsuarioComercioResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Criar([FromBody] CriarUsuarioComercioRequest request)
+        {
+            var usuarioLogadoId = GetUsuarioId();
+            var result = await _usuarioComercioService.CriarAsync(request, usuarioLogadoId);
+            return StatusCode(StatusCodes.Status201Created, result);
+        }
+
+        /// <summary>
         /// Atualiza o vínculo entre um usuário e um comércio.
         /// </summary>
         /// <param name="request">Dados do vínculo a serem atualizados, incluindo permissão.</param>

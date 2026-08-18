@@ -58,8 +58,24 @@ namespace ninx.Application.Services
             await _pagamentoHistoricoAssinaturaPlanoRepository.AddAsync(newPagamento);
             await _unitOfWork.SaveChangesAsync();
 
-            _logger.LogInformation($"Pagamento registrado com sucesso. AssinaturaID: {assinatura.AssinaturaID} ComercioID: {request.ComercioId} DataVencimento: {novoVencimento}" 
+            _logger.LogInformation($"Pagamento registrado com sucesso. AssinaturaID: {assinatura.AssinaturaID} ComercioID: {request.ComercioId} DataVencimento: {novoVencimento}"
            );
+        }
+
+        public async Task<PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>> GetHistoricoByComercioIdAsync(int comercioId, Permissao permissaoLogado, PaginationRequest request)
+        {
+            if (permissaoLogado == Permissao.Funcionario)
+                throw new ForbiddenException("Funcionários não podem consultar o histórico de pagamentos da assinatura.");
+
+            var (entidades, total) = await _pagamentoHistoricoAssinaturaPlanoRepository.GetPaginadoByComercioIdAsync(comercioId, request.PageNumber, request.PageSize);
+            var listaResponse = entidades.Adapt<List<PagamentoHistoricoAssinaturaPlanoResponse>>();
+
+            return new PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>(
+                listaResponse,
+                request.PageNumber,
+                request.PageSize,
+                total
+            );
         }
     }
 }

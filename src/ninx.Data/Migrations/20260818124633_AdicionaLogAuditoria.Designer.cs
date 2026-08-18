@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ninx.Data.Context;
 
@@ -11,9 +12,11 @@ using ninx.Data.Context;
 namespace ninx.Data.Migrations
 {
     [DbContext(typeof(NinxDB))]
-    partial class NinxDBModelSnapshot : ModelSnapshot
+    [Migration("20260818124633_AdicionaLogAuditoria")]
+    partial class AdicionaLogAuditoria
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -765,11 +768,6 @@ namespace ninx.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UsuarioID"));
 
-                    b.Property<bool>("Admin")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<bool>("Ativo")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -793,6 +791,11 @@ namespace ninx.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Permissao")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("SenhaHash")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -803,7 +806,10 @@ namespace ninx.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Usuarios", (string)null);
+                    b.ToTable("Usuarios", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Usuarios_Permissao", "[Permissao] IN ('Administrador', 'Dono', 'Funcionario')");
+                        });
                 });
 
             modelBuilder.Entity("ninx.Domain.Entities.UsuarioComercio", b =>

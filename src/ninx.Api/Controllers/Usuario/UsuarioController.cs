@@ -31,7 +31,7 @@ namespace ninx.Api.Controllers
         /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
         /// <response code="404">Usuário não encontrado.</response>
         [HttpGet("NoComercioId/{id}")]
-        [SwaggerOperation(Summary = "Buscar usuário por id (sem filtro de comércio)", Description = "Retorna um usuário pelo identificador, sem restringir a busca ao comércio ativo na sessão. Restrito a administradores globais (Usuario.Permissao == Administrador).")]
+        [SwaggerOperation(Summary = "Buscar usuário por id (sem filtro de comércio)", Description = "Retorna um usuário pelo identificador, sem restringir a busca ao comércio ativo na sessão. Restrito a administradores globais (Usuario.Admin == true).")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -50,7 +50,7 @@ namespace ninx.Api.Controllers
         /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
         /// <response code="404">Nenhum usuário encontrado.</response>
         [HttpGet("NoComercioId/All")]
-        [SwaggerOperation(Summary = "Listar usuários (sem filtro de comércio)", Description = "Retorna os usuários de todos os comércios, sem restringir ao comércio ativo na sessão. Restrito a administradores globais (Usuario.Permissao == Administrador) — não use esse endpoint para a tela padrão de gestão de equipe, use GET /api/Usuario/All.")]
+        [SwaggerOperation(Summary = "Listar usuários (sem filtro de comércio)", Description = "Retorna os usuários de todos os comércios, sem restringir ao comércio ativo na sessão. Restrito a administradores globais (Usuario.Admin == true) — não use esse endpoint para a tela padrão de gestão de equipe, use GET /api/Usuario/All.")]
         [ProducesResponseType(typeof(PaginatedResponse<UsuarioResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -125,44 +125,123 @@ namespace ninx.Api.Controllers
         }
 
         /// <summary>
-        /// Atualiza os dados de um usuário existente.
+        /// Atualiza os dados cadastrais de um usuário existente.
         /// </summary>
         /// <param name="id">Identificador do usuário.</param>
         /// <param name="request">Dados a serem atualizados.</param>
         /// <response code="200">Usuário atualizado com sucesso.</response>
-        /// <response code="403">Sem permissão para atualizar este usuário.</response>
-        /// <response code="404">Usuário não encontrado no comércio autenticado.</response>
+        /// <response code="400">E-mail já cadastrado para outro usuário.</response>
+        /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
+        /// <response code="404">Usuário não encontrado.</response>
         [HttpPut("{id}")]
-        [SwaggerOperation(Summary = "Atualizar usuário", Description = "Atualiza os dados de um usuário do comércio autenticado. Donos (gerentes) só podem atualizar usuários com permissão de funcionário; funcionários não podem atualizar usuários.")]
+        [SwaggerOperation(Summary = "Atualizar usuário", Description = "Atualiza nome e e-mail de um usuário. Esses dados são compartilhados entre todos os comércios do usuário, por isso o endpoint é restrito a administradores globais (Usuario.Admin == true); para editar o próprio perfil use PUT /api/Usuario/MeuPerfil, e para gerenciar a permissão/acesso de um usuário em um comércio use o PUT /api/UsuarioComercio.")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Atualizar(int id, [FromBody] AtualizarUsuarioRequest request)
         {
-            var comercioId = GetComercioId();
-            var permissao = GetPermissao();
-            var usuario = await _usuarioService.AtualizarAsync(id, request, comercioId, permissao);
+            var usuarioIdLogado = GetUsuarioId();
+            var usuario = await _usuarioService.AtualizarAsync(id, request, usuarioIdLogado);
             return Ok(usuario);
         }
 
         /// <summary>
-        /// Desativa um usuário.
+        /// Atualiza os dados cadastrais do próprio usuário autenticado.
+        /// </summary>
+        /// <param name="request">Dados a serem atualizados, incluindo nova senha (opcional).</param>
+        /// <response code="200">Perfil atualizado com sucesso.</response>
+        /// <response code="400">E-mail já cadastrado para outro usuário.</response>
+        [HttpPut("MeuPerfil")]
+        [SwaggerOperation(Summary = "Atualizar meu perfil", Description = "Atualiza nome, e-mail e, opcionalmente, a senha do usuário autenticado.")]
+        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> AtualizarMeuPerfil([FromBody] AtualizarMeuPerfilRequest request)
+        {
+            var usuarioIdLogado = GetUsuarioId();
+            var usuario = await _usuarioService.AtualizarMeuPerfilAsync(usuarioIdLogado, request);
+            return Ok(usuario);
+        }
+
+        /// <summary>
+        /// Desativa o acesso de um usuário ao comércio autenticado.
         /// </summary>
         /// <param name="id">Identificador do usuário.</param>
         /// <response code="204">Usuário desativado com sucesso.</response>
         /// <response code="403">Sem permissão para desativar este usuário.</response>
         /// <response code="404">Usuário não encontrado no comércio autenticado.</response>
         [HttpDelete("{id}")]
-        [SwaggerOperation(Summary = "Desativar usuário", Description = "Desativa (soft delete) um usuário do comércio autenticado. Donos (gerentes) só podem desativar usuários com permissão de funcionário; funcionários não podem desativar usuários.")]
+        [SwaggerOperation(Summary = "Desativar usuário", Description = "Desativa o vínculo do usuário com o comércio autenticado (revoga o acesso só a esse comércio). Se esse era o único vínculo ativo do usuário, a conta também é desativada globalmente. Donos (gerentes) só podem desativar usuários com permissão de funcionário; funcionários não podem desativar usuários.")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Desativar(int id)
         {
             var comercioId = GetComercioId();
-            var permissao = GetPermissao();
-            await _usuarioService.DesativarAsync(id, comercioId, permissao);
+            var usuarioIdLogado = GetUsuarioId();
+            await _usuarioService.DesativarAsync(id, comercioId, usuarioIdLogado);
             return NoContent();
+        }
+
+        /// <summary>
+        /// Desativa um usuário em toda a plataforma, independentemente dos comércios vinculados.
+        /// </summary>
+        /// <param name="id">Identificador do usuário.</param>
+        /// <response code="204">Usuário desativado com sucesso.</response>
+        /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
+        /// <response code="404">Usuário não encontrado.</response>
+        [HttpDelete("NoComercioId/{id}")]
+        [SwaggerOperation(Summary = "Desativar usuário (global)", Description = "Desativa (soft delete) um usuário em toda a plataforma, independentemente dos vínculos com comércios. Restrito a administradores globais (Usuario.Admin == true).")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DesativarGlobal(int id)
+        {
+            var usuarioIdLogado = GetUsuarioId();
+            await _usuarioService.DesativarGlobalAsync(id, usuarioIdLogado);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Reseta a senha de um usuário.
+        /// </summary>
+        /// <param name="id">Identificador do usuário.</param>
+        /// <param name="request">Nova senha a ser definida.</param>
+        /// <response code="204">Senha redefinida com sucesso.</response>
+        /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
+        /// <response code="404">Usuário não encontrado.</response>
+        [HttpPut("NoComercioId/{id}/Senha")]
+        [SwaggerOperation(Summary = "Resetar senha (suporte)", Description = "Redefine a senha de um usuário para uso em atendimento de suporte. Restrito a administradores globais (Usuario.Admin == true).")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ResetarSenha(int id, [FromBody] ResetarSenhaRequest request)
+        {
+            var usuarioIdLogado = GetUsuarioId();
+            await _usuarioService.ResetarSenhaAsync(id, usuarioIdLogado, request);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Concede ou revoga o acesso de administrador de plataforma de um usuário.
+        /// </summary>
+        /// <param name="id">Identificador do usuário.</param>
+        /// <param name="request">Novo status de administrador de plataforma.</param>
+        /// <response code="200">Status atualizado com sucesso.</response>
+        /// <response code="400">Tentativa de remover o último administrador de plataforma.</response>
+        /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
+        /// <response code="404">Usuário não encontrado.</response>
+        [HttpPut("NoComercioId/{id}/Admin")]
+        [SwaggerOperation(Summary = "Conceder/revogar administrador de plataforma", Description = "Concede ou revoga o acesso de administrador de plataforma (Usuario.Admin) de um usuário, independente dos comércios vinculados. Restrito a administradores globais.")]
+        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AtualizarAdmin(int id, [FromBody] AtualizarAdminRequest request)
+        {
+            var usuarioIdLogado = GetUsuarioId();
+            var usuario = await _usuarioService.AtualizarAdminAsync(id, usuarioIdLogado, request);
+            return Ok(usuario);
         }
     }
 }

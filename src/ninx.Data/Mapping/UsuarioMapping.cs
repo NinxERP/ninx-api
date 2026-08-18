@@ -28,13 +28,9 @@ public class UsuarioMapping : IEntityTypeConfiguration<Usuario>
         builder.HasIndex(x => x.Email)
             .IsUnique();
 
-        builder.Property(x => x.Permissao)
+        builder.Property(x => x.Admin)
             .IsRequired()
-            .HasMaxLength(20)
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_Usuarios_Permissao", 
-            "[Permissao] IN ('Administrador', 'Dono', 'Funcionario')"));
+            .HasDefaultValue(false);
 
         builder.Property(x => x.Ativo)
             .HasDefaultValue(true);

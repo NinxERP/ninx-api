@@ -1,6 +1,7 @@
 ﻿using Mapster;
 using ninx.Communication;
 using ninx.Domain.Entities;
+using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
 
@@ -32,8 +33,20 @@ namespace ninx.Application.Services
             var AssinaturaPlano = await _AssinaturaPlanoRepository.GetByIdAsync(id);
             if (AssinaturaPlano == null)
                 throw new NotFoundException("AssinaturaPlano não encontrado.");
-    
+
             return AssinaturaPlano.Adapt<AssinaturaPlanoResponse>();
+        }
+
+        public async Task<AssinaturaPlanoResponse> GetByComercioIdAsync(int comercioId, Permissao permissaoLogado)
+        {
+            if (permissaoLogado == Permissao.Funcionario)
+                throw new ForbiddenException("Funcionários não podem consultar a assinatura do comércio.");
+
+            var assinatura = await _AssinaturaPlanoRepository.GetByComercioIdAsync(comercioId);
+            if (assinatura == null)
+                throw new NotFoundException("Nenhuma assinatura encontrada para este comércio.");
+
+            return assinatura.Adapt<AssinaturaPlanoResponse>();
         }
     }
 }

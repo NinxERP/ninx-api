@@ -38,6 +38,25 @@ namespace ninx.Api.Controllers
         }
 
         /// <summary>
+        /// Retorna o status da assinatura do comércio autenticado.
+        /// </summary>
+        /// <response code="200">Assinatura encontrada.</response>
+        /// <response code="403">Funcionários não podem consultar a assinatura do comércio.</response>
+        /// <response code="404">Nenhuma assinatura encontrada para o comércio.</response>
+        [HttpGet("comercio")]
+        [SwaggerOperation(Summary = "Assinatura do comércio autenticado", Description = "Retorna o plano, status e vigência da assinatura do comércio autenticado.")]
+        [ProducesResponseType(typeof(AssinaturaPlanoResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetByComercioAutenticado()
+        {
+            var comercioId = GetComercioId();
+            var permissao = GetPermissao();
+            var result = await _assinaturaService.GetByComercioIdAsync(comercioId, permissao);
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Busca um plano de assinatura pelo identificador.
         /// </summary>
         /// <param name="id">Identificador do plano.</param>

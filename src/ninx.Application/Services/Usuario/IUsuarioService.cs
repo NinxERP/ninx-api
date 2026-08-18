@@ -14,7 +14,11 @@ namespace ninx.Application.Services
                    int executorId,
                    Permissao permissao,
                    int? executorComercioId);
-        Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int comercioId, Permissao permissaoLogado);
-        Task DesativarAsync(int id, int comercioId, Permissao permissaoLogado);
+        Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int usuarioIdLogado);
+        Task<UsuarioResponse> AtualizarMeuPerfilAsync(int usuarioIdLogado, AtualizarMeuPerfilRequest request);
+        Task DesativarAsync(int id, int comercioId, int usuarioIdLogado);
+        Task DesativarGlobalAsync(int id, int usuarioIdLogado);
+        Task ResetarSenhaAsync(int id, int usuarioIdLogado, ResetarSenhaRequest request);
+        Task<UsuarioResponse> AtualizarAdminAsync(int id, int usuarioIdLogado, AtualizarAdminRequest request);
     }
 }

@@ -46,5 +46,23 @@ namespace ninx.API.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Lista o histórico de pagamentos da assinatura do comércio autenticado.
+        /// </summary>
+        /// <param name="request">Parâmetros de paginação.</param>
+        /// <response code="200">Histórico retornado com sucesso.</response>
+        /// <response code="403">Funcionários não podem consultar o histórico de pagamentos.</response>
+        [HttpGet("historico")]
+        [SwaggerOperation(Summary = "Histórico de pagamentos da assinatura", Description = "Retorna o histórico de pagamentos da assinatura do comércio autenticado, do mais recente para o mais antigo.")]
+        [ProducesResponseType(typeof(PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetHistorico([FromQuery] PaginationRequest request)
+        {
+            var comercioId = GetComercioId();
+            var permissao = GetPermissao();
+            var result = await _pagamentoService.GetHistoricoByComercioIdAsync(comercioId, permissao, request);
+            return Ok(result);
+        }
     }
 }
