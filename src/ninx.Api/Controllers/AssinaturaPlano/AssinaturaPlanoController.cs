@@ -31,7 +31,7 @@ namespace ninx.Api.Controllers
         [Route("All")]
         [SwaggerOperation(Summary = "Listar planos de assinatura", Description = "Retorna os planos de assinatura cadastrados no sistema.")]
         [ProducesResponseType(typeof(IEnumerable<AssinaturaPlanoResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll(PaginationRequest request)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
         {
             var result = await _assinaturaService.GetAll(request);
             return Ok(result);

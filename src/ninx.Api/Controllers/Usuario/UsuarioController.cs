@@ -28,10 +28,12 @@ namespace ninx.Api.Controllers
         /// </summary>
         /// <param name="id">Identificador do usuário.</param>
         /// <response code="200">Usuário encontrado.</response>
+        /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
         /// <response code="404">Usuário não encontrado.</response>
         [HttpGet("NoComercioId/{id}")]
-        [SwaggerOperation(Summary = "Buscar usuário por id (sem filtro de comércio)", Description = "Retorna um usuário pelo identificador, sem restringir a busca ao comércio ativo na sessão.")]
+        [SwaggerOperation(Summary = "Buscar usuário por id (sem filtro de comércio)", Description = "Retorna um usuário pelo identificador, sem restringir a busca ao comércio ativo na sessão. Restrito a administradores globais (Usuario.Permissao == Administrador).")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int id)
         {
@@ -41,16 +43,18 @@ namespace ninx.Api.Controllers
         }
 
         /// <summary>
-        /// Lista os usuários visíveis ao usuário autenticado, sem restringir pelo comércio.
+        /// Lista todos os usuários de todos os comércios. Restrito a administradores globais.
         /// </summary>
         /// <param name="request">Parâmetros de paginação e busca.</param>
         /// <response code="200">Usuários retornados com sucesso.</response>
+        /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
         /// <response code="404">Nenhum usuário encontrado.</response>
         [HttpGet("NoComercioId/All")]
-        [SwaggerOperation(Summary = "Listar usuários (sem filtro de comércio)", Description = "Retorna os usuários visíveis ao usuário autenticado, sem restringir ao comércio ativo na sessão.")]
-        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [SwaggerOperation(Summary = "Listar usuários (sem filtro de comércio)", Description = "Retorna os usuários de todos os comércios, sem restringir ao comércio ativo na sessão. Restrito a administradores globais (Usuario.Permissao == Administrador) — não use esse endpoint para a tela padrão de gestão de equipe, use GET /api/Usuario/All.")]
+        [ProducesResponseType(typeof(PaginatedResponse<UsuarioResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAll(PaginationRequest request)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
         {
             var usuarioIdLogado = GetUsuarioId();
             var usuario = await _usuarioService.GetAll(usuarioIdLogado, request);
@@ -62,15 +66,18 @@ namespace ninx.Api.Controllers
         /// </summary>
         /// <param name="request">Parâmetros de paginação e busca.</param>
         /// <response code="200">Usuários retornados com sucesso.</response>
+        /// <response code="403">Funcionários não podem consultar usuários.</response>
         /// <response code="404">Nenhum usuário encontrado.</response>
         [HttpGet("All")]
-        [SwaggerOperation(Summary = "Listar usuários do comércio", Description = "Retorna os usuários vinculados ao comércio autenticado.")]
-        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [SwaggerOperation(Summary = "Listar usuários do comércio", Description = "Retorna os usuários vinculados ao comércio autenticado. Administradores veem todos; Donos (gerentes) veem apenas usuários com permissão de funcionário; funcionários não têm acesso.")]
+        [ProducesResponseType(typeof(PaginatedResponse<UsuarioResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAllByComercioId(PaginationRequest request)
+        public async Task<IActionResult> GetAllByComercioId([FromQuery] PaginationRequest request)
         {
             var comercioId = GetComercioId();
-            var usuario = await _usuarioService.GetAllByComercioId(comercioId, request);
+            var permissao = GetPermissao();
+            var usuario = await _usuarioService.GetAllByComercioId(comercioId, permissao, request);
             return Ok(usuario);
         }
 
@@ -79,15 +86,18 @@ namespace ninx.Api.Controllers
         /// </summary>
         /// <param name="id">Identificador do usuário.</param>
         /// <response code="200">Usuário encontrado.</response>
+        /// <response code="403">Sem permissão para consultar este usuário.</response>
         /// <response code="404">Usuário não encontrado no comércio autenticado.</response>
         [HttpGet("{id}")]
-        [SwaggerOperation(Summary = "Buscar usuário por id", Description = "Retorna um usuário do comércio autenticado pelo identificador.")]
+        [SwaggerOperation(Summary = "Buscar usuário por id", Description = "Retorna um usuário do comércio autenticado pelo identificador. Donos (gerentes) só podem consultar usuários com permissão de funcionário.")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetByIdAndComercioIdAsync(int id)
         {
             var comercioId = GetComercioId();
-            var usuario = await _usuarioService.GetByIdAndComercioIdAsync(id, comercioId);
+            var permissao = GetPermissao();
+            var usuario = await _usuarioService.GetByIdAndComercioIdAsync(id, comercioId, permissao);
             return Ok(usuario);
         }
 
@@ -98,10 +108,12 @@ namespace ninx.Api.Controllers
         /// <param name="request">Dados do usuário a ser criado.</param>
         /// <response code="201">Usuário criado com sucesso.</response>
         /// <response code="400">Dados inválidos.</response>
+        /// <response code="403">Funcionários não podem cadastrar usuários.</response>
         [HttpPost]
-        [SwaggerOperation(Summary = "Criar usuário", Description = "Cadastra um novo usuário vinculado ao comércio autenticado, respeitando a permissão de quem está criando.")]
+        [SwaggerOperation(Summary = "Criar usuário", Description = "Cadastra um novo usuário vinculado ao comércio autenticado. Administradores podem criar usuários com qualquer permissão; Donos (gerentes) só podem criar usuários com permissão de funcionário (a permissão informada é forçada para Funcionario); funcionários não podem criar usuários.")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> Criar([FromBody] CriarUsuarioRequest request)
         {
             var usuarioId = GetUsuarioId();
@@ -118,15 +130,18 @@ namespace ninx.Api.Controllers
         /// <param name="id">Identificador do usuário.</param>
         /// <param name="request">Dados a serem atualizados.</param>
         /// <response code="200">Usuário atualizado com sucesso.</response>
+        /// <response code="403">Sem permissão para atualizar este usuário.</response>
         /// <response code="404">Usuário não encontrado no comércio autenticado.</response>
         [HttpPut("{id}")]
-        [SwaggerOperation(Summary = "Atualizar usuário", Description = "Atualiza os dados de um usuário do comércio autenticado.")]
+        [SwaggerOperation(Summary = "Atualizar usuário", Description = "Atualiza os dados de um usuário do comércio autenticado. Donos (gerentes) só podem atualizar usuários com permissão de funcionário; funcionários não podem atualizar usuários.")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Atualizar(int id, [FromBody] AtualizarUsuarioRequest request)
         {
             var comercioId = GetComercioId();
-            var usuario = await _usuarioService.AtualizarAsync(id, request, comercioId);
+            var permissao = GetPermissao();
+            var usuario = await _usuarioService.AtualizarAsync(id, request, comercioId, permissao);
             return Ok(usuario);
         }
 
@@ -135,15 +150,18 @@ namespace ninx.Api.Controllers
         /// </summary>
         /// <param name="id">Identificador do usuário.</param>
         /// <response code="204">Usuário desativado com sucesso.</response>
+        /// <response code="403">Sem permissão para desativar este usuário.</response>
         /// <response code="404">Usuário não encontrado no comércio autenticado.</response>
         [HttpDelete("{id}")]
-        [SwaggerOperation(Summary = "Desativar usuário", Description = "Desativa (soft delete) um usuário do comércio autenticado.")]
+        [SwaggerOperation(Summary = "Desativar usuário", Description = "Desativa (soft delete) um usuário do comércio autenticado. Donos (gerentes) só podem desativar usuários com permissão de funcionário; funcionários não podem desativar usuários.")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Desativar(int id)
         {
             var comercioId = GetComercioId();
-            await _usuarioService.DesativarAsync(id, comercioId);
+            var permissao = GetPermissao();
+            await _usuarioService.DesativarAsync(id, comercioId, permissao);
             return NoContent();
         }
     }

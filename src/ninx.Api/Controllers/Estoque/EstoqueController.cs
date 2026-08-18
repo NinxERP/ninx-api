@@ -32,7 +32,7 @@ namespace ninx.Api.Controllers
         [Route("All")]
         [SwaggerOperation(Summary = "Listar estoque", Description = "Retorna os registros de estoque do comércio autenticado.")]
         [ProducesResponseType(typeof(IEnumerable<EstoqueResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll(PaginationRequest request)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
         {
             var comercioId = GetComercioId();
             var estoques = await _estoqueService.GetAllByComercioIdAsync(comercioId, request);

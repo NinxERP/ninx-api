@@ -49,9 +49,18 @@ namespace ninx.Application.Services
             );
         }
 
-        public async Task<PaginatedResponse<UsuarioResponse>> GetAllByComercioId(int comercioId, PaginationRequest request)
+        public async Task<PaginatedResponse<UsuarioResponse>> GetAllByComercioId(int comercioId, Permissao permissaoLogado, PaginationRequest request)
         {
+            if (permissaoLogado == Permissao.Funcionario)
+                throw new ForbiddenException("Funcionários não podem consultar usuários.");
+
             var usuarios = (await _usuarioRepository.GetAllByComercioIdAsync(comercioId)).ToList();
+
+            if (permissaoLogado == Permissao.Dono)
+                usuarios = usuarios
+                    .Where(u => u.UsuarioComercios.Any(uc => uc.ComercioID == comercioId && uc.Permissao == Permissao.Funcionario))
+                    .ToList();
+
             if (usuarios is null || !usuarios.Any())
                 throw new NotFoundException("Nenhum usuário foi encontrado");
 
@@ -70,10 +79,17 @@ namespace ninx.Application.Services
             );
         }
 
-        public async Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioid)
+        public async Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioid, Permissao permissaoLogado)
         {
+            if (permissaoLogado == Permissao.Funcionario)
+                throw new ForbiddenException("Funcionários não podem consultar usuários.");
+
             var usuario = await _usuarioRepository.GetByIdAndComercioIdAsync(id, comercioid);
             if (usuario is null) throw new NotFoundException("Usuário não encontrado");
+
+            var permissaoNoComercio = usuario.UsuarioComercios.First(uc => uc.ComercioID == comercioid).Permissao;
+            if (permissaoLogado == Permissao.Dono && permissaoNoComercio != Permissao.Funcionario)
+                throw new ForbiddenException("Você só pode consultar usuários com permissão de funcionário.");
 
             return usuario.Adapt<UsuarioResponse>();
         }
@@ -110,11 +126,19 @@ namespace ninx.Application.Services
             return novoUsuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int comercioId)
+        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int comercioId, Permissao permissaoLogado)
         {
+            if (permissaoLogado == Permissao.Funcionario)
+                throw new ForbiddenException("Funcionários não podem atualizar usuários.");
+
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario is null) throw new NotFoundException("Usuario não encontrado");
-            if (!await _usuarioComercioRepository.ExisteVinculoAsync(id, comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
+
+            var vinculo = await _usuarioComercioRepository.GetVinculoAsync(id, comercioId);
+            if (vinculo is null) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
+
+            if (permissaoLogado == Permissao.Dono && vinculo.Permissao != Permissao.Funcionario)
+                throw new ForbiddenException("Você só pode atualizar usuários com permissão de funcionário.");
 
             request.Adapt(usuario);
             await _usuarioRepository.UpdateAsync(usuario);
@@ -122,12 +146,19 @@ namespace ninx.Application.Services
             return usuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task DesativarAsync(int id, int comercioId)
+        public async Task DesativarAsync(int id, int comercioId, Permissao permissaoLogado)
         {
+            if (permissaoLogado == Permissao.Funcionario)
+                throw new ForbiddenException("Funcionários não podem desativar usuários.");
+
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario == null) throw new NotFoundException("Usuário não encontrado.");
-            if (!await _usuarioComercioRepository.ExisteVinculoAsync(id, comercioId)) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
 
+            var vinculo = await _usuarioComercioRepository.GetVinculoAsync(id, comercioId);
+            if (vinculo is null) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
+
+            if (permissaoLogado == Permissao.Dono && vinculo.Permissao != Permissao.Funcionario)
+                throw new ForbiddenException("Você só pode desativar usuários com permissão de funcionário.");
 
             usuario.Ativo = false;
             usuario.AtualizadoEm = DateTime.UtcNow;

@@ -32,8 +32,8 @@ namespace ninx.Api.Controllers
         [HttpGet]
         [Route("All")]
         [SwaggerOperation(Summary = "Listar categorias de produto", Description = "Retorna as categorias de produto do comércio autenticado.")]
-        [ProducesResponseType(typeof(IEnumerable<CategoriaProdutoResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll(PaginationRequest request)
+        [ProducesResponseType(typeof(PaginatedResponse<CategoriaProdutoResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
         {
             var comercioId = GetComercioId();
             var categorias = await _categoriaProdutoService.GetAllAsync(comercioId, request);
