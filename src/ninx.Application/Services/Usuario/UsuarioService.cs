@@ -73,7 +73,12 @@ namespace ninx.Application.Services
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToList();
-            var listaResponse = pagina.Adapt<List<UsuarioResponse>>();
+            var listaResponse = pagina.Select(u =>
+            {
+                var response = u.Adapt<UsuarioResponse>();
+                response.Permissao = u.UsuarioComercios.First(uc => uc.ComercioID == comercioId).Permissao.ToString();
+                return response;
+            }).ToList();
 
             return new PaginatedResponse<UsuarioResponse>(
                 listaResponse,
@@ -81,6 +86,17 @@ namespace ninx.Application.Services
                 request.PageSize,
                 total
             );
+        }
+
+        public async Task<UsuarioResponse> BuscarPorEmailAsync(string email, Permissao permissaoLogado)
+        {
+            if (permissaoLogado == Permissao.Funcionario)
+                throw new ForbiddenException("Funcionários não podem buscar usuários.");
+
+            var usuario = await _usuarioRepository.GetUsuarioByEmail(email);
+            if (usuario is null) throw new NotFoundException("Nenhum usuário encontrado com esse e-mail.");
+
+            return usuario.Adapt<UsuarioResponse>();
         }
 
         public async Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioid, Permissao permissaoLogado)
@@ -95,7 +111,9 @@ namespace ninx.Application.Services
             if (permissaoLogado == Permissao.Dono && permissaoNoComercio != Permissao.Funcionario)
                 throw new ForbiddenException("Você só pode consultar usuários com permissão de funcionário.");
 
-            return usuario.Adapt<UsuarioResponse>();
+            var response = usuario.Adapt<UsuarioResponse>();
+            response.Permissao = permissaoNoComercio.ToString();
+            return response;
         }
 
         public async Task<UsuarioResponse> CriarAsync(
@@ -130,37 +148,26 @@ namespace ninx.Application.Services
             return novoUsuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int usuarioIdLogado)
+        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int comercioId, int usuarioIdLogado, Permissao permissaoLogado)
         {
-            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
+            if (permissaoLogado == Permissao.Funcionario)
+                throw new ForbiddenException("Funcionários não podem atualizar usuários.");
 
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario is null) throw new NotFoundException("Usuario não encontrado");
+
+            var vinculo = await _usuarioComercioRepository.GetVinculoAsync(id, comercioId);
+            if (vinculo is null) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
+
+            if (permissaoLogado == Permissao.Dono && vinculo.Permissao != Permissao.Funcionario)
+                throw new ForbiddenException("Você só pode atualizar usuários com permissão de funcionário.");
 
             await GarantirEmailDisponivelAsync(request.Email, id);
 
             request.Adapt(usuario);
             usuario.AtualizadoEm = DateTime.UtcNow;
             await _usuarioRepository.UpdateAsync(usuario);
-            await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, null, "UsuarioIdentidadeAtualizada", "Usuario", id);
-            await _unitOfWork.SaveChangesAsync();
-            return usuario.Adapt<UsuarioResponse>();
-        }
-
-        public async Task<UsuarioResponse> AtualizarMeuPerfilAsync(int usuarioIdLogado, AtualizarMeuPerfilRequest request)
-        {
-            var usuario = await _usuarioRepository.GetByIdAsync(usuarioIdLogado);
-            if (usuario is null) throw new NotFoundException("Usuario não encontrado");
-
-            await GarantirEmailDisponivelAsync(request.Email, usuarioIdLogado);
-
-            usuario.Nome = request.Nome;
-            usuario.Email = request.Email;
-            if (!string.IsNullOrWhiteSpace(request.Senha))
-                usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha);
-
-            usuario.AtualizadoEm = DateTime.UtcNow;
-            await _usuarioRepository.UpdateAsync(usuario);
+            await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, comercioId, "UsuarioIdentidadeAtualizada", "Usuario", id);
             await _unitOfWork.SaveChangesAsync();
             return usuario.Adapt<UsuarioResponse>();
         }

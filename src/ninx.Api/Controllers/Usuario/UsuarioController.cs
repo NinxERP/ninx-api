@@ -103,6 +103,25 @@ namespace ninx.Api.Controllers
 
 
         /// <summary>
+        /// Busca um usuário cadastrado na plataforma pelo e-mail exato, para vinculá-lo a um comércio.
+        /// </summary>
+        /// <param name="email">E-mail exato do usuário buscado.</param>
+        /// <response code="200">Usuário encontrado.</response>
+        /// <response code="403">Funcionários não podem buscar usuários.</response>
+        /// <response code="404">Nenhum usuário encontrado com esse e-mail.</response>
+        [HttpGet("BuscarPorEmail")]
+        [SwaggerOperation(Summary = "Buscar usuário por e-mail", Description = "Busca um usuário já cadastrado na plataforma pelo e-mail exato, independente do comércio a que ele pertence. Usado para localizar o UsuarioID antes de vinculá-lo a um comércio via POST /api/UsuarioComercio. Restrito a Administradores/Donos do comércio; funcionários não têm acesso.")]
+        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> BuscarPorEmail([FromQuery] string email)
+        {
+            var permissao = GetPermissao();
+            var usuario = await _usuarioService.BuscarPorEmailAsync(email, permissao);
+            return Ok(usuario);
+        }
+
+        /// <summary>
         /// Cadastra um novo usuário no comércio autenticado.
         /// </summary>
         /// <param name="request">Dados do usuário a ser criado.</param>
@@ -125,41 +144,26 @@ namespace ninx.Api.Controllers
         }
 
         /// <summary>
-        /// Atualiza os dados cadastrais de um usuário existente.
+        /// Atualiza os dados cadastrais de um usuário do comércio autenticado.
         /// </summary>
         /// <param name="id">Identificador do usuário.</param>
         /// <param name="request">Dados a serem atualizados.</param>
         /// <response code="200">Usuário atualizado com sucesso.</response>
         /// <response code="400">E-mail já cadastrado para outro usuário.</response>
-        /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
+        /// <response code="403">Sem permissão para atualizar este usuário.</response>
         /// <response code="404">Usuário não encontrado.</response>
         [HttpPut("{id}")]
-        [SwaggerOperation(Summary = "Atualizar usuário", Description = "Atualiza nome e e-mail de um usuário. Esses dados são compartilhados entre todos os comércios do usuário, por isso o endpoint é restrito a administradores globais (Usuario.Admin == true); para editar o próprio perfil use PUT /api/Usuario/MeuPerfil, e para gerenciar a permissão/acesso de um usuário em um comércio use o PUT /api/UsuarioComercio.")]
+        [SwaggerOperation(Summary = "Atualizar usuário", Description = "Atualiza nome e e-mail de um usuário vinculado ao comércio autenticado. Administradores podem atualizar qualquer usuário do comércio; Donos (gerentes) só podem atualizar usuários com permissão de funcionário; funcionários não podem atualizar usuários. Para gerenciar a permissão/acesso de um usuário em um comércio use o PUT /api/UsuarioComercio.")]
         [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Atualizar(int id, [FromBody] AtualizarUsuarioRequest request)
         {
+            var comercioId = GetComercioId();
             var usuarioIdLogado = GetUsuarioId();
-            var usuario = await _usuarioService.AtualizarAsync(id, request, usuarioIdLogado);
-            return Ok(usuario);
-        }
-
-        /// <summary>
-        /// Atualiza os dados cadastrais do próprio usuário autenticado.
-        /// </summary>
-        /// <param name="request">Dados a serem atualizados, incluindo nova senha (opcional).</param>
-        /// <response code="200">Perfil atualizado com sucesso.</response>
-        /// <response code="400">E-mail já cadastrado para outro usuário.</response>
-        [HttpPut("MeuPerfil")]
-        [SwaggerOperation(Summary = "Atualizar meu perfil", Description = "Atualiza nome, e-mail e, opcionalmente, a senha do usuário autenticado.")]
-        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> AtualizarMeuPerfil([FromBody] AtualizarMeuPerfilRequest request)
-        {
-            var usuarioIdLogado = GetUsuarioId();
-            var usuario = await _usuarioService.AtualizarMeuPerfilAsync(usuarioIdLogado, request);
+            var permissao = GetPermissao();
+            var usuario = await _usuarioService.AtualizarAsync(id, request, comercioId, usuarioIdLogado, permissao);
             return Ok(usuario);
         }
 

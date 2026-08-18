@@ -9,5 +9,6 @@ namespace ninx.Api.Controllers
         protected int GetUsuarioId() => int.Parse(User.FindFirstValue("usuarioId")!);
         protected int GetComercioId() => int.Parse(User.FindFirstValue("comercioId")!);
         protected Permissao GetPermissao() => Enum.Parse<Permissao>(User.FindFirstValue("permissao")!);
+        protected bool GetAdmin() => bool.Parse(User.FindFirstValue("admin")!);
     }
 }

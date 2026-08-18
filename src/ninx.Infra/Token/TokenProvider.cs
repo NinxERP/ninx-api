@@ -27,7 +27,8 @@ namespace ninx.Infra
                 new Claim("email", usuario.Email),
                 new Claim("comercioId", comercioIdSelecionado.ToString()),
                 new Claim("permissao", permissaoNoComercio.ToString()),
-                new Claim("nomeComercio", nomeComercio)
+                new Claim("nomeComercio", nomeComercio),
+                new Claim("admin", usuario.Admin.ToString())
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
