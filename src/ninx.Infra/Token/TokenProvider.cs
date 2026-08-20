@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using ninx.Domain.Entities;
-using ninx.Domain.Enums;
 using ninx.Domain.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -18,7 +17,7 @@ namespace ninx.Infra
             _configuration = configuration;
         }
 
-        public string GerarToken(Usuario usuario, int comercioIdSelecionado, Permissao permissaoNoComercio, string nomeComercio)
+        public string GerarToken(Usuario usuario, int comercioIdSelecionado, Cargo cargoNoComercio, string nomeComercio)
         {
             var claims = new List<Claim>
             {
@@ -26,7 +25,9 @@ namespace ninx.Infra
                 new Claim("nome", usuario.Nome),
                 new Claim("email", usuario.Email),
                 new Claim("comercioId", comercioIdSelecionado.ToString()),
-                new Claim("permissao", permissaoNoComercio.ToString()),
+                new Claim("cargoId", cargoNoComercio.CargoID.ToString()),
+                new Claim("cargoNome", cargoNoComercio.Nome),
+                new Claim("cargoPeso", cargoNoComercio.Peso.ToString()),
                 new Claim("nomeComercio", nomeComercio),
                 new Claim("admin", usuario.Admin.ToString())
             };

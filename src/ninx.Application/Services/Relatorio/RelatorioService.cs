@@ -1,5 +1,5 @@
 using ninx.Communication;
-using ninx.Domain.Enums;
+using ninx.Domain.Constants;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
 
@@ -174,7 +174,7 @@ namespace ninx.Application.Services
 
             var vinculos = await _usuarioComercioRepository.GetByUsuarioIdAsync(usuarioId);
             var comercioIds = vinculos
-                .Where(v => v.Ativo && (v.Permissao == Permissao.Administrador || v.Permissao == Permissao.Dono))
+                .Where(v => v.Ativo && v.Cargo.Peso >= CargoConstantes.PesoDono)
                 .Select(v => v.ComercioID)
                 .Distinct()
                 .ToList();

@@ -1,6 +1,7 @@
 ﻿using Mapster;
 using Microsoft.Extensions.Logging;
 using ninx.Communication;
+using ninx.Domain.Constants;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
@@ -13,25 +14,28 @@ namespace ninx.Application.Services
     {
         private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
         private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
+        private readonly IAutorizacaoGlobalService _autorizacaoGlobalService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<PagamentoHistoricoAssinaturaPlanoService> _logger;
 
         public PagamentoHistoricoAssinaturaPlanoService(
-            IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository, 
-            IAssinaturaPlanoRepository assinaturaPlanoRepository, 
+            IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository,
+            IAssinaturaPlanoRepository assinaturaPlanoRepository,
+            IAutorizacaoGlobalService autorizacaoGlobalService,
             IUnitOfWork unitOfWork,
             ILogger<PagamentoHistoricoAssinaturaPlanoService> logger)
         {
             _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
             _assinaturaPlanoRepository = assinaturaPlanoRepository;
+            _autorizacaoGlobalService = autorizacaoGlobalService;
             _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
-        public async Task RegistrarPagamentos(PagamentoHistoricoAssinaturaPlanoRequest request, Permissao permissao)
+        public async Task RegistrarPagamentos(PagamentoHistoricoAssinaturaPlanoRequest request, int usuarioLogadoId)
         {
             if (request == null) throw new BadRequestException("Solicitação de pagamento não pode ser nula.");
-            if (permissao != Permissao.Administrador) throw new ForbiddenException("Permissão insuficiente para registrar pagamento.");
+            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioLogadoId);
             if (request.ComercioId <= 0) throw new BadRequestException("ComercioId inválido.");
 
 
@@ -62,9 +66,9 @@ namespace ninx.Application.Services
            );
         }
 
-        public async Task<PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>> GetHistoricoByComercioIdAsync(int comercioId, Permissao permissaoLogado, PaginationRequest request)
+        public async Task<PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>> GetHistoricoByComercioIdAsync(int comercioId, int pesoLogado, PaginationRequest request)
         {
-            if (permissaoLogado == Permissao.Funcionario)
+            if (pesoLogado < CargoConstantes.PesoDono)
                 throw new ForbiddenException("Funcionários não podem consultar o histórico de pagamentos da assinatura.");
 
             var (entidades, total) = await _pagamentoHistoricoAssinaturaPlanoRepository.GetPaginadoByComercioIdAsync(comercioId, request.PageNumber, request.PageSize);

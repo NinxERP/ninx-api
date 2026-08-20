@@ -92,19 +92,21 @@ namespace ninx.Api.Controllers
         }
 
         /// <summary>
-        /// Atualiza os dados do comércio autenticado.
+        /// Atualiza os dados de um comércio.
         /// </summary>
+        /// <param name="comercioId">Identificador do comércio.</param>
         /// <param name="request">Dados a serem atualizados.</param>
         /// <response code="200">Comércio atualizado com sucesso.</response>
+        /// <response code="401">Sem vínculo com o comércio informado e não é administrador de plataforma.</response>
         /// <response code="404">Comércio não encontrado.</response>
         [HttpPut("{comercioId}")]
-        [SwaggerOperation(Summary = "Atualizar comércio", Description = "Atualiza os dados do comércio atualmente autenticado na sessão.")]
+        [SwaggerOperation(Summary = "Atualizar comércio", Description = "Atualiza os dados do comércio informado. Restrito a quem tem cargo de peso Dono ou superior nesse comércio, ou administrador de plataforma (que pode atualizar qualquer comércio, independente do comércio ativo na sessão).")]
         [ProducesResponseType(typeof(ComercioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Atualizar([FromBody] ComercioRequest request)
+        public async Task<IActionResult> Atualizar(int comercioId, [FromBody] ComercioRequest request)
         {
             var usuarioID = GetUsuarioId();
-            var comercioId = GetComercioId();
             var result = await _comercioService.AtualizarAsync(comercioId, usuarioID, request);
             return Ok(result);
         }

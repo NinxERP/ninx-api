@@ -1,5 +1,6 @@
 ﻿using Mapster;
 using ninx.Communication;
+using ninx.Domain.Constants;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
@@ -16,10 +17,11 @@ namespace ninx.Application.Services
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
         private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
+        private readonly IAutorizacaoCargoService _autorizacaoCargoService;
         private readonly IAutorizacaoGlobalService _autorizacaoGlobalService;
         private readonly ILogAuditoriaService _logAuditoriaService;
 
-        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IUsuarioRepository usuarioRepository, IAssinaturaPlanoRepository assinaturaPlanoRepository, IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository, IAutorizacaoGlobalService autorizacaoGlobalService, ILogAuditoriaService logAuditoriaService)
+        public ComercioService(IComercioRepository comercioRepository, IUnitOfWork unitOfWork, IUsuarioComercioRepository usuarioComercioRepository, IUsuarioRepository usuarioRepository, IAssinaturaPlanoRepository assinaturaPlanoRepository, IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository, IAutorizacaoCargoService autorizacaoCargoService, IAutorizacaoGlobalService autorizacaoGlobalService, ILogAuditoriaService logAuditoriaService)
         {
             _comercioRepository = comercioRepository;
             _unitOfWork = unitOfWork;
@@ -27,6 +29,7 @@ namespace ninx.Application.Services
             _usuarioRepository = usuarioRepository;
             _assinaturaPlanoRepository = assinaturaPlanoRepository;
             _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
+            _autorizacaoCargoService = autorizacaoCargoService;
             _autorizacaoGlobalService = autorizacaoGlobalService;
             _logAuditoriaService = logAuditoriaService;
         }
@@ -52,9 +55,13 @@ namespace ninx.Application.Services
             if (comercio == null)
                 throw new NotFoundException("Comércio não encontrado.");
 
-            var vinculo = await _usuarioComercioRepository.GetVinculoAsync(usuarioIdLogado, id);
-            if (vinculo == null)
-                throw new NotFoundException("Comércio não encontrado.");
+            var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioIdLogado);
+            if (!chamadorEhAdmin)
+            {
+                var vinculo = await _usuarioComercioRepository.GetVinculoAsync(usuarioIdLogado, id);
+                if (vinculo == null)
+                    throw new NotFoundException("Comércio não encontrado.");
+            }
 
             return comercio.Adapt<ComercioResponse>();
         }
@@ -102,7 +109,8 @@ namespace ninx.Application.Services
             if (comercio == null) throw new NotFoundException("Comércio não encontrado.");
 
             var vinculoLogado = await _usuarioComercioRepository.GetVinculoAsync(usuarioLogadoId, comercio.ComercioID);
-            if (vinculoLogado == null || (vinculoLogado.Permissao != Permissao.Administrador && vinculoLogado.Permissao != Permissao.Dono))
+            var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioLogadoId);
+            if (!chamadorEhAdmin && (vinculoLogado == null || vinculoLogado.Cargo.Peso < CargoConstantes.PesoDono))
             {
                 throw new UnauthorizedException("Acesso negado.");
             }
@@ -122,7 +130,8 @@ namespace ninx.Application.Services
             if (comercio == null) throw new NotFoundException("Comércio não encontrado.");
 
             var vinculoLogado = await _usuarioComercioRepository.GetVinculoAsync(usuarioIdLogado, comercio.ComercioID);
-            if (vinculoLogado == null || (vinculoLogado.Permissao != Permissao.Administrador && vinculoLogado.Permissao != Permissao.Dono))
+            var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioIdLogado);
+            if (!chamadorEhAdmin && (vinculoLogado == null || vinculoLogado.Cargo.Peso < CargoConstantes.PesoDono))
             {
                 throw new UnauthorizedException("Você não tem permissão pra excluir comercios");
             }

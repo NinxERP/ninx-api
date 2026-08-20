@@ -1,7 +1,7 @@
 ﻿using Mapster;
 using ninx.Communication;
+using ninx.Domain.Constants;
 using ninx.Domain.Entities;
-using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
 
@@ -37,9 +37,9 @@ namespace ninx.Application.Services
             return AssinaturaPlano.Adapt<AssinaturaPlanoResponse>();
         }
 
-        public async Task<AssinaturaPlanoResponse> GetByComercioIdAsync(int comercioId, Permissao permissaoLogado)
+        public async Task<AssinaturaPlanoResponse> GetByComercioIdAsync(int comercioId, int pesoLogado)
         {
-            if (permissaoLogado == Permissao.Funcionario)
+            if (pesoLogado < CargoConstantes.PesoDono)
                 throw new ForbiddenException("Funcionários não podem consultar a assinatura do comércio.");
 
             var assinatura = await _AssinaturaPlanoRepository.GetByComercioIdAsync(comercioId);

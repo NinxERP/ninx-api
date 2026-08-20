@@ -144,6 +144,56 @@ namespace ninx.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ninx.Domain.Entities.Cargo", b =>
+                {
+                    b.Property<int>("CargoID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CargoID"));
+
+                    b.Property<bool>("Ativo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ComercioID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Peso")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Reservado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.HasKey("CargoID");
+
+                    b.HasIndex("Nome")
+                        .IsUnique()
+                        .HasFilter("[ComercioID] IS NULL");
+
+                    b.HasIndex("ComercioID", "Nome")
+                        .IsUnique()
+                        .HasFilter("[ComercioID] IS NOT NULL");
+
+                    b.ToTable("Cargos", (string)null);
+                });
+
             modelBuilder.Entity("ninx.Domain.Entities.CategoriaProduto", b =>
                 {
                     b.Property<int>("CategoriaID")
@@ -715,6 +765,43 @@ namespace ninx.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ninx.Domain.Entities.RedefinicaoSenha", b =>
+                {
+                    b.Property<int>("RedefinicaoSenhaID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RedefinicaoSenhaID"));
+
+                    b.Property<string>("CodigoHash")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime>("ExpiraEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Tentativas")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UsuarioID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Utilizado")
+                        .HasColumnType("bit");
+
+                    b.HasKey("RedefinicaoSenhaID");
+
+                    b.HasIndex("UsuarioID", "Utilizado", "ExpiraEm");
+
+                    b.ToTable("RedefinicoesSenha", (string)null);
+                });
+
             modelBuilder.Entity("ninx.Domain.Entities.SessaoWhatsapp", b =>
                 {
                     b.Property<int>("SessaoID")
@@ -819,28 +906,25 @@ namespace ninx.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<int>("ComercioID")
+                    b.Property<int>("CargoID")
                         .HasColumnType("int");
 
-                    b.Property<string>("Permissao")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("ComercioID")
+                        .HasColumnType("int");
 
                     b.Property<int>("UsuarioID")
                         .HasColumnType("int");
 
                     b.HasKey("UsuarioComercioID");
 
+                    b.HasIndex("CargoID");
+
                     b.HasIndex("ComercioID");
 
                     b.HasIndex("UsuarioID", "ComercioID")
                         .IsUnique();
 
-                    b.ToTable("UsuariosComercios", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_UsuariosComercios_Permissao", "[Permissao] IN ('Administrador', 'Dono', 'Funcionario')");
-                        });
+                    b.ToTable("UsuariosComercios", (string)null);
                 });
 
             modelBuilder.Entity("ninx.Domain.Entities.Venda", b =>
@@ -917,6 +1001,16 @@ namespace ninx.Data.Migrations
                         .HasForeignKey("ComercioID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Comercio");
+                });
+
+            modelBuilder.Entity("ninx.Domain.Entities.Cargo", b =>
+                {
+                    b.HasOne("ninx.Domain.Entities.Comercio", "Comercio")
+                        .WithMany()
+                        .HasForeignKey("ComercioID")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Comercio");
                 });
@@ -1073,6 +1167,17 @@ namespace ninx.Data.Migrations
                     b.Navigation("Comercio");
                 });
 
+            modelBuilder.Entity("ninx.Domain.Entities.RedefinicaoSenha", b =>
+                {
+                    b.HasOne("ninx.Domain.Entities.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("ninx.Domain.Entities.SessaoWhatsapp", b =>
                 {
                     b.HasOne("ninx.Domain.Entities.Comercio", "Comercio")
@@ -1086,6 +1191,12 @@ namespace ninx.Data.Migrations
 
             modelBuilder.Entity("ninx.Domain.Entities.UsuarioComercio", b =>
                 {
+                    b.HasOne("ninx.Domain.Entities.Cargo", "Cargo")
+                        .WithMany("UsuarioComercios")
+                        .HasForeignKey("CargoID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("ninx.Domain.Entities.Comercio", "Comercio")
                         .WithMany("UsuarioComercios")
                         .HasForeignKey("ComercioID")
@@ -1097,6 +1208,8 @@ namespace ninx.Data.Migrations
                         .HasForeignKey("UsuarioID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Cargo");
 
                     b.Navigation("Comercio");
 
@@ -1127,6 +1240,11 @@ namespace ninx.Data.Migrations
                     b.Navigation("Comercio");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("ninx.Domain.Entities.Cargo", b =>
+                {
+                    b.Navigation("UsuarioComercios");
                 });
 
             modelBuilder.Entity("ninx.Domain.Entities.CategoriaProduto", b =>

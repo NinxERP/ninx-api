@@ -16,6 +16,7 @@ namespace ninx.Ioc
             services.AddRepositories();
             services.AddServices();
             services.AddValidators();
+            services.AddEmail(configuration);
 
             return services;
         }

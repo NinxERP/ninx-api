@@ -17,6 +17,9 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
             services.AddScoped<IValidator<CriarUsuarioRequest>, CriarUsuarioRequestValidator>();
             services.AddScoped<IValidator<AtualizarUsuarioRequest>, AtualizarUsuarioRequestValidator>();
+            services.AddScoped<IValidator<ResetarSenhaRequest>, ResetarSenhaRequestValidator>();
+            services.AddScoped<IValidator<SolicitarRedefinicaoSenhaRequest>, SolicitarRedefinicaoSenhaRequestValidator>();
+            services.AddScoped<IValidator<ConfirmarRedefinicaoSenhaRequest>, ConfirmarRedefinicaoSenhaRequestValidator>();
             services.AddScoped<IValidator<ClienteRequest>, ClienteRequestValidator>();
             services.AddScoped<IValidator<ComercioRequest>, ComercioRequestValidator>();
             services.AddScoped<IValidator<CriarProdutoRequest>, CriarProdutoRequestValidator>();
@@ -27,6 +30,8 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IValidator<ItemVendaRequest>, ItemVendaRequestValidator>();
             services.AddScoped<IValidator<CriarUsuarioComercioRequest>, CriarUsuarioComercioRequestValidator>();
             services.AddScoped<IValidator<AtualizarUsuarioComercioRequest>, AtualizarUsuarioComercioRequestValidator>();
+            services.AddScoped<IValidator<CriarCargoRequest>, CriarCargoRequestValidator>();
+            services.AddScoped<IValidator<AtualizarCargoRequest>, AtualizarCargoRequestValidator>();
             services.AddScoped<IValidator<ConfirmarAssinaturaEletronicaRequest>, ConfirmarAssinaturaEletronicaRequestValidator>();
             services.AddScoped<IValidator<FiltroRequest>, FiltroRequestValidator>();
             services.AddScoped<IValidator<PaginationRequest>, PaginationRequestValidator>();

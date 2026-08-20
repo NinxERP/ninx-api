@@ -1,32 +1,37 @@
 using FluentValidation;
 using ninx.Communication;
+using ninx.Domain.Interfaces;
 
 namespace ninx.Application.Validators.Request
 {
     public class CriarUsuarioRequestValidator : AbstractValidator<CriarUsuarioRequest>
     {
-        public CriarUsuarioRequestValidator()
+        public CriarUsuarioRequestValidator(ICargoRepository cargoRepository)
         {
             RuleFor(x => x.Nome)
-                .NotEmpty().WithMessage("Nome é obrigatório.")
-                .MinimumLength(3).WithMessage("Nome deve ter no mínimo 3 caracteres.")
-                .MaximumLength(150).WithMessage("Nome deve ter no máximo 150 caracteres.");
+                .NotEmpty().WithMessage("Nome ï¿½ obrigatï¿½rio.")
+                .MinimumLength(3).WithMessage("Nome deve ter no mï¿½nimo 3 caracteres.")
+                .MaximumLength(150).WithMessage("Nome deve ter no mï¿½ximo 150 caracteres.");
 
             RuleFor(x => x.Email)
-                .NotEmpty().WithMessage("E-mail é obrigatório.")
-                .EmailAddress().WithMessage("E-mail inválido.");
+                .NotEmpty().WithMessage("E-mail ï¿½ obrigatï¿½rio.")
+                .EmailAddress().WithMessage("E-mail invï¿½lido.");
 
             RuleFor(x => x.Senha)
-                .NotEmpty().WithMessage("Senha é obrigatória.")
-                .MinimumLength(6).WithMessage("Senha deve ter no mínimo 6 caracteres.")
-                .MaximumLength(100).WithMessage("Senha deve ter no máximo 100 caracteres.");
+                .NotEmpty().WithMessage("Senha ï¿½ obrigatï¿½ria.")
+                .MinimumLength(6).WithMessage("Senha deve ter no mï¿½nimo 6 caracteres.")
+                .MaximumLength(100).WithMessage("Senha deve ter no mï¿½ximo 100 caracteres.");
 
-            RuleFor(x => x.Permissao)
-                .GreaterThan(0).WithMessage("Permissão deve ser maior que zero.")
-                .LessThanOrEqualTo(3).WithMessage("Permissão inválida.");
+            RuleFor(x => x.CargoID)
+                .GreaterThan(0).WithMessage("O cargo deve ser informado.")
+                .MustAsync(async (request, cargoId, _, cancellation) =>
+                {
+                    var cargo = await cargoRepository.GetByIdAsync(cargoId);
+                    return cargo != null && cargo.Ativo && (cargo.ComercioID == null || cargo.ComercioID == request.ComercioId);
+                }).WithMessage("O cargo informado Ã© invÃ¡lido para este comÃ©rcio.");
 
             RuleFor(x => x.ComercioId)
-                .GreaterThan(0).WithMessage("O ID do comércio deve ser maior que zero.");
+                .GreaterThan(0).WithMessage("O ID do comï¿½rcio deve ser maior que zero.");
         }
     }
 }

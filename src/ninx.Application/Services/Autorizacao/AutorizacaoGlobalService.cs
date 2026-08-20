@@ -6,7 +6,7 @@ namespace ninx.Application.Services
 {
     /// <summary>
     /// Centraliza a checagem de administrador de plataforma (Usuario.Admin), distinta da
-    /// permissão por vínculo (UsuarioComercio.Permissao) usada nas ações dentro de um comércio.
+    /// hierarquia por peso de Cargo (ver AutorizacaoCargoService) usada nas ações dentro de um comércio.
     /// </summary>
     public class AutorizacaoGlobalService : IAutorizacaoGlobalService
     {

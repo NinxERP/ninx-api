@@ -87,7 +87,8 @@ namespace ninx.Data.Migrations
             .resumo .destaque td { font-weight: bold; font-size: 11.5pt; border-top: 1px dashed #E2E8F0; padding-top: 8px; }
             .declaracao { font-size: 10.5pt; margin: 20px 0; line-height: 1.4; }
             .assinaturas { width: 100%; margin-top: 45px; }
-            .assinaturas td { width: 50%; text-align: center; padding: 10px 20px 0 20px; border-top: 0.75px solid #64748B; font-size: 9.5pt; }
+            .assinaturas .linha-imagem td { width: 50%; height: 40px; vertical-align: bottom; text-align: center; padding: 0 20px; }
+            .assinaturas .linha-dados td { width: 50%; text-align: center; padding: 10px 20px 0 20px; border-top: 0.75px solid #64748B; font-size: 9.5pt; }
             .assinaturas .rotulo { display: block; font-size: 8.5pt; color: #64748B; font-weight: bold; margin-bottom: 4px; }
             .rodape { text-align: center; color: #64748B; font-size: 8.5pt; margin-top: 40px; }
             .bloco-assinatura { margin-top: 8px; }
@@ -128,10 +129,16 @@ namespace ninx.Data.Migrations
                 <tr class="destaque"><td>Saldo Devedor Remanescente</td><td class="valor">{{Venda.SaldoDevedor}}</td></tr>
               </table></div>
 
-              <table class="assinaturas"><tr>
-                <td><span class="rotulo">ASSINATURA DO DEVEDOR</span>{{Cliente.Nome}}<div class="bloco-assinatura">{{Html.BlocoAssinatura}}</div></td>
-                <td><span class="rotulo">ASSINATURA DO CREDOR</span>{{Comercio.Nome}}<div class="bloco-assinatura">{{Html.ComercioAssinatura}}</div></td>
-              </tr></table>
+              <table class="assinaturas">
+                <tr class="linha-imagem">
+                  <td></td>
+                  <td>{{Html.ComercioAssinatura}}</td>
+                </tr>
+                <tr class="linha-dados">
+                  <td><span class="rotulo">ASSINATURA DO DEVEDOR</span>{{Cliente.Nome}}<div class="bloco-assinatura">{{Html.BlocoAssinatura}}</div></td>
+                  <td><span class="rotulo">ASSINATURA DO CREDOR</span>{{Comercio.Nome}}</td>
+                </tr>
+              </table>
 
               <div class="rodape">Data de Emissão: {{Data}}</div>
             </body></html>
@@ -174,10 +181,16 @@ namespace ninx.Data.Migrations
                 <tr class="destaque"><td>Saldo Devedor Atual Restante</td><td class="valor">{{Venda.SaldoNovo}}</td></tr>
               </table></div>
 
-              <table class="assinaturas"><tr>
-                <td><span class="rotulo">ASSINATURA DO CLIENTE</span>{{Cliente.Nome}}<div class="bloco-assinatura">{{Html.BlocoAssinatura}}</div></td>
-                <td><span class="rotulo">RESPONSÁVEL RECEBIMENTO</span>{{Comercio.Nome}}<div class="bloco-assinatura">{{Html.ComercioAssinatura}}</div></td>
-              </tr></table>
+              <table class="assinaturas">
+                <tr class="linha-imagem">
+                  <td></td>
+                  <td>{{Html.ComercioAssinatura}}</td>
+                </tr>
+                <tr class="linha-dados">
+                  <td><span class="rotulo">ASSINATURA DO CLIENTE</span>{{Cliente.Nome}}<div class="bloco-assinatura">{{Html.BlocoAssinatura}}</div></td>
+                  <td><span class="rotulo">RESPONSÁVEL RECEBIMENTO</span>{{Comercio.Nome}}</td>
+                </tr>
+              </table>
 
               <div class="rodape">Recibo emitido em: {{Data}}</div>
             </body></html>
@@ -212,10 +225,16 @@ namespace ninx.Data.Migrations
 
               {{Html.TabelaDistribuicao}}
 
-              <table class="assinaturas"><tr>
-                <td><span class="rotulo">ASSINATURA DO CLIENTE</span>{{Cliente.Nome}}<div class="bloco-assinatura">{{Html.BlocoAssinatura}}</div></td>
-                <td><span class="rotulo">RESPONSÁVEL RECEBIMENTO</span>{{Comercio.Nome}}<div class="bloco-assinatura">{{Html.ComercioAssinatura}}</div></td>
-              </tr></table>
+              <table class="assinaturas">
+                <tr class="linha-imagem">
+                  <td></td>
+                  <td>{{Html.ComercioAssinatura}}</td>
+                </tr>
+                <tr class="linha-dados">
+                  <td><span class="rotulo">ASSINATURA DO CLIENTE</span>{{Cliente.Nome}}<div class="bloco-assinatura">{{Html.BlocoAssinatura}}</div></td>
+                  <td><span class="rotulo">RESPONSÁVEL RECEBIMENTO</span>{{Comercio.Nome}}</td>
+                </tr>
+              </table>
 
               <div class="rodape">Documento Global emitido em: {{Data}}</div>
             </body></html>

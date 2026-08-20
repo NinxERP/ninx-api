@@ -51,8 +51,8 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetByComercioAutenticado()
         {
             var comercioId = GetComercioId();
-            var permissao = GetPermissao();
-            var result = await _assinaturaService.GetByComercioIdAsync(comercioId, permissao);
+            var pesoLogado = GetCargoPeso();
+            var result = await _assinaturaService.GetByComercioIdAsync(comercioId, pesoLogado);
             return Ok(result);
         }
 

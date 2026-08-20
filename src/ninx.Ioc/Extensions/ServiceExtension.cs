@@ -29,6 +29,10 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IDocumentoRendererService, DocumentoRendererService>();
             services.AddScoped<IAutorizacaoGlobalService, AutorizacaoGlobalService>();
             services.AddScoped<ILogAuditoriaService, LogAuditoriaService>();
+            services.AddScoped<IRedefinicaoSenhaService, RedefinicaoSenhaService>();
+            services.AddScoped<IAutorizacaoCargoService, AutorizacaoCargoService>();
+            services.AddScoped<ICargoService, CargoService>();
+            services.AddScoped<ICargoEfetivoService, CargoEfetivoService>();
             return services;
         }
     }

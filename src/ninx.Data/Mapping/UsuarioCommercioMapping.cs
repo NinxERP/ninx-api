@@ -13,14 +13,6 @@ public class UsuarioComercioMapping : IEntityTypeConfiguration<UsuarioComercio>
         builder.Property(x => x.UsuarioComercioID)
             .ValueGeneratedOnAdd();
 
-        builder.Property(x => x.Permissao)
-            .IsRequired()
-            .HasMaxLength(20)
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_UsuariosComercios_Permissao", 
-            "[Permissao] IN ('Administrador', 'Dono', 'Funcionario')"));
-
         builder.Property(x => x.Ativo)
             .HasDefaultValue(true);
 
@@ -34,5 +26,11 @@ public class UsuarioComercioMapping : IEntityTypeConfiguration<UsuarioComercio>
         builder.HasOne(x => x.Comercio)
             .WithMany(x => x.UsuarioComercios)
             .HasForeignKey(x => x.ComercioID);
+
+        builder.HasOne(x => x.Cargo)
+            .WithMany(x => x.UsuarioComercios)
+            .HasForeignKey(x => x.CargoID)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -39,10 +39,10 @@ namespace ninx.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> RegistrarPagamento([FromBody] PagamentoHistoricoAssinaturaPlanoRequest request)
         {
-            var permissao = GetPermissao();
+            var usuarioLogadoId = GetUsuarioId();
             request.ComercioId = GetComercioId();
 
-            await _pagamentoService.RegistrarPagamentos(request, permissao);
+            await _pagamentoService.RegistrarPagamentos(request, usuarioLogadoId);
 
             return NoContent();
         }
@@ -60,8 +60,8 @@ namespace ninx.API.Controllers
         public async Task<IActionResult> GetHistorico([FromQuery] PaginationRequest request)
         {
             var comercioId = GetComercioId();
-            var permissao = GetPermissao();
-            var result = await _pagamentoService.GetHistoricoByComercioIdAsync(comercioId, permissao, request);
+            var pesoLogado = GetCargoPeso();
+            var result = await _pagamentoService.GetHistoricoByComercioIdAsync(comercioId, pesoLogado, request);
             return Ok(result);
         }
     }

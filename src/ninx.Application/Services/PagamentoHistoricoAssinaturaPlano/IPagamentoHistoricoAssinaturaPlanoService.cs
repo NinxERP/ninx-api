@@ -1,11 +1,10 @@
 ﻿using ninx.Communication;
-using ninx.Domain.Enums;
 
 namespace ninx.Application.Services
 {
     public interface IPagamentoHistoricoAssinaturaPlanoService
     {
-        Task RegistrarPagamentos(PagamentoHistoricoAssinaturaPlanoRequest request, Permissao permissao);
-        Task<PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>> GetHistoricoByComercioIdAsync(int comercioId, Permissao permissaoLogado, PaginationRequest request);
+        Task RegistrarPagamentos(PagamentoHistoricoAssinaturaPlanoRequest request, int usuarioLogadoId);
+        Task<PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>> GetHistoricoByComercioIdAsync(int comercioId, int pesoLogado, PaginationRequest request);
     }
 }

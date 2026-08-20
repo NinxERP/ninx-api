@@ -31,6 +31,8 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IRelatorioRepository, RelatorioRepository>();
             services.AddScoped<IDocumentoTemplateRepository, DocumentoTemplateRepository>();
             services.AddScoped<ILogAuditoriaRepository, LogAuditoriaRepository>();
+            services.AddScoped<IRedefinicaoSenhaRepository, RedefinicaoSenhaRepository>();
+            services.AddScoped<ICargoRepository, CargoRepository>();
 
             return services;
         }

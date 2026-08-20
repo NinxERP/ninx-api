@@ -76,8 +76,9 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetAllByComercioId([FromQuery] PaginationRequest request)
         {
             var comercioId = GetComercioId();
-            var permissao = GetPermissao();
-            var usuario = await _usuarioService.GetAllByComercioId(comercioId, permissao, request);
+            var usuarioIdLogado = GetUsuarioId();
+            var pesoLogado = GetCargoPeso();
+            var usuario = await _usuarioService.GetAllByComercioId(comercioId, usuarioIdLogado, pesoLogado, request);
             return Ok(usuario);
         }
 
@@ -96,8 +97,9 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetByIdAndComercioIdAsync(int id)
         {
             var comercioId = GetComercioId();
-            var permissao = GetPermissao();
-            var usuario = await _usuarioService.GetByIdAndComercioIdAsync(id, comercioId, permissao);
+            var usuarioIdLogado = GetUsuarioId();
+            var pesoLogado = GetCargoPeso();
+            var usuario = await _usuarioService.GetByIdAndComercioIdAsync(id, comercioId, usuarioIdLogado, pesoLogado);
             return Ok(usuario);
         }
 
@@ -116,8 +118,9 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> BuscarPorEmail([FromQuery] string email)
         {
-            var permissao = GetPermissao();
-            var usuario = await _usuarioService.BuscarPorEmailAsync(email, permissao);
+            var usuarioIdLogado = GetUsuarioId();
+            var pesoLogado = GetCargoPeso();
+            var usuario = await _usuarioService.BuscarPorEmailAsync(email, usuarioIdLogado, pesoLogado);
             return Ok(usuario);
         }
 
@@ -137,9 +140,9 @@ namespace ninx.Api.Controllers
         {
             var usuarioId = GetUsuarioId();
             var comercioId = GetComercioId();
-            var permissao = GetPermissao();
+            var pesoLogado = GetCargoPeso();
 
-            var usuario = await _usuarioService.CriarAsync(request, usuarioId, permissao, comercioId);
+            var usuario = await _usuarioService.CriarAsync(request, usuarioId, pesoLogado, comercioId);
             return CreatedAtAction(nameof(GetById), new { id = usuario.UsuarioID }, usuario);
         }
 
@@ -162,8 +165,8 @@ namespace ninx.Api.Controllers
         {
             var comercioId = GetComercioId();
             var usuarioIdLogado = GetUsuarioId();
-            var permissao = GetPermissao();
-            var usuario = await _usuarioService.AtualizarAsync(id, request, comercioId, usuarioIdLogado, permissao);
+            var pesoLogado = GetCargoPeso();
+            var usuario = await _usuarioService.AtualizarAsync(id, request, comercioId, usuarioIdLogado, pesoLogado);
             return Ok(usuario);
         }
 
@@ -204,6 +207,28 @@ namespace ninx.Api.Controllers
             var usuarioIdLogado = GetUsuarioId();
             await _usuarioService.DesativarGlobalAsync(id, usuarioIdLogado);
             return NoContent();
+        }
+
+        /// <summary>
+        /// Atualiza os dados cadastrais de um usuário em toda a plataforma, independentemente dos comércios vinculados.
+        /// </summary>
+        /// <param name="id">Identificador do usuário.</param>
+        /// <param name="request">Dados a serem atualizados.</param>
+        /// <response code="200">Usuário atualizado com sucesso.</response>
+        /// <response code="400">E-mail já cadastrado para outro usuário.</response>
+        /// <response code="401">Apenas administradores globais podem utilizar esse endpoint.</response>
+        /// <response code="404">Usuário não encontrado.</response>
+        [HttpPut("NoComercioId/{id}")]
+        [SwaggerOperation(Summary = "Atualizar usuário (global)", Description = "Atualiza nome e e-mail de um usuário, independente dos comércios vinculados. Restrito a administradores globais (Usuario.Admin == true).")]
+        [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AtualizarGlobal(int id, [FromBody] AtualizarUsuarioRequest request)
+        {
+            var usuarioIdLogado = GetUsuarioId();
+            var usuario = await _usuarioService.AtualizarGlobalAsync(id, request, usuarioIdLogado);
+            return Ok(usuario);
         }
 
         /// <summary>

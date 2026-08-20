@@ -12,6 +12,7 @@ namespace ninx.Data.Context
 
         public DbSet<AssinaturaPlano> AssinaturaPlano { get; set; }
         public DbSet<AssinaturaEletronica> AssinaturaEletronica { get; set; }
+        public DbSet<Cargo> Cargos { get; set; }
         public DbSet<Comercio> Comercio { get; set; }
         public DbSet<CategoriaProduto> CategoriaProduto { get; set; }
         public DbSet<Cliente> Clientes { get; set; }
@@ -23,6 +24,7 @@ namespace ninx.Data.Context
         public DbSet<PagamentoVenda> PagamentoVendas { get; set; }
         public DbSet<PagamentoHistoricoAssinaturaPlano> PagamentoHistoricoAssinaturaPlano { get; set; }
         public DbSet<Produto> Produtos { get; set; }
+        public DbSet<RedefinicaoSenha> RedefinicoesSenha { get; set; }
         public DbSet<SessaoWhatsapp> SessaoWhatsapps { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }    
         public DbSet<UsuarioComercio> UsuarioComercio { get; set; }

@@ -13,19 +13,22 @@ namespace ninx.Application.Services
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IUsuarioComercioRepository _usuarioComercioRepository;
         private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
+        private readonly ICargoEfetivoService _cargoEfetivoService;
         private readonly IUnitOfWork _unitOfWork;
         public LoginService(ITokenProvider tokenProvider,
-            IUsuarioRepository usuarioRepository, 
-            IUsuarioComercioRepository usuarioComercioRepository, 
-            IAssinaturaPlanoRepository assinaturaPlanoRepository, 
+            IUsuarioRepository usuarioRepository,
+            IUsuarioComercioRepository usuarioComercioRepository,
+            IAssinaturaPlanoRepository assinaturaPlanoRepository,
+            ICargoEfetivoService cargoEfetivoService,
             IUnitOfWork unitOfWork)
         {
             _tokenProvider = tokenProvider;
             _usuarioRepository = usuarioRepository;
             _usuarioComercioRepository = usuarioComercioRepository;
             _assinaturaPlanoRepository = assinaturaPlanoRepository;
+            _cargoEfetivoService = cargoEfetivoService;
             _unitOfWork = unitOfWork;
-        }   
+        }
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
         {
@@ -59,14 +62,16 @@ namespace ninx.Application.Services
 
                 await ValidarPlanoAsync(usuarioC.ComercioID);
 
-                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, usuarioC.ComercioID, usuarioC.Permissao, usuarioC.Comercio.NomeComercio) };
+                var cargoEfetivoC = await _cargoEfetivoService.ResolverCargoEfetivoAsync(usuario, usuarioC.Cargo);
+                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, usuarioC.ComercioID, cargoEfetivoC, usuarioC.Comercio.NomeComercio) };
             }
 
             if (usuarioComercios.Count == 1)
             {
                 var unico = usuarioComercios.First();
                 await ValidarPlanoAsync(unico.ComercioID);
-                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, unico.ComercioID, unico.Permissao, unico.Comercio.NomeComercio) };
+                var cargoEfetivoUnico = await _cargoEfetivoService.ResolverCargoEfetivoAsync(usuario, unico.Cargo);
+                return new LoginResponse { Token = _tokenProvider.GerarToken(usuario, unico.ComercioID, cargoEfetivoUnico, unico.Comercio.NomeComercio) };
             }
             else
             {

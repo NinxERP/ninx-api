@@ -32,7 +32,7 @@ namespace ninx.Api.Controllers
         /// <response code="403">Usuário autenticado não tem permissão para vincular usuários a esse comércio.</response>
         /// <response code="404">Usuário não encontrado.</response>
         [HttpPost]
-        [SwaggerOperation(Summary = "Vincular usuário a comércio", Description = "Vincula um usuário já cadastrado na plataforma a um comércio, com a permissão informada. Restrito a Administrador/Dono do comércio; Donos só podem vincular com permissão de funcionário (a permissão informada é forçada para Funcionario).")]
+        [SwaggerOperation(Summary = "Vincular usuário a comércio", Description = "Vincula um usuário já cadastrado na plataforma a um comércio, com o cargo informado. Restrito a quem tem cargo de peso Dono ou superior no comércio; só é possível atribuir cargos com peso estritamente menor que o do próprio chamador.")]
         [ProducesResponseType(typeof(UsuarioComercioResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
@@ -53,7 +53,7 @@ namespace ninx.Api.Controllers
         /// <response code="403">Usuário autenticado não tem permissão para essa alteração.</response>
         /// <response code="404">Vínculo entre usuário e comércio não encontrado.</response>
         [HttpPut]
-        [SwaggerOperation(Summary = "Atualizar vínculo usuário-comércio", Description = "Atualiza o vínculo (incluindo permissão) entre um usuário e um comércio.")]
+        [SwaggerOperation(Summary = "Atualizar vínculo usuário-comércio", Description = "Atualiza o vínculo entre um usuário e um comércio. A troca do CargoID é restrita a administradores de plataforma (Usuario.Admin); a ativação/desativação segue a hierarquia por peso de Cargo.")]
         [ProducesResponseType(typeof(UsuarioComercioResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
