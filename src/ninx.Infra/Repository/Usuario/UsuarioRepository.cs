@@ -28,8 +28,17 @@ namespace ninx.Infra.Repository
         public async Task<IEnumerable<Usuario>> GetAllByComercioIdAsync(int comercioId)
         {
             return await _context.Usuarios.AsNoTracking()
-                .Include(x => x.UsuarioComercios).ThenInclude(uc => uc.Cargo)
+                .Include(x => x.UsuarioComercios.Where(uc => uc.ComercioID == comercioId)).ThenInclude(uc => uc.Comercio)
+                .Include(x => x.UsuarioComercios.Where(uc => uc.ComercioID == comercioId)).ThenInclude(uc => uc.Cargo)
                 .Where(x => x.UsuarioComercios.Any(uc => uc.ComercioID == comercioId))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Usuario>> GetAllComVinculosAsync()
+        {
+            return await _context.Usuarios.AsNoTracking()
+                .Include(x => x.UsuarioComercios).ThenInclude(uc => uc.Comercio)
+                .Include(x => x.UsuarioComercios).ThenInclude(uc => uc.Cargo)
                 .ToListAsync();
         }
 

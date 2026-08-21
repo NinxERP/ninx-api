@@ -8,13 +8,17 @@ namespace ninx.Application.Validators.Request
         public AtualizarUsuarioRequestValidator()
         {
             RuleFor(x => x.Nome)
-                .NotEmpty().WithMessage("Nome é obrigatório.")
-                .MinimumLength(3).WithMessage("Nome deve ter no mínimo 3 caracteres.")
-                .MaximumLength(150).WithMessage("Nome deve ter no máximo 150 caracteres.");
+                .NotEmpty().WithMessage("Nome ï¿½ obrigatï¿½rio.")
+                .MinimumLength(3).WithMessage("Nome deve ter no mï¿½nimo 3 caracteres.")
+                .MaximumLength(150).WithMessage("Nome deve ter no mï¿½ximo 150 caracteres.");
 
             RuleFor(x => x.Email)
-                .NotEmpty().WithMessage("E-mail é obrigatório.")
-                .EmailAddress().WithMessage("E-mail inválido.");
+                .NotEmpty().WithMessage("E-mail ï¿½ obrigatï¿½rio.")
+                .EmailAddress().WithMessage("E-mail invï¿½lido.");
+
+            RuleFor(x => x.CargoID)
+                .GreaterThan(0).WithMessage("CargoID invï¿½lido.")
+                .When(x => x.CargoID.HasValue);
         }
     }
 }

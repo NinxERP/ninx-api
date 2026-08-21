@@ -8,6 +8,7 @@ namespace ninx.Domain.Interfaces
         public Task<Usuario?> GetUsuarioById(int id);
         public Task<Usuario?> GetByIdAndComercioIdAsync(int usuarioId, int comercioId);
         public Task<IEnumerable<Usuario>> GetAllByComercioIdAsync(int comercioId);
+        public Task<IEnumerable<Usuario>> GetAllComVinculosAsync();
 
     }
 }

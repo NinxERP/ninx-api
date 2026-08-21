@@ -47,17 +47,28 @@ namespace ninx.Application.Services
             return usuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task<PaginatedResponse<UsuarioResponse>> GetAll(int usuarioIdLogado, PaginationRequest request)
+        public async Task<PaginatedResponse<UsuarioListaResponse>> GetAll(int usuarioIdLogado, PaginationRequest request)
         {
             await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
 
-            var usuarios = await _usuarioRepository.GetAllAsync();
-            if (usuarios is null || !usuarios.Any()) throw new NotFoundException("Nenhum usuário foi encontrado");
+            var usuarios = await _usuarioRepository.GetAllComVinculosAsync();
 
-            var (entidades, total) = await _usuarioRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
-            var listaResponse = entidades.Adapt<List<UsuarioResponse>>();
+            var vinculos = usuarios
+                .SelectMany(u => u.UsuarioComercios.Select(uc => (Usuario: u, Vinculo: uc)))
+                .OrderBy(x => x.Usuario.UsuarioID)
+                .ThenBy(x => x.Vinculo.ComercioID)
+                .ToList();
 
-            return new PaginatedResponse<UsuarioResponse>(
+            if (vinculos.Count == 0) throw new NotFoundException("Nenhum usuário foi encontrado");
+
+            var total = vinculos.Count;
+            var pagina = vinculos
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToList();
+            var listaResponse = pagina.Select(MapParaListaResponse).ToList();
+
+            return new PaginatedResponse<UsuarioListaResponse>(
                 listaResponse,
                 request.PageNumber,
                 request.PageSize,
@@ -65,7 +76,7 @@ namespace ninx.Application.Services
             );
         }
 
-        public async Task<PaginatedResponse<UsuarioResponse>> GetAllByComercioId(int comercioId, int usuarioIdLogado, int pesoLogado, PaginationRequest request)
+        public async Task<PaginatedResponse<UsuarioListaResponse>> GetAllByComercioId(int comercioId, int usuarioIdLogado, int pesoLogado, PaginationRequest request)
         {
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioIdLogado);
             _autorizacaoCargoService.GarantirPesoMinimo(chamadorEhAdmin, pesoLogado, CargoConstantes.PesoDono, "Você não pode consultar usuários deste comércio.");
@@ -77,27 +88,35 @@ namespace ninx.Application.Services
                     .Where(u => u.UsuarioComercios.Any(uc => uc.ComercioID == comercioId && uc.Cargo.Peso < pesoLogado))
                     .ToList();
 
-            if (usuarios is null || !usuarios.Any())
+            var vinculos = usuarios
+                .Select(u => (Usuario: u, Vinculo: u.UsuarioComercios.First(uc => uc.ComercioID == comercioId)))
+                .ToList();
+
+            if (vinculos.Count == 0)
                 throw new NotFoundException("Nenhum usuário foi encontrado");
 
-            var total = usuarios.Count;
-            var pagina = usuarios
+            var total = vinculos.Count;
+            var pagina = vinculos
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToList();
-            var listaResponse = pagina.Select(u =>
-            {
-                var response = u.Adapt<UsuarioResponse>();
-                response.CargoNome = u.UsuarioComercios.First(uc => uc.ComercioID == comercioId).Cargo.Nome;
-                return response;
-            }).ToList();
+            var listaResponse = pagina.Select(MapParaListaResponse).ToList();
 
-            return new PaginatedResponse<UsuarioResponse>(
+            return new PaginatedResponse<UsuarioListaResponse>(
                 listaResponse,
                 request.PageNumber,
                 request.PageSize,
                 total
             );
+        }
+
+        private static UsuarioListaResponse MapParaListaResponse((Usuario Usuario, UsuarioComercio Vinculo) item)
+        {
+            var response = item.Usuario.Adapt<UsuarioListaResponse>();
+            response.ComercioID = item.Vinculo.ComercioID;
+            response.ComercioNome = item.Vinculo.Comercio.NomeComercio;
+            response.CargoNome = item.Vinculo.Cargo.Nome;
+            return response;
         }
 
         public async Task<UsuarioResponse> BuscarPorEmailAsync(string email, int usuarioIdLogado, int pesoLogado)
@@ -182,12 +201,30 @@ namespace ninx.Application.Services
 
             await GarantirEmailDisponivelAsync(request.Email, id);
 
+            if (request.CargoID.HasValue && request.CargoID.Value != vinculo.CargoID)
+            {
+                var novoCargo = await _cargoRepository.GetByIdAsync(request.CargoID.Value);
+                if (novoCargo == null || !novoCargo.Ativo || (novoCargo.ComercioID != null && novoCargo.ComercioID != comercioId))
+                    throw new BadRequestException("O cargo informado é inválido para este comércio.");
+
+                if (!chamadorEhAdmin && novoCargo.Peso >= pesoLogado)
+                    throw new ForbiddenException("Você só pode atribuir cargos com peso menor que o seu.");
+
+                vinculo.CargoID = novoCargo.CargoID;
+                vinculo.Cargo = novoCargo;
+                await _usuarioComercioRepository.UpdateAsync(vinculo);
+                await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, comercioId, "UsuarioComercioCargoAlterado", "UsuarioComercio", id, $"NovoCargo={novoCargo.Nome}");
+            }
+
             request.Adapt(usuario);
             usuario.AtualizadoEm = DateTime.UtcNow;
             await _usuarioRepository.UpdateAsync(usuario);
             await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, comercioId, "UsuarioIdentidadeAtualizada", "Usuario", id);
             await _unitOfWork.SaveChangesAsync();
-            return usuario.Adapt<UsuarioResponse>();
+
+            var response = usuario.Adapt<UsuarioResponse>();
+            response.CargoNome = vinculo.Cargo.Nome;
+            return response;
         }
 
         public async Task<UsuarioResponse> AtualizarGlobalAsync(int id, AtualizarUsuarioRequest request, int usuarioIdLogado)
@@ -238,29 +275,6 @@ namespace ninx.Application.Services
             await _usuarioRepository.UpdateAsync(usuario);
             await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, null, "UsuarioSenhaResetada", "Usuario", id);
             await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task<UsuarioResponse> AtualizarAdminAsync(int id, int usuarioIdLogado, AtualizarAdminRequest request)
-        {
-            await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
-
-            var usuario = await _usuarioRepository.GetByIdAsync(id);
-            if (usuario is null) throw new NotFoundException("Usuário não encontrado.");
-
-            if (usuario.Admin && !request.Admin)
-            {
-                var todosUsuarios = await _usuarioRepository.GetAllAsync();
-                var restamOutrosAdmins = todosUsuarios.Any(u => u.Admin && u.UsuarioID != id);
-                if (!restamOutrosAdmins)
-                    throw new BadRequestException("Não é possível remover o último administrador de plataforma.");
-            }
-
-            usuario.Admin = request.Admin;
-            usuario.AtualizadoEm = DateTime.UtcNow;
-            await _usuarioRepository.UpdateAsync(usuario);
-            await _logAuditoriaService.RegistrarAsync(usuarioIdLogado, null, request.Admin ? "UsuarioPromovidoAdmin" : "UsuarioRebaixadoAdmin", "Usuario", id);
-            await _unitOfWork.SaveChangesAsync();
-            return usuario.Adapt<UsuarioResponse>();
         }
 
         private async Task GarantirEmailDisponivelAsync(string email, int usuarioId)
