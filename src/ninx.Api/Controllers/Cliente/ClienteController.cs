@@ -62,7 +62,7 @@ namespace ninx.Api.Controllers
         /// <param name="id">Identificador do cliente.</param>
         /// <response code="200">Cliente encontrado.</response>
         /// <response code="404">Cliente não encontrado no comércio autenticado.</response>
-        [HttpGet("id/{id}")]
+        [HttpGet("{id}")]
         [SwaggerOperation(Summary = "Buscar cliente por id", Description = "Retorna um cliente do comércio autenticado pelo identificador.")]
         [ProducesResponseType(typeof(ClienteResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]

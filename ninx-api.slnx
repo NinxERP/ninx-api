@@ -6,4 +6,5 @@
   <Project Path="src/ninx.Domain/ninx.Domain.csproj" />
   <Project Path="src/ninx.Infra/ninx.Infra.csproj" />
   <Project Path="src/ninx.Ioc/ninx.Ioc.csproj" />
+  <Project Path="src/ninx.Tests/ninx.Tests.csproj" />
 </Solution>
