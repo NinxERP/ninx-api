@@ -9,6 +9,7 @@
         public DateTime DataFim { get; set; }
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
+        public DateTime? CancelamentoSolicitadoEm { get; set; }
 
     }
 }

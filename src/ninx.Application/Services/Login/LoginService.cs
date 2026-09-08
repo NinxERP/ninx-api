@@ -93,10 +93,15 @@ namespace ninx.Application.Services
             if (plano.Status == StatusAssinatura.Cancelada || plano.Status == StatusAssinatura.Vencida) throw new ForbiddenException("Assinatura vencida ou cancelada.");
             if (plano.DataFim < DateTime.UtcNow)
             {
-                plano.Status = StatusAssinatura.Vencida;
+                plano.Status = plano.CancelamentoSolicitadoEm != null
+                    ? StatusAssinatura.Cancelada
+                    : StatusAssinatura.Vencida;
                 await _assinaturaPlanoRepository.UpdateAsync(plano);
                 await _unitOfWork.SaveChangesAsync();
-                throw new ForbiddenException("Sua assinatura está vencida.");
+
+                throw plano.Status == StatusAssinatura.Cancelada
+                    ? new ForbiddenException("Sua assinatura foi cancelada.")
+                    : new ForbiddenException("Sua assinatura está vencida.");
             }
         }
     }

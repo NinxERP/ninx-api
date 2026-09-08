@@ -123,14 +123,16 @@ namespace ninx.Tests.Helpers
         public static AssinaturaPlano NovaAssinaturaPlano(
             int comercioId = 1,
             StatusAssinatura status = StatusAssinatura.Ativa,
-            DateTime? dataFim = null) => new()
+            DateTime? dataFim = null,
+            DateTime? cancelamentoSolicitadoEm = null) => new()
         {
             AssinaturaID = 1,
             ComercioID = comercioId,
             Plano = PlanoAssinatura.Mensal,
             DataInicio = DateTime.UtcNow.AddMonths(-1),
             DataFim = dataFim ?? DateTime.UtcNow.AddMonths(1),
-            Status = status
+            Status = status,
+            CancelamentoSolicitadoEm = cancelamentoSolicitadoEm
         };
     }
 }

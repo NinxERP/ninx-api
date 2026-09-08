@@ -50,6 +50,7 @@ namespace ninx.Application.Services
             assinatura.Status = StatusAssinatura.Ativa;
             assinatura.DataFim = novoVencimento;
             assinatura.AtualizadoEm = hoje;
+            assinatura.CancelamentoSolicitadoEm = null;
             await _assinaturaPlanoRepository.UpdateAsync(assinatura);
 
             var newPagamento = request.Adapt<PagamentoHistoricoAssinaturaPlano>();

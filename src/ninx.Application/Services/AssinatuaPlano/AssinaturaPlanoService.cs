@@ -2,6 +2,7 @@
 using ninx.Communication;
 using ninx.Domain.Constants;
 using ninx.Domain.Entities;
+using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
 
@@ -10,9 +11,11 @@ namespace ninx.Application.Services
     public class AssinaturaPlanoService : IAssinaturaPlanoService
     {
         private readonly IAssinaturaPlanoRepository _AssinaturaPlanoRepository;
-        public AssinaturaPlanoService(IAssinaturaPlanoRepository AssinaturaPlanoRepository)
+        private readonly IUnitOfWork _unitOfWork;
+        public AssinaturaPlanoService(IAssinaturaPlanoRepository AssinaturaPlanoRepository, IUnitOfWork unitOfWork)
         {
             _AssinaturaPlanoRepository = AssinaturaPlanoRepository;
+            _unitOfWork = unitOfWork;
         }
     
         public async Task<PaginatedResponse<AssinaturaPlanoResponse>> GetAll(PaginationRequest request)
@@ -47,6 +50,27 @@ namespace ninx.Application.Services
                 throw new NotFoundException("Nenhuma assinatura encontrada para este comércio.");
 
             return assinatura.Adapt<AssinaturaPlanoResponse>();
+        }
+
+        public async Task CancelarAsync(int comercioId, int pesoLogado)
+        {
+            if (pesoLogado < CargoConstantes.PesoDono)
+                throw new ForbiddenException("Funcionários não podem cancelar a assinatura do comércio.");
+
+            var assinatura = await _AssinaturaPlanoRepository.GetByComercioIdAsync(comercioId);
+            if (assinatura == null)
+                throw new NotFoundException("Nenhuma assinatura encontrada para este comércio.");
+
+            if (assinatura.Status != StatusAssinatura.Ativa)
+                throw new BadRequestException("Assinatura não está ativa para ser cancelada.");
+
+            if (assinatura.CancelamentoSolicitadoEm != null)
+                throw new BadRequestException("Já existe um cancelamento agendado para esta assinatura.");
+
+            assinatura.CancelamentoSolicitadoEm = DateTime.UtcNow;
+            assinatura.AtualizadoEm = DateTime.UtcNow;
+            await _AssinaturaPlanoRepository.UpdateAsync(assinatura);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

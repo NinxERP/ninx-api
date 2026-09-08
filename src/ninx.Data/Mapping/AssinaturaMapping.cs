@@ -47,6 +47,9 @@ namespace ninx.Data.Mappings
             builder.Property(x => x.AtualizadoEm)
                 .IsRequired(false);
 
+            builder.Property(x => x.CancelamentoSolicitadoEm)
+                .IsRequired(false);
+
             builder.HasOne(x => x.Comercio)
                 .WithMany(x => x.Assinaturas)
                 .HasForeignKey(x => x.ComercioID);

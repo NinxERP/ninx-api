@@ -71,5 +71,26 @@ namespace ninx.Api.Controllers
             var result = await _assinaturaService.GetByIdAsync(id);
             return Ok(result);
         }
+
+        /// <summary>
+        /// Solicita o cancelamento da assinatura do comércio autenticado.
+        /// </summary>
+        /// <response code="204">Cancelamento agendado com sucesso — acesso mantido até o fim da vigência.</response>
+        /// <response code="400">Assinatura já cancelada/vencida ou já possui cancelamento agendado.</response>
+        /// <response code="403">Funcionários não podem cancelar a assinatura do comércio.</response>
+        /// <response code="404">Nenhuma assinatura encontrada para o comércio.</response>
+        [HttpPost("cancelar")]
+        [SwaggerOperation(Summary = "Cancelar assinatura do comércio autenticado", Description = "Agenda o cancelamento da assinatura; o acesso permanece ativo até o fim da vigência já paga (DataFim).")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Cancelar()
+        {
+            var comercioId = GetComercioId();
+            var pesoLogado = GetCargoPeso();
+            await _assinaturaService.CancelarAsync(comercioId, pesoLogado);
+            return NoContent();
+        }
     }
 }

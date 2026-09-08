@@ -162,5 +162,45 @@ namespace ninx.Tests.Services
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
+
+        [Fact]
+        public async Task LoginAsync_AssinaturaVencidaComCancelamentoPendente_DeveMarcarCanceladaELancarForbidden()
+        {
+            var usuario = Builders.NovoUsuario(1);
+            var vinculo = Builders.NovoVinculo(1, 1);
+            var assinatura = Builders.NovaAssinaturaPlano(1, dataFim: DateTime.UtcNow.AddDays(-1), cancelamentoSolicitadoEm: DateTime.UtcNow.AddDays(-5));
+
+            _usuarioRepository.Setup(x => x.GetUsuarioByEmail(usuario.Email)).ReturnsAsync(usuario);
+            _usuarioComercioRepository.Setup(x => x.GetByUsuarioIdAsync(1)).ReturnsAsync(new List<UsuarioComercio> { vinculo });
+            _assinaturaPlanoRepository.Setup(x => x.GetByComercioIdAsync(1)).ReturnsAsync(assinatura);
+
+            var service = CriarService();
+
+            var act = async () => await service.LoginAsync(new LoginRequest { Email = usuario.Email, Senha = SenhaValida });
+
+            await act.Should().ThrowAsync<ForbiddenException>();
+            assinatura.Status.Should().Be(StatusAssinatura.Cancelada);
+            _assinaturaPlanoRepository.Verify(x => x.UpdateAsync(assinatura), Times.Once);
+        }
+
+        [Fact]
+        public async Task LoginAsync_CancelamentoPendenteMasDentroDaVigencia_DeveEmitirTokenNormalmente()
+        {
+            var usuario = Builders.NovoUsuario(1);
+            var vinculo = Builders.NovoVinculo(1, 1);
+            var assinatura = Builders.NovaAssinaturaPlano(1, cancelamentoSolicitadoEm: DateTime.UtcNow.AddDays(-1));
+
+            _usuarioRepository.Setup(x => x.GetUsuarioByEmail(usuario.Email)).ReturnsAsync(usuario);
+            _usuarioComercioRepository.Setup(x => x.GetByUsuarioIdAsync(1)).ReturnsAsync(new List<UsuarioComercio> { vinculo });
+            _assinaturaPlanoRepository.Setup(x => x.GetByComercioIdAsync(1)).ReturnsAsync(assinatura);
+            _cargoEfetivoService.Setup(x => x.ResolverCargoEfetivoAsync(usuario, vinculo.Cargo)).ReturnsAsync(vinculo.Cargo);
+            _tokenProvider.Setup(x => x.GerarToken(usuario, 1, vinculo.Cargo, vinculo.Comercio.NomeComercio)).Returns("token-jwt");
+
+            var service = CriarService();
+            var response = await service.LoginAsync(new LoginRequest { Email = usuario.Email, Senha = SenhaValida });
+
+            response.Token.Should().Be("token-jwt");
+            assinatura.Status.Should().Be(StatusAssinatura.Ativa);
+        }
     }
 }

@@ -12,6 +12,7 @@ namespace ninx.Domain.Entities
         public StatusAssinatura Status { get; set; } = StatusAssinatura.Ativa;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
+        public DateTime? CancelamentoSolicitadoEm { get; set; }
         public Comercio Comercio { get; set; } = null!;
     }
 }

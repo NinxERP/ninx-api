@@ -7,5 +7,6 @@ namespace ninx.Application.Services
         Task<AssinaturaPlanoResponse> GetByIdAsync(int id);
         Task<PaginatedResponse<AssinaturaPlanoResponse>> GetAll(PaginationRequest request);
         Task<AssinaturaPlanoResponse> GetByComercioIdAsync(int comercioId, int pesoLogado);
+        Task CancelarAsync(int comercioId, int pesoLogado);
     }
 }
