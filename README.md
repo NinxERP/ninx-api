@@ -77,8 +77,7 @@ configurável via `Jwt:ExpiresInMinutes`.
    ```
    cp .env.example .env 
    ```
-2. 
-```
+2. ```
 docker compose -f docker/docker-compose.yml --env-file .env up --build
 ```
 Sobe a API em `http://localhost:8080`.
