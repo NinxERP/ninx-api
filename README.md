@@ -1,21 +1,43 @@
-# ninx-api
+<div align="center">
 
-API de gestão de comércio, estoque e vendas do sistema **Ninx** — backend multi-tenant para pequenos comércios (ERP/POS), com fluxo de assinatura eletrônica de documentos de venda.
+# 🧾 ninx-api
 
-## Sobre o sistema Ninx
+**Backend do sistema Ninx — API multi-tenant de gestão de comércio, estoque e vendas, com fluxo de assinatura eletrônica de documentos.**
 
-Este repositório é um dos quatro que compõem o Ninx:
+![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
+![EF Core](https://img.shields.io/badge/EF%20Core-SQL%20Server-CC2927?logo=microsoftsqlserver&logoColor=white)
+![JWT](https://img.shields.io/badge/Auth-JWT-000000?logo=jsonwebtokens&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Dockerfile-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/licença-privado-lightgrey)
+
+</div>
+
+---
+
+API de gestão de comércio, estoque e vendas do sistema **Ninx** — backend multi-tenant para
+pequenos comércios (ERP/POS), com fluxo de assinatura eletrônica de documentos de venda.
+
+## 🧩 Sobre o sistema Ninx
+
+Este repositório é um dos cinco que compõem o Ninx:
 
 | Repositório | Papel |
 |---|---|
 | **ninx-api** (este) | Backend: autenticação, regras de negócio, dados. |
-| [ninx-novofront](../ninx-novofront) | Cliente desktop (ERP/POS) em Tauri v2 + React, em substituição ao `ninx-front`. |
-| [ninx-front](../ninx-front) | Cliente desktop (ERP/POS) em .NET MAUI — mantido só como referência durante a migração para `ninx-novofront`. |
+| [ninx-front](../ninx-front) | Cliente desktop atual (ERP/POS), em Tauri v2 + React. |
+| [old-ninx-front](../old-ninx-front) | Cliente desktop antigo, em .NET MAUI — **descontinuado**, mantido só como referência histórica. |
 | [ninx-signature](../ninx-signature) | Página pública onde o cliente final assina documentos de venda. |
+| [docs](../docs) | Documentação complementar (auditoria da migração de frontend, notas de arquitetura). |
 
-Fluxo de integração: o cliente desktop (`ninx-novofront`) cria uma venda/recibo via este backend, que gera um `AssinaturaEletronica` com um `DocumentoGuid` público. O front monta um link/QR code `{signature-page}/?guid={DocumentoGuid}`; o cliente abre esse link no `ninx-signature`, que consome os endpoints públicos `GET /api/AssinaturaEletronica/{guid}` e `POST /api/AssinaturaEletronica/confirmar/{guid}` deste backend. O cliente desktop então faz polling em `GET /api/AssinaturaEletronica/assinado/{guid}` para saber quando a assinatura foi concluída.
+Fluxo de integração: o cliente desktop (`ninx-front`) cria uma venda/recibo via este backend,
+que gera um `AssinaturaEletronica` com um `DocumentoGuid` público. O front monta um link/QR
+code `{signature-page}/?guid={DocumentoGuid}`; o cliente abre esse link no `ninx-signature`,
+que consome os endpoints públicos `GET /api/AssinaturaEletronica/{guid}` e
+`POST /api/AssinaturaEletronica/confirmar/{guid}` deste backend. O cliente desktop então faz
+polling em `GET /api/AssinaturaEletronica/assinado/{guid}` para saber quando a assinatura foi
+concluída.
 
-## Stack
+## ⚙️ Stack
 
 - .NET 10 / ASP.NET Core Web API
 - Entity Framework Core (SQL Server / Azure SQL)
@@ -24,21 +46,21 @@ Fluxo de integração: o cliente desktop (`ninx-novofront`) cria uma venda/recib
 - Swashbuckle/Swagger (documentação da API, só em `Development`)
 - Brevo (envio de e-mail transacional, usado na redefinição de senha)
 
-## Arquitetura
+## 🏗️ Arquitetura
 
 Clean Architecture, dividida em projetos sob `src/`:
 
 - `ninx.Api` — controllers, pipeline HTTP, Swagger, DI (composição via `ninx.Ioc`).
 - `ninx.Application` — serviços de negócio, mapeamentos (Mapster) e validações (FluentValidation).
 - `ninx.Communication` — DTOs de request/response. Espelhados 1:1 em TypeScript em
-  [`ninx-novofront/src/types/`](../ninx-novofront/src/types/) — é lá que ficam as
+  [`ninx-front/src/types/`](../ninx-front/src/types/) — é lá que ficam as
   definições exatas de campo/tipo de cada payload, para não duplicar (e desatualizar) aqui.
 - `ninx.Domain` — entidades, enums, interfaces, exceções.
 - `ninx.Infra` — repositórios (EF Core), geração de token JWT, cliente de e-mail.
 - `ninx.Data` — `DbContext`, configurações de mapeamento EF e migrations.
 - `ninx.Ioc` — composição de dependências (extensões `Add*`).
 
-## Endpoints
+## 🔌 Endpoints
 
 Todos os controllers ficam em `src/ninx.Api/Controllers/`, prefixo `api/[controller]`. Visão geral:
 
@@ -60,9 +82,9 @@ Não há atributos `[Authorize(Roles=...)]` tradicionais: cada Controller herda 
 do JWT, aplicando a regra de autorização dentro do Service correspondente.
 
 Para verbo/rota exatos, parâmetros e shape de request/response de cada endpoint, use o
-Swagger (`/swagger`, só em `Development`) ou os tipos em `ninx-novofront/src/types/`.
+Swagger (`/swagger`, só em `Development`) ou os tipos em `ninx-front/src/types/`.
 
-## Autenticação
+## 🔐 Autenticação
 
 JWT HMAC-SHA256, emitido em `POST /api/Login` e reemitido por completo em
 `POST /api/TrocarComercio/{comercioId}` ao trocar de tenant (não existe refresh token — ao
@@ -70,13 +92,13 @@ expirar, o cliente precisa autenticar de novo). Claims: `usuarioId`, `nome`, `em
 `comercioId`, `cargoId`, `cargoNome`, `cargoPeso`, `nomeComercio`, `admin`. Expiração
 configurável via `Jwt:ExpiresInMinutes` (padrão 1200min / 20h).
 
-## CORS
+## 🌐 CORS
 
 Restrito a `http://localhost:5173`, `tauri://localhost` e `http://tauri.localhost`
 (`Program.cs`, política `NinxFrontend`) — apps que rodam fora dessas origens não conseguem
 consumir a API a partir de um browser.
 
-## Como rodar localmente
+## 🚀 Como rodar localmente
 
 ### Direto com .NET
 
@@ -105,7 +127,7 @@ consumir a API a partir de um browser.
 3. Para desenvolver com banco local em vez do Azure: `docker compose --profile dev up -d db`
    e troque `DB_CONNECTION_STRING` no `.env` conforme o comentário no próprio arquivo.
 
-## Bibliotecas (NuGet)
+## 📦 Bibliotecas (NuGet)
 
 | Pacote | Versão | Projeto(s) | Finalidade |
 |---|---|---|---|
@@ -126,15 +148,17 @@ consumir a API a partir de um browser.
 | `Microsoft.AspNetCore.Mvc.Testing` | 10.0.5 | Tests | Testes de integração (`WebApplicationFactory`). |
 | `Microsoft.EntityFrameworkCore.InMemory` / `.Sqlite` | 10.0.5 | Tests | Banco em memória/SQLite para os testes de integração, sem depender do SQL Server real. |
 
-## Testes
+## ✅ Testes
 
-```
+```bash
 dotnet test
 ```
 
-Cobre os serviços de negócio (`ninx.Application/Services`), validadores e testes de integração dos fluxos principais (login, venda, assinatura eletrônica). 188 testes na suíte atual.
+Cobre os serviços de negócio (`ninx.Application/Services`), validadores e testes de
+integração dos fluxos principais (login, venda, assinatura eletrônica). 188 testes na suíte
+atual.
 
-## Deploy
+## 📦 Deploy
 
 - **Docker**: `Dockerfile` multi-stage na raiz (build → publish → runtime .NET 10, usuário
   não-root, porta `8080`). `docker-compose.yml` orquestra o serviço `api` (lê config via
