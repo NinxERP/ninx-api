@@ -73,11 +73,16 @@ configurável via `Jwt:ExpiresInMinutes`.
 ### Via Docker
 
 1. Rode o comando a baixo na raiz do projeto e preencha `ConnectionStrings:DefaultConnection`, `Jwt:Secret` com os dados corretos.
+
    ```
    cp .env.example .env 
    ```
-2. `docker compose -f docker/docker-compose.yml --env-file .env up --build` — sobe a API em
-   `http://localhost:8080`.
+2. 
+```
+docker compose -f docker/docker-compose.yml --env-file .env up --build
+```
+Sobe a API em `http://localhost:8080`.
+
 3. Para desenvolver com banco local:
    `docker compose -f docker/docker-compose.yml --env-file .env --profile dev up -d db`
    e troque `DB_CONNECTION_STRING` no `.env` conforme o comentário no próprio arquivo.
