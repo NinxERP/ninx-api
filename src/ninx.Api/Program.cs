@@ -73,6 +73,7 @@ builder.Services.AddSwaggerGen(c =>
 var origensPermitidas = new[]
 {
     "http://localhost:5173",
+    "http://localhost:1420",
     "tauri://localhost",
     "http://tauri.localhost",
 };
