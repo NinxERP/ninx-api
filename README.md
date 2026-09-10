@@ -73,19 +73,18 @@ configurável via `Jwt:ExpiresInMinutes`.
 ### Via Docker
 
 1. Rode o comando a baixo na raiz do projeto e preencha `ConnectionStrings:DefaultConnection`, `Jwt:Secret` com os dados corretos.
-
    ```
    cp .env.example .env 
    ```
 2. Sobe a API em `http://localhost:8080`:
-```
-docker compose -f docker/docker-compose.yml --env-file .env up --build
-```
+   ```
+   docker compose -f docker/docker-compose.yml --env-file .env up --build
+   ```
 
 3. Para desenvolver com banco local:
-```
-docker compose -f docker/docker-compose.yml --env-file .env --profile dev up -d db
-```
+   ```
+   docker compose -f docker/docker-compose.yml --env-file .env --profile dev up -d db
+   ```
 
 ## 📦 Bibliotecas (NuGet)
 
