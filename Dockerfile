@@ -24,8 +24,7 @@ RUN dotnet publish "src/ninx.Api/ninx.Api.csproj" -c Release -o /app/publish /p:
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-RUN adduser --disabled-password --gecos "" appuser
-USER appuser
+USER 1000
 
 COPY --from=build /app/publish .
 
