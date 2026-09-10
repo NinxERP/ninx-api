@@ -60,10 +60,11 @@ configurável via `Jwt:ExpiresInMinutes`.
 ### Direto com .NET
 
 1. Pré-requisitos: .NET 10 SDK, acesso a um SQL Server.
-2. `cp .env.example .env` (na raiz do repo) e preencha `DB_CONNECTION_STRING` e
-   `JWT_SECRET` — o próprio `Program.cs` lê o `.env` e mapeia pras chaves de config
-   (`ConnectionStrings:DefaultConnection`, `Jwt:Secret` etc.), sem precisar de
-   `appsettings.Local.json`.
+2. Rode: (na raiz do repo)
+   ```
+   `cp .env.example .env`   
+    ```
+    E preencha `ConnectionStrings:DefaultConnection`, `Jwt:Secret`
 3. Aplique as migrations:
    ```
    dotnet ef database update --project src/ninx.Data --startup-project src/ninx.Api
