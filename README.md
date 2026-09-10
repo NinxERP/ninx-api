@@ -60,11 +60,10 @@ configurável via `Jwt:ExpiresInMinutes`.
 ### Direto com .NET
 
 1. Pré-requisitos: .NET 10 SDK, acesso a um SQL Server.
-2. Rode: (na raiz do repo)
+2. Rode o comando a baixo na raiz do projeto e preencha `ConnectionStrings:DefaultConnection`, `Jwt:Secret` com os dados corretos.
    ```
    cp .env.example .env 
    ```
-    E preencha `ConnectionStrings:DefaultConnection`, `Jwt:Secret`
 3. Aplique as migrations:
    ```
    dotnet ef database update --project src/ninx.Data --startup-project src/ninx.Api
@@ -73,16 +72,13 @@ configurável via `Jwt:ExpiresInMinutes`.
 
 ### Via Docker
 
-> Fora do padrão: `Dockerfile` e `docker-compose.yml` ficam em [`docker/`](docker/), não
-> na raiz — o `.env` continua na raiz porque também é lido direto pelo `.NET` (ver seção
-> acima). Por isso os comandos abaixo rodam com `-f docker/docker-compose.yml` a partir da
-> raiz do repo, e o `docker-compose.yml` aponta `context: ..` pro `Dockerfile` enxergar o
-> `src/` inteiro.
-
-1. `cp .env.example .env` e preencha (aponta para o Azure SQL de produção por padrão).
+1. Rode o comando a baixo na raiz do projeto e preencha `ConnectionStrings:DefaultConnection`, `Jwt:Secret` com os dados corretos.
+   ```
+   cp .env.example .env 
+   ```
 2. `docker compose -f docker/docker-compose.yml --env-file .env up --build` — sobe a API em
    `http://localhost:8080`.
-3. Para desenvolver com banco local em vez do Azure:
+3. Para desenvolver com banco local:
    `docker compose -f docker/docker-compose.yml --env-file .env --profile dev up -d db`
    e troque `DB_CONNECTION_STRING` no `.env` conforme o comentário no próprio arquivo.
 
