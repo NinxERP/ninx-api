@@ -70,19 +70,11 @@ builder.Services.AddSwaggerGen(c =>
     c.OperationFilter<AuthorizeOperationFilter>();
 });
 
-var origensPermitidas = new[]
-{
-    "http://localhost:5173",
-    "http://localhost:1420",
-    "tauri://localhost",
-    "http://tauri.localhost",
-};
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("NinxFrontend", policy =>
     {
-        policy.WithOrigins(origensPermitidas)
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
