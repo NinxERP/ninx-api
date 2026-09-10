@@ -77,12 +77,15 @@ configurável via `Jwt:ExpiresInMinutes`.
    ```
    cp .env.example .env 
    ```
-2. ```docker compose -f docker/docker-compose.yml --env-file .env up --build```
-Sobe a API em `http://localhost:8080`.
+2. Sobe a API em `http://localhost:8080`:
+```
+docker compose -f docker/docker-compose.yml --env-file .env up --build
+```
 
 3. Para desenvolver com banco local:
-   `docker compose -f docker/docker-compose.yml --env-file .env --profile dev up -d db`
-   e troque `DB_CONNECTION_STRING` no `.env` conforme o comentário no próprio arquivo.
+```
+docker compose -f docker/docker-compose.yml --env-file .env --profile dev up -d db
+```
 
 ## 📦 Bibliotecas (NuGet)
 
