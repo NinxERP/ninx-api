@@ -26,7 +26,8 @@ namespace ninx.Application.Validators.Request
 
             RuleFor(x => x.Cpf)
                 .NotEmpty().WithMessage("CPF é obrigatório.")
-                .Must(ValidarCpf).WithMessage("CPF inválido.");
+                .Must(ValidarCpf).WithMessage("CPF inválido.")
+                .Unless(x => EhCpfMascarado(x.Cpf));
 
             RuleFor(x => x.Email)
                 .EmailAddress().WithMessage("E-mail inválido.")
@@ -64,6 +65,9 @@ namespace ninx.Application.Validators.Request
                 .GreaterThan(0).WithMessage("Limite de crédito deve ser maior que zero.")
                 .When(x => x.LimiteCredito.HasValue);
         }
+
+        private static bool EhCpfMascarado(string cpf) =>
+            !string.IsNullOrEmpty(cpf) && cpf.StartsWith("***.") && cpf.EndsWith("-**");
 
         private static bool ValidarCep(string cep)
         {

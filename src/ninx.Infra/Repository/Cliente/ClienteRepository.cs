@@ -52,6 +52,14 @@ namespace ninx.Infra.Repository.ClienteRepository
 
             var queryData = queryBase;
 
+            if (!string.IsNullOrWhiteSpace(request.TermoBusca))
+            {
+                var termo = request.TermoBusca.Trim();
+                queryData = queryData.Where(x =>
+                    EF.Functions.Like(x.Nome, $"%{termo}%") ||
+                    EF.Functions.Like(x.Cpf, $"%{termo}%"));
+            }
+
             if (request.Status != null && request.Status.Any(s => !string.IsNullOrWhiteSpace(s)))
             {
                 var ativo = request.Status.Any(s => string.Equals(s, "ativos", StringComparison.OrdinalIgnoreCase));

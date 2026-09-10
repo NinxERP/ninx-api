@@ -14,19 +14,19 @@ namespace ninx.Application.Validators.Entidades
                 .GreaterThan(0).WithMessage("O ID da venda deve ser maior que zero.");
 
             RuleFor(x => x.UsuarioID)
-                .GreaterThan(0).WithMessage("O ID do usuário deve ser maior que zero.");
+                .GreaterThan(0).WithMessage("O ID do usuï¿½rio deve ser maior que zero.");
 
             RuleFor(x => x.PagamentoVinculoID)
-                .GreaterThan(0).WithMessage("O ID do pagamento vínculo deve ser maior que zero.");
+                .GreaterThan(0).WithMessage("O ID do pagamento vï¿½nculo deve ser maior que zero.");
 
             RuleFor(x => x.Valor)
-                .GreaterThan(0).WithMessage("Valor deve ser maior que zero.");
+                .GreaterThanOrEqualTo(0).WithMessage("Valor nÃ£o pode ser negativo.");
 
             RuleFor(x => x.CriadoEm)
-                .LessThanOrEqualTo(DateTime.UtcNow).WithMessage("Data de criação não pode ser futura.");
+                .LessThanOrEqualTo(DateTime.UtcNow).WithMessage("Data de criaï¿½ï¿½o nï¿½o pode ser futura.");
 
             RuleFor(x => x.AtualizadoEm)
-                .GreaterThanOrEqualTo(x => x.CriadoEm).WithMessage("Data de atualização deve ser maior que a data de criação.");
+                .GreaterThanOrEqualTo(x => x.CriadoEm).WithMessage("Data de atualizaï¿½ï¿½o deve ser maior que a data de criaï¿½ï¿½o.");
         }
     }
 }

@@ -75,6 +75,7 @@ namespace ninx.Infra.Repository
 
             var data = await queryData
                 .Include(x => x.Estoque)
+                .Include(x => x.Categoria)
                 .OrderBy(x => x.Nome)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)

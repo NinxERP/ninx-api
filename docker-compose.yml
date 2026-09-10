@@ -1,0 +1,34 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING}
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: ${JWT_ISSUER:-NinxSGC}
+      Jwt__Audience: ${JWT_AUDIENCE:-NinxSGCClient}
+      Jwt__ExpiresInMinutes: ${JWT_EXPIRES_IN_MINUTES:-1200}
+      Brevo__ApiKey: ${BREVO_API_KEY:-}
+      Brevo__SenderEmail: ${BREVO_SENDER_EMAIL:-ninx.oficial@gmail.com}
+      Brevo__SenderName: ${BREVO_SENDER_NAME:-Ninx}
+    restart: unless-stopped
+
+  # Banco local só para desenvolvimento — não sobe por padrão.
+  # `docker compose --profile dev up -d db` e ajuste DB_CONNECTION_STRING no .env
+  # (ver .env.example) para apontar para este serviço em vez do Azure SQL.
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    profiles: ["dev"]
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${LOCAL_DB_PASSWORD:-Ninx@Local123}
+    ports:
+      - "1433:1433"
+    volumes:
+      - ninx-db-data:/var/opt/mssql
+
+volumes:
+  ninx-db-data:

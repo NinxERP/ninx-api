@@ -12,7 +12,7 @@ namespace ninx.Application.Validators.Request
                 .Must(v => Enum.IsDefined(typeof(FormaPagamento), v)).WithMessage("Forma de pagamento inv�lida.");
 
             RuleFor(x => x.Valor)
-                .GreaterThan(0).WithMessage("Valor deve ser maior que zero.");
+                .GreaterThanOrEqualTo(0).WithMessage("Valor não pode ser negativo.");
         }
     }
 }

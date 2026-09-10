@@ -66,7 +66,9 @@ namespace ninx.Application.Services
             if (cliente == null) throw new NotFoundException("Cliente não encontrado.");
             if (cliente.ComercioID != comercioId) throw new NotFoundException("Cliente não pertence ao seu comercio.");
 
+            var cpfOriginal = cliente.Cpf;
             request.Adapt(cliente);
+            cliente.Cpf = cpfOriginal;
             NormalizarDocumentos(cliente);
             cliente.AtualizadoEm = DateTime.UtcNow;
 

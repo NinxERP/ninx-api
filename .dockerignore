@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/.vs/
+.git/
+.github/
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose*.yml
+*.md
+appsettings.Development.json
+appsettings.*.local.json
+appsettings.Local.json
+.env
+.env.*
+!.env.example

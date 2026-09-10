@@ -73,10 +73,19 @@ namespace ninx.Tests.Validators
         }
 
         [Fact]
-        public void Validate_PagamentoComValorZero_DeveTerErro()
+        public void Validate_PagamentoComValorZero_NaoDeveTerErro()
         {
             var request = RequestValido();
             request.Pagamentos = new List<PagamentoVendaRequest> { new() { FormaPagamento = 1, Valor = 0 } };
+            var result = _validator.TestValidate(request);
+            result.ShouldNotHaveValidationErrorFor("Pagamentos[0].Valor");
+        }
+
+        [Fact]
+        public void Validate_PagamentoComValorNegativo_DeveTerErro()
+        {
+            var request = RequestValido();
+            request.Pagamentos = new List<PagamentoVendaRequest> { new() { FormaPagamento = 1, Valor = -1 } };
             var result = _validator.TestValidate(request);
             result.ShouldHaveValidationErrorFor("Pagamentos[0].Valor");
         }

@@ -8,6 +8,8 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationActionFilter>();
@@ -68,23 +70,33 @@ builder.Services.AddSwaggerGen(c =>
     c.OperationFilter<AuthorizeOperationFilter>();
 });
 
+var origensPermitidas = new[]
+{
+    "http://localhost:5173",
+    "tauri://localhost",
+    "http://tauri.localhost",
+};
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("NinxFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(origensPermitidas)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
 });
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
     app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionMiddleware>();
-app.UseCors("AllowAll");
+app.UseCors("NinxFrontend");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -94,7 +106,5 @@ app.Run();
 
 static string GetClientIp(HttpContext context)
 {
-    return context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
-        ?? context.Connection.RemoteIpAddress?.ToString()
-        ?? "desconhecido";
+    return context.Connection.RemoteIpAddress?.ToString() ?? "desconhecido";
 }

@@ -451,6 +451,10 @@ namespace ninx.Application.Services
                 identificadorAssinatura = await ValidarEPreparVendaFiadoAsync(
                     request, totalVenda, totalPago, dataOperacao);
             }
+            else if (totalPago < totalVenda)
+            {
+                throw new BadRequestException("Uma venda normal deve ser paga integralmente.");
+            }
 
             var venda = new Venda
             {

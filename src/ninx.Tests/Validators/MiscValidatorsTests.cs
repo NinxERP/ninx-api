@@ -44,9 +44,16 @@ namespace ninx.Tests.Validators
         }
 
         [Fact]
-        public void Validate_ValorZero_DeveTerErro()
+        public void Validate_ValorZero_NaoDeveTerErro()
         {
             var result = _validator.TestValidate(new PagamentoVendaRequest { FormaPagamento = 1, Valor = 0 });
+            result.ShouldNotHaveValidationErrorFor(x => x.Valor);
+        }
+
+        [Fact]
+        public void Validate_ValorNegativo_DeveTerErro()
+        {
+            var result = _validator.TestValidate(new PagamentoVendaRequest { FormaPagamento = 1, Valor = -1 });
             result.ShouldHaveValidationErrorFor(x => x.Valor);
         }
 

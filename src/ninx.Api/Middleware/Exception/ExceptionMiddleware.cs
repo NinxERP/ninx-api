@@ -7,6 +7,11 @@ namespace ninx.Api.Middlewares
 {
     public class ExceptionMiddleware
     {
+        private static readonly JsonSerializerOptions SerializerOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
         private readonly RequestDelegate _next;
 
         public ExceptionMiddleware(RequestDelegate next)
@@ -49,7 +54,7 @@ namespace ninx.Api.Middlewares
                 Messagem = message
             };
 
-            await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+            await context.Response.WriteAsync(JsonSerializer.Serialize(response, SerializerOptions));
         }
     }
 }

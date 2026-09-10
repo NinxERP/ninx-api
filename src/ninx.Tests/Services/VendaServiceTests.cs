@@ -181,6 +181,27 @@ namespace ninx.Tests.Services
         }
 
         [Fact]
+        public async Task CriarAsync_VendaNormalComPagamentoInsuficiente_DeveLancarBadRequest()
+        {
+            var request = RequestVendaNormalValida();
+            request.Pagamentos[0].Valor = 5m;
+
+            _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
+            _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
+                .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1, precoVenda: 10m) });
+            _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
+                .ReturnsAsync(new List<Estoque> { Builders.NovoEstoque(1, 1, quantidade: 50) });
+
+            var service = CriarService();
+
+            var act = async () => await service.CriarAsync(request);
+
+            await act.Should().ThrowAsync<BadRequestException>();
+        }
+
+        [Fact]
         public async Task CriarAsync_ProdutoNaoEncontrado_DeveLancarNotFound()
         {
             var request = RequestVendaNormalValida();
@@ -277,6 +298,36 @@ namespace ninx.Tests.Services
 
             response.Documentos.Should().ContainSingle(d => !d.Assinado);
             _assinaturaEletronicaRepository.Verify(x => x.AddAsync(It.IsAny<AssinaturaEletronica>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task CriarAsync_VendaFiadoComEntradaZero_DeveCriarComSucesso()
+        {
+            var request = RequestVendaNormalValida();
+            request.TipoVenda = (int)TipoVenda.Fiado;
+            request.ClienteID = 1;
+            request.Pagamentos = new List<PagamentoVendaRequest>
+            {
+                new() { FormaPagamento = (int)FormaPagamento.Dinheiro, Valor = 0m }
+            };
+
+            var cliente = Builders.NovoCliente(1, 1, limiteCredito: 500m);
+
+            _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
+            _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
+                .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1, precoVenda: 10m) });
+            _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
+                .ReturnsAsync(new List<Estoque> { Builders.NovoEstoque(1, 1, quantidade: 500) });
+            _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(cliente);
+            _vendaRepository.Setup(x => x.GetVendasFiadoByClienteIDAsync(1)).ReturnsAsync(new List<Venda>());
+            PrepararRenderizacaoDocumento();
+
+            var service = CriarService();
+            var response = await service.CriarAsync(request);
+
+            response.Total.Should().Be(20m);
         }
 
         // ---------- EstornarAsync ----------

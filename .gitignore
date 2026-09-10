@@ -419,3 +419,4 @@ FodyWeavers.xsd
 
 # Local secret overrides (connection strings, JWT secret, etc.) — never commit these
 appsettings.*.local.json
+appsettings.Local.json
