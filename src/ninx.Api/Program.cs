@@ -10,6 +10,29 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
+var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+if (File.Exists(envFile))
+{
+    var envToConfigKey = new Dictionary<string, string>
+    {
+        ["DB_CONNECTION_STRING"] = "ConnectionStrings:DefaultConnection",
+        ["JWT_SECRET"] = "Jwt:Secret",
+        ["JWT_ISSUER"] = "Jwt:Issuer",
+        ["JWT_AUDIENCE"] = "Jwt:Audience",
+        ["JWT_EXPIRES_IN_MINUTES"] = "Jwt:ExpiresInMinutes",
+        ["BREVO_API_KEY"] = "Brevo:ApiKey",
+        ["BREVO_SENDER_EMAIL"] = "Brevo:SenderEmail",
+        ["BREVO_SENDER_NAME"] = "Brevo:SenderName",
+    };
+
+    var envConfig = File.ReadAllLines(envFile)
+        .Select(line => line.Split('=', 2))
+        .Where(kv => kv.Length == 2 && envToConfigKey.ContainsKey(kv[0].Trim()) && kv[1].Trim().Length > 0)
+        .ToDictionary(kv => envToConfigKey[kv[0].Trim()], kv => (string?)kv[1].Trim());
+
+    builder.Configuration.AddInMemoryCollection(envConfig);
+}
+
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationActionFilter>();
@@ -81,11 +104,8 @@ builder.Services.AddCors(options =>
 });
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionMiddleware>();
