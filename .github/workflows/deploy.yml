@@ -61,10 +61,15 @@ jobs:
         working-directory: src
         run: |
           dotnet tool install --global dotnet-ef
-          dotnet ef database update \
-            --project ninx.Data \
-            --startup-project ninx.Api \
-            --connection "${{ secrets.DB_CONNECTION_STRING }}"
+          for i in 1 2 3 4 5; do
+            dotnet ef database update \
+              --project ninx.Data \
+              --startup-project ninx.Api \
+              --connection "${{ secrets.DB_CONNECTION_STRING }}" && exit 0
+            echo "Banco ainda acordando (tentativa $i), aguardando..."
+            sleep 15
+          done
+          exit 1
 
       - name: Remove firewall rule
         if: always()
