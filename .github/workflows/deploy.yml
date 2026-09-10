@@ -5,7 +5,8 @@ on:
     branches: [main]
 
 env:
-  RESOURCE_GROUP: DefaultResourceGroup-CQ
+  API_RESOURCE_GROUP: Ninx-API
+  SQL_RESOURCE_GROUP: Ninx-DB
   SQL_SERVER: ninx
   CONTAINER_APP: ninx-api
   IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/ninx-api
@@ -41,7 +42,7 @@ jobs:
         run: |
           RUNNER_IP=$(curl -s https://api.ipify.org)
           az sql server firewall-rule create \
-            --resource-group $RESOURCE_GROUP \
+            --resource-group $SQL_RESOURCE_GROUP \
             --server $SQL_SERVER \
             --name gh-actions-runner \
             --start-ip-address $RUNNER_IP \
@@ -65,7 +66,7 @@ jobs:
         if: always()
         run: |
           az sql server firewall-rule delete \
-            --resource-group $RESOURCE_GROUP \
+            --resource-group $SQL_RESOURCE_GROUP \
             --server $SQL_SERVER \
             --name gh-actions-runner || true
 
@@ -73,5 +74,5 @@ jobs:
         run: |
           az containerapp update \
             --name $CONTAINER_APP \
-            --resource-group $RESOURCE_GROUP \
+            --resource-group $API_RESOURCE_GROUP \
             --image ${{ env.IMAGE }}:${{ github.sha }}
