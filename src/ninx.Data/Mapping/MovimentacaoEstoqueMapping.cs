@@ -1,0 +1,58 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using ninx.Domain.Entities;
+
+public class MovimentacaoEstoqueMapping : IEntityTypeConfiguration<MovimentacaoEstoque>
+{
+    public void Configure(EntityTypeBuilder<MovimentacaoEstoque> builder)
+    {
+        builder.ToTable("MovimentacoesEstoque");
+
+        builder.HasKey(x => x.MovimentacaoID);
+
+        builder.Property(x => x.MovimentacaoID)
+            .ValueGeneratedOnAdd();
+
+        builder.Property(x => x.Tipo)
+            .IsRequired()
+            .HasMaxLength(10)
+            .HasConversion<string>();
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_MovimentacoesEstoque_Tipo", 
+            "[Tipo] IN ('Entrada', 'Venda', 'Ajuste', 'Perda', 'Devolucao', 'Estorno')"));
+
+        builder.Property(x => x.Quantidade)
+            .IsRequired()
+            .HasColumnType("decimal(10,3)");
+
+        builder.Property(x => x.VendaID)
+            .IsRequired(false);
+
+        builder.Property(x => x.Observacao)
+            .IsRequired(false)
+            .HasMaxLength(200);
+
+        builder.Property(x => x.DataHora)
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.HasOne<Comercio>()
+            .WithMany()
+            .HasForeignKey(x => x.ComercioID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Produto)
+            .WithMany()
+            .HasForeignKey(x => x.ProdutoID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Venda)
+            .WithMany()
+            .HasForeignKey(x => x.VendaID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Usuario>()
+            .WithMany()
+            .HasForeignKey(x => x.UsuarioID)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}

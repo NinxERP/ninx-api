@@ -1,0 +1,60 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using ninx.Domain.Entities;
+using ninx.Domain.Enums;
+
+public class VendaMapping : IEntityTypeConfiguration<Venda>
+{
+    public void Configure(EntityTypeBuilder<Venda> builder)
+    {
+        builder.ToTable("Vendas");
+
+        builder.HasKey(x => x.VendaID);
+
+        builder.Property(x => x.VendaID)
+            .ValueGeneratedOnAdd();
+
+        builder.Property(x => x.Total)
+            .IsRequired()
+            .HasColumnType("decimal(10,2)");
+
+        builder.Property(x => x.TipoVenda)
+            .IsRequired()
+            .HasMaxLength(10)
+            .HasConversion<string>();
+
+        builder.Property(x => x.Status)
+            .IsRequired()
+            .HasMaxLength(10)
+            .HasConversion<string>()
+            .HasDefaultValue(StatusVenda.Aguardando);
+
+        builder.ToTable(t => 
+        {
+            t.HasCheckConstraint("CK_Vendas_Status", "[Status] IN ('Aberta', 'Finalizada', 'Cancelada', 'Estornada', 'Aguardando')");
+            t.HasCheckConstraint("CK_Vendas_TipoVenda", "[TipoVenda] IN ('Normal', 'Fiado')");
+        });
+
+        builder.Property(x => x.CriadoEm)
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.Property(x => x.AtualizadoEm)
+            .IsRequired(false);
+
+        builder.HasOne(x => x.Comercio)
+            .WithMany(x => x.Vendas)
+            .HasForeignKey(x => x.ComercioID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Usuario)
+            .WithMany(x => x.Vendas)
+            .HasForeignKey(x => x.UsuarioID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Cliente)
+            .WithMany()
+            .HasForeignKey(x => x.ClienteID)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}

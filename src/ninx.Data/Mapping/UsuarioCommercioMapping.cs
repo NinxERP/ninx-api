@@ -1,0 +1,36 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using ninx.Domain.Entities;
+
+public class UsuarioComercioMapping : IEntityTypeConfiguration<UsuarioComercio>
+{
+    public void Configure(EntityTypeBuilder<UsuarioComercio> builder)
+    {
+        builder.ToTable("UsuariosComercios");
+
+        builder.HasKey(x => x.UsuarioComercioID);
+
+        builder.Property(x => x.UsuarioComercioID)
+            .ValueGeneratedOnAdd();
+
+        builder.Property(x => x.Ativo)
+            .HasDefaultValue(true);
+
+        builder.HasIndex(x => new { x.UsuarioID, x.ComercioID })
+            .IsUnique();
+
+        builder.HasOne(x => x.Usuario)
+            .WithMany(x => x.UsuarioComercios)
+            .HasForeignKey(x => x.UsuarioID);
+
+        builder.HasOne(x => x.Comercio)
+            .WithMany(x => x.UsuarioComercios)
+            .HasForeignKey(x => x.ComercioID);
+
+        builder.HasOne(x => x.Cargo)
+            .WithMany(x => x.UsuarioComercios)
+            .HasForeignKey(x => x.CargoID)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}

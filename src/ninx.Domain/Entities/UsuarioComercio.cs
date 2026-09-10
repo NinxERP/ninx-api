@@ -1,0 +1,14 @@
+﻿namespace ninx.Domain.Entities
+{
+    public class UsuarioComercio
+    {
+        public int UsuarioComercioID { get; set; }
+        public int UsuarioID { get; set; }
+        public int ComercioID { get; set; }
+        public int CargoID { get; set; }
+        public bool Ativo { get; set; } = true;
+        public Usuario Usuario { get; set; } = null!;
+        public Comercio Comercio { get; set; } = null!;
+        public Cargo Cargo { get; set; } = null!;
+    }
+}
