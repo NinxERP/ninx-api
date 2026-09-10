@@ -62,8 +62,8 @@ configurável via `Jwt:ExpiresInMinutes`.
 1. Pré-requisitos: .NET 10 SDK, acesso a um SQL Server.
 2. Rode: (na raiz do repo)
    ```
-   `cp .env.example .env`   
-    ```
+   cp .env.example .env 
+   ```
     E preencha `ConnectionStrings:DefaultConnection`, `Jwt:Secret`
 3. Aplique as migrations:
    ```
