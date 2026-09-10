@@ -54,7 +54,7 @@ namespace ninx.Application.Services
             {
                 ["Comercio.Nome"] = comercio.NomeComercio,
                 ["Comercio.Cnpj"] = comercio.CNPJ ?? "Não informado",
-                ["Comercio.Endereco"] = comercio.Endereco ?? "Não informado",
+                ["Comercio.Endereco"] = FormatarEnderecoComercio(comercio),
                 ["Html.ComercioAssinatura"] = BuildComercioAssinaturaHtml(comercio),
                 ["Cliente.Nome"] = cliente.Nome,
                 ["Cliente.Cpf"] = FormatarCpf(cliente.Cpf),
@@ -79,12 +79,21 @@ namespace ninx.Application.Services
             return $"{cliente.EnderecoLogradouro}, {cliente.EnderecoNumero}{complemento} - {cliente.EnderecoBairro}, {cliente.EnderecoCidade}/{cliente.EnderecoUF} - CEP {cliente.EnderecoCEP}";
         }
 
+        public static string FormatarEnderecoComercio(Comercio comercio)
+        {
+            if (string.IsNullOrWhiteSpace(comercio.EnderecoLogradouro))
+                return comercio.Endereco ?? "Não informado";
+
+            var complemento = string.IsNullOrWhiteSpace(comercio.EnderecoComplemento) ? "" : $", {comercio.EnderecoComplemento}";
+            return $"{comercio.EnderecoLogradouro}, {comercio.EnderecoNumero}{complemento} - {comercio.EnderecoBairro}, {comercio.EnderecoCidade}/{comercio.EnderecoUF} - CEP {comercio.EnderecoCEP}";
+        }
+
         private static string BuildComercioAssinaturaHtml(Comercio comercio)
         {
             if (string.IsNullOrWhiteSpace(comercio.AssinaturaResponsavelBase64))
                 return "";
 
-            return $"<img src=\"data:image/png;base64,{comercio.AssinaturaResponsavelBase64}\" style=\"max-height:45px;\" />";
+            return $"<img src=\"data:image/png;base64,{comercio.AssinaturaResponsavelBase64}\" style=\"max-height:60px;\" />";
         }
 
         private static string BuildTabelaItensHtml(Venda venda)

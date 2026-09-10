@@ -21,6 +21,34 @@ public class ComercioMapping : IEntityTypeConfiguration<Comercio>
             .IsRequired(false)
             .HasMaxLength(200);
 
+        builder.Property(x => x.EnderecoLogradouro)
+            .IsRequired(false)
+            .HasMaxLength(200);
+
+        builder.Property(x => x.EnderecoNumero)
+            .IsRequired(false)
+            .HasMaxLength(20);
+
+        builder.Property(x => x.EnderecoComplemento)
+            .IsRequired(false)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.EnderecoBairro)
+            .IsRequired(false)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.EnderecoCidade)
+            .IsRequired(false)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.EnderecoUF)
+            .IsRequired(false)
+            .HasMaxLength(2);
+
+        builder.Property(x => x.EnderecoCEP)
+            .IsRequired(false)
+            .HasMaxLength(8);
+
         builder.Property(x => x.CNPJ)
             .IsRequired(false)
             .HasMaxLength(18);
