@@ -398,7 +398,13 @@ namespace ninx.Infra.Repository
                 {
                     ProdutoID = e.ProdutoID,
                     ProdutoNome = e.Produto.Nome,
-                    EstoqueAtual = e.Quantidade
+                    EstoqueAtual = e.Quantidade,
+                    UltimaVenda = _context.ItemVendas
+                        .Where(i => i.ProdutoID == e.ProdutoID
+                            && i.Venda.ComercioID == comercioId
+                            && StatusVendasConcluidas.Contains(i.Venda.Status))
+                        .Select(i => (DateTime?)i.Venda.CriadoEm)
+                        .Max()
                 })
                 .OrderByDescending(x => x.EstoqueAtual)
                 .ToListAsync();
