@@ -57,7 +57,7 @@ configurável via `Jwt:ExpiresInMinutes`.
 
 ## 🚀 Como rodar localmente
 
-### Direto com .NET
+### 🔧 Direto com .NET
 
 1. Pré-requisitos: .NET 10 SDK, acesso a um SQL Server.
 2. Rode o comando a baixo na raiz do projeto e preencha `ConnectionStrings:DefaultConnection`, `Jwt:Secret` com os dados corretos.
@@ -70,7 +70,7 @@ configurável via `Jwt:ExpiresInMinutes`.
    ```
 4. Swagger disponível em `/swagger`.
 
-### Via Docker
+### 🐳 Via Docker
 
 1. Rode o comando a baixo na raiz do projeto e preencha `ConnectionStrings:DefaultConnection`, `Jwt:Secret` com os dados corretos.
    ```
@@ -85,27 +85,6 @@ configurável via `Jwt:ExpiresInMinutes`.
    ```
    docker compose -f docker/docker-compose.yml --env-file .env --profile dev up -d db
    ```
-
-## 📦 Bibliotecas (NuGet)
-
-| Pacote | Versão | Projeto(s) | Finalidade |
-|---|---|---|---|
-| `Microsoft.AspNetCore.Authentication.JwtBearer` | 10.0.5 | Api, Ioc | Validação de Bearer JWT nas requisições. |
-| `System.IdentityModel.Tokens.Jwt` | 8.16.0 | (todos) | Emissão/leitura de tokens JWT. |
-| `Microsoft.EntityFrameworkCore` + `.SqlServer` + `.Design` | 10.0.5 | Data, Api | ORM e migrations contra SQL Server/Azure SQL. |
-| `Mapster` | 10.0.3 | Application | Mapeamento Entity ↔ DTO sem boilerplate manual. |
-| `FluentValidation` | 12.1.1 | Application, Tests | Validação de Request DTOs (via `ValidationActionFilter`). |
-| `BCrypt.Net-Next` | 4.1.0 | Application | Hash de senha e de código de redefinição de senha. |
-| `itext7` + `itext7.pdfhtml` + `itext.bouncy-castle-adapter` | 9.6.0 / 6.3.3 / 9.6.0 | Application | Geração de PDF dos documentos de assinatura eletrônica. |
-| `Microsoft.OpenApi` | 2.11.0 | Api | Modelos OpenAPI usados pelo Swagger. |
-| `Swashbuckle.AspNetCore` + `.Annotations` | 10.1.5 | Api | Geração da UI/spec do Swagger, com anotações de resumo/tag por endpoint. |
-| `Microsoft.Extensions.Http` | 10.0.5 | Ioc | `HttpClientFactory` para o client tipado do Brevo (e-mail). |
-| `Microsoft.Extensions.Configuration.Abstractions` | 10.0.5 | (todos) | Contrato de configuração (`IConfiguration`) usado nas camadas internas sem depender do host web. |
-| `xunit` + `xunit.runner.visualstudio` | 2.9.2 / 2.8.2 | Tests | Framework de testes. |
-| `Moq` | 4.20.72 | Tests | Mocks de repositórios/serviços nos testes unitários. |
-| `FluentAssertions` | 6.12.1 | Tests | Assertions mais legíveis nos testes. |
-| `Microsoft.AspNetCore.Mvc.Testing` | 10.0.5 | Tests | Testes de integração (`WebApplicationFactory`). |
-| `Microsoft.EntityFrameworkCore.InMemory` / `.Sqlite` | 10.0.5 | Tests | Banco em memória/SQLite para os testes de integração, sem depender do SQL Server real. |
 
 ## ✅ Testes
 
