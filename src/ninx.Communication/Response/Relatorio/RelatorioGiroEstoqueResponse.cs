@@ -20,5 +20,7 @@ namespace ninx.Communication
         public int ProdutoID { get; set; }
         public string ProdutoNome { get; set; } = null!;
         public decimal EstoqueAtual { get; set; }
+        public DateTime? UltimaVenda { get; set; }
+        public int? DiasSemVender => UltimaVenda.HasValue ? (DateTime.UtcNow.Date - UltimaVenda.Value.Date).Days : null;
     }
 }
