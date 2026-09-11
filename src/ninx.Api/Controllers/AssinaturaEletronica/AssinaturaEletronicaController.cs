@@ -67,9 +67,11 @@ namespace ninx.Api.Controllers
         /// <response code="404">Documento não encontrado.</response>
         [AllowAnonymous]
         [HttpPost("confirmar/{guid}")]
+        [RequestSizeLimit(20_000_000)]
         [SwaggerOperation(Summary = "Confirmar assinatura", Description = "Registra a assinatura do assinante para o documento informado, junto com IP e dispositivo de origem.")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         public async Task<IActionResult> ConfirmarAssinatura(Guid guid, [FromBody] ConfirmarAssinaturaEletronicaRequest request)
         {
             var ip = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()

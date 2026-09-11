@@ -36,6 +36,8 @@ namespace ninx.Api.Middlewares
                     UnauthorizedException => (HttpStatusCode.Unauthorized, exception.Message),
                     ConcurrencyException => (HttpStatusCode.Conflict, exception.Message),
                     ForbiddenException => (HttpStatusCode.Forbidden, exception.Message),
+                    Microsoft.AspNetCore.Http.BadHttpRequestException { StatusCode: 413 } =>
+                        (HttpStatusCode.RequestEntityTooLarge, "Arquivo muito grande. Reduza a assinatura ou tente novamente."),
                     _ => (HttpStatusCode.InternalServerError, "Erro interno do servidor.")
                 };
 
