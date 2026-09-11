@@ -4,6 +4,6 @@
     {
         public string Email { get; set; } = null!;
         public string Senha { get; set; } = null!;
-        public int? ComercioID { get; set; }
+        public int? ComercioID { get; set; } = null!;
     }
 }
