@@ -1,6 +1,4 @@
 ﻿using Mapster;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using ninx.Communication;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
@@ -60,14 +58,7 @@ namespace ninx.Application.Services
                 await _estoqueRepository.AddAsync(estoque);
             }
 
-            try
-            {
-                await _unitOfWork.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
-            {
-                throw new BadRequestException("Já existe um produto com este código de barras.");
-            }
+            await _unitOfWork.SaveChangesAsync();
 
             return produto.Adapt<ProdutoResponse>();
         }
@@ -93,15 +84,7 @@ namespace ninx.Application.Services
             produto.AtualizadoEm = DateTime.UtcNow;
 
             await _produtoRepository.UpdateAsync(produto);
-
-            try
-            {
-                await _unitOfWork.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
-            {
-                throw new BadRequestException("Já existe um produto com este código de barras.");
-            }
+            await _unitOfWork.SaveChangesAsync();
 
             return produto.Adapt<ProdutoResponse>();
         }
