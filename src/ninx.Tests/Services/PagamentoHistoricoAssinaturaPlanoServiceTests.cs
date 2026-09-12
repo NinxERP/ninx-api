@@ -16,12 +16,14 @@ namespace ninx.Tests.Services
         private readonly Mock<IPagamentoHistoricoAssinaturaPlanoRepository> _pagamentoRepository = new();
         private readonly Mock<IAssinaturaPlanoRepository> _assinaturaPlanoRepository = new();
         private readonly Mock<IAutorizacaoGlobalService> _autorizacaoGlobalService = new();
+        private readonly IAutorizacaoCargoService _autorizacaoCargoService = new AutorizacaoCargoService(new Mock<IUsuarioRepository>().Object);
         private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
         private PagamentoHistoricoAssinaturaPlanoService CriarService() => new(
             _pagamentoRepository.Object,
             _assinaturaPlanoRepository.Object,
             _autorizacaoGlobalService.Object,
+            _autorizacaoCargoService,
             _unitOfWork.Object,
             Mock.Of<Microsoft.Extensions.Logging.ILogger<PagamentoHistoricoAssinaturaPlanoService>>());
 

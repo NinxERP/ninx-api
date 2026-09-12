@@ -51,8 +51,9 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> GetByComercioAutenticado()
         {
             var comercioId = GetComercioId();
-            var pesoLogado = GetCargoPeso();
-            var result = await _assinaturaService.GetByComercioIdAsync(comercioId, pesoLogado);
+            var ehProprietarioLogado = GetCargoEhProprietario();
+            var permissoesLogado = GetCargoPermissoes();
+            var result = await _assinaturaService.GetByComercioIdAsync(comercioId, ehProprietarioLogado, permissoesLogado);
             return Ok(result);
         }
 
@@ -88,8 +89,9 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> Cancelar()
         {
             var comercioId = GetComercioId();
-            var pesoLogado = GetCargoPeso();
-            await _assinaturaService.CancelarAsync(comercioId, pesoLogado);
+            var ehProprietarioLogado = GetCargoEhProprietario();
+            var permissoesLogado = GetCargoPermissoes();
+            await _assinaturaService.CancelarAsync(comercioId, ehProprietarioLogado, permissoesLogado);
             return NoContent();
         }
     }

@@ -27,7 +27,8 @@ namespace ninx.Infra
                 new Claim("comercioId", comercioIdSelecionado.ToString()),
                 new Claim("cargoId", cargoNoComercio.CargoID.ToString()),
                 new Claim("cargoNome", cargoNoComercio.Nome),
-                new Claim("cargoPeso", cargoNoComercio.Peso.ToString()),
+                new Claim("cargoEhProprietario", cargoNoComercio.EhProprietario.ToString()),
+                new Claim("cargoPermissoes", string.Join(',', cargoNoComercio.CargoPermissoes.Select(cp => cp.Permissao.Chave))),
                 new Claim("nomeComercio", nomeComercio),
                 new Claim("admin", usuario.Admin.ToString())
             };

@@ -39,7 +39,7 @@ namespace ninx.Application.Services
         {
             await _autorizacaoGlobalService.GarantirAdministradorGlobalAsync(usuarioIdLogado);
 
-            var (entidades, total) = await _comercioRepository.GetPaginatedAsync(request.PageNumber, request.PageSize);
+            var (entidades, total) = await _comercioRepository.GetPaginatedAsync(request.PageNumber, request.PageSize, request.TermoBusca);
             var listaResponse = entidades.Adapt<List<ComercioResponse>>();
 
             return new PaginatedResponse<ComercioResponse>(
@@ -110,10 +110,10 @@ namespace ninx.Application.Services
 
             var vinculoLogado = await _usuarioComercioRepository.GetVinculoAsync(usuarioLogadoId, comercio.ComercioID);
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioLogadoId);
-            if (!chamadorEhAdmin && (vinculoLogado == null || vinculoLogado.Cargo.Peso < CargoConstantes.PesoDono))
-            {
-                throw new UnauthorizedException("Acesso negado.");
-            }
+            var chamadorEhProprietario = vinculoLogado?.Cargo.EhProprietario ?? false;
+            var permissoesChamador = vinculoLogado?.Cargo.CargoPermissoes.Select(cp => cp.Permissao.Chave) ?? [];
+            _autorizacaoCargoService.GarantirPermissao(chamadorEhAdmin, chamadorEhProprietario, permissoesChamador,
+                PermissaoConstantes.GerenciarComercio, "Acesso negado.");
 
             request.Adapt(comercio);
             comercio.AtualizadoEm = DateTime.UtcNow;
@@ -131,10 +131,8 @@ namespace ninx.Application.Services
 
             var vinculoLogado = await _usuarioComercioRepository.GetVinculoAsync(usuarioIdLogado, comercio.ComercioID);
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioIdLogado);
-            if (!chamadorEhAdmin && (vinculoLogado == null || vinculoLogado.Cargo.Peso < CargoConstantes.PesoDono))
-            {
-                throw new UnauthorizedException("Você não tem permissão pra excluir comercios");
-            }
+            var chamadorEhProprietario = vinculoLogado?.Cargo.EhProprietario ?? false;
+            _autorizacaoCargoService.GarantirProprietario(chamadorEhAdmin, chamadorEhProprietario, "Você não tem permissão pra excluir comercios");
 
             comercio.Ativo = false;
             comercio.AtualizadoEm = DateTime.UtcNow;

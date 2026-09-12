@@ -76,22 +76,23 @@ namespace ninx.Application.Services
             );
         }
 
-        public async Task<PaginatedResponse<UsuarioListaResponse>> GetAllByComercioId(int comercioId, int usuarioIdLogado, int pesoLogado, PaginationRequest request)
+        public async Task<PaginatedResponse<UsuarioListaResponse>> GetAllByComercioId(int comercioId, int usuarioIdLogado, bool ehProprietarioLogado, IEnumerable<string> permissoesLogado, PaginationRequest request)
         {
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioIdLogado);
-            _autorizacaoCargoService.GarantirPesoMinimo(chamadorEhAdmin, pesoLogado, CargoConstantes.PesoDono, "Você não pode consultar usuários deste comércio.");
+            _autorizacaoCargoService.GarantirPermissao(chamadorEhAdmin, ehProprietarioLogado, permissoesLogado,
+                PermissaoConstantes.GerenciarUsuarios, "Você não pode consultar usuários deste comércio.");
 
             var usuarios = (await _usuarioRepository.GetAllByComercioIdAsync(comercioId)).ToList();
 
             if (!chamadorEhAdmin)
                 usuarios = usuarios
-                    .Where(u => u.UsuarioComercios.Any(uc => uc.ComercioID == comercioId && uc.Cargo.Peso < pesoLogado))
+                    .Where(u => u.UsuarioComercios.Any(uc => uc.ComercioID == comercioId && !uc.Cargo.EhProprietario))
                     .ToList();
 
             var vinculos = usuarios
                 .Select(u => (Usuario: u, Vinculo: u.UsuarioComercios.First(uc => uc.ComercioID == comercioId)))
                 .OrderByDescending(x => x.Usuario.UsuarioID == usuarioIdLogado)
-                .ThenByDescending(x => x.Vinculo.Cargo.Peso)
+                .ThenByDescending(x => x.Vinculo.Cargo.EhProprietario)
                 .ToList();
 
             if (vinculos.Count == 0)
@@ -121,10 +122,11 @@ namespace ninx.Application.Services
             return response;
         }
 
-        public async Task<UsuarioResponse> BuscarPorEmailAsync(string email, int usuarioIdLogado, int pesoLogado)
+        public async Task<UsuarioResponse> BuscarPorEmailAsync(string email, int usuarioIdLogado, bool ehProprietarioLogado, IEnumerable<string> permissoesLogado)
         {
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioIdLogado);
-            _autorizacaoCargoService.GarantirPesoMinimo(chamadorEhAdmin, pesoLogado, CargoConstantes.PesoDono, "Você não pode buscar usuários.");
+            _autorizacaoCargoService.GarantirPermissao(chamadorEhAdmin, ehProprietarioLogado, permissoesLogado,
+                PermissaoConstantes.GerenciarUsuarios, "Você não pode buscar usuários.");
 
             var usuario = await _usuarioRepository.GetUsuarioByEmail(email);
             if (usuario is null) throw new NotFoundException("Nenhum usuário encontrado com esse e-mail.");
@@ -132,16 +134,17 @@ namespace ninx.Application.Services
             return usuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioId, int usuarioIdLogado, int pesoLogado)
+        public async Task<UsuarioResponse> GetByIdAndComercioIdAsync(int id, int comercioId, int usuarioIdLogado, bool ehProprietarioLogado, IEnumerable<string> permissoesLogado)
         {
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioIdLogado);
-            _autorizacaoCargoService.GarantirPesoMinimo(chamadorEhAdmin, pesoLogado, CargoConstantes.PesoDono, "Você não pode consultar usuários deste comércio.");
+            _autorizacaoCargoService.GarantirPermissao(chamadorEhAdmin, ehProprietarioLogado, permissoesLogado,
+                PermissaoConstantes.GerenciarUsuarios, "Você não pode consultar usuários deste comércio.");
 
             var usuario = await _usuarioRepository.GetByIdAndComercioIdAsync(id, comercioId);
             if (usuario is null) throw new NotFoundException("Usuário não encontrado");
 
             var vinculoAlvo = usuario.UsuarioComercios.First(uc => uc.ComercioID == comercioId);
-            _autorizacaoCargoService.GarantirGerencia(chamadorEhAdmin, pesoLogado, vinculoAlvo.Cargo.Peso);
+            _autorizacaoCargoService.GarantirNaoProprietario(chamadorEhAdmin, vinculoAlvo.Cargo.EhProprietario, "Você não tem permissão para gerenciar um vínculo com esse cargo.");
 
             var response = usuario.Adapt<UsuarioResponse>();
             response.CargoNome = vinculoAlvo.Cargo.Nome;
@@ -151,20 +154,21 @@ namespace ninx.Application.Services
         public async Task<UsuarioResponse> CriarAsync(
             CriarUsuarioRequest request,
             int executorId,
-            int pesoLogado,
+            bool ehProprietarioLogado,
+            IEnumerable<string> permissoesLogado,
             int? comercioIdLogado)
         {
             if (request.ComercioId != comercioIdLogado) throw new BadRequestException("Contexto de comércio inválido.");
 
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(executorId);
-            _autorizacaoCargoService.GarantirPesoMinimo(chamadorEhAdmin, pesoLogado, CargoConstantes.PesoDono, "Você não pode cadastrar novos usuários.");
+            _autorizacaoCargoService.GarantirPermissao(chamadorEhAdmin, ehProprietarioLogado, permissoesLogado,
+                PermissaoConstantes.GerenciarUsuarios, "Você não pode cadastrar novos usuários.");
 
             var cargo = await _cargoRepository.GetByIdAsync(request.CargoID);
             if (cargo == null || !cargo.Ativo || (cargo.ComercioID != null && cargo.ComercioID != request.ComercioId))
                 throw new BadRequestException("O cargo informado é inválido para este comércio.");
 
-            if (!chamadorEhAdmin && cargo.Peso >= pesoLogado)
-                throw new ForbiddenException("Você só pode cadastrar usuários com cargo de peso menor que o seu.");
+            _autorizacaoCargoService.GarantirNaoProprietario(chamadorEhAdmin, cargo.EhProprietario, "Você não pode cadastrar usuários com o cargo de proprietário.");
 
             var existente = await _usuarioRepository.GetUsuarioByEmail(request.Email);
             if (existente != null) throw new BadRequestException("E-mail já cadastrado.");
@@ -188,10 +192,11 @@ namespace ninx.Application.Services
             return novoUsuario.Adapt<UsuarioResponse>();
         }
 
-        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int comercioId, int usuarioIdLogado, int pesoLogado)
+        public async Task<UsuarioResponse> AtualizarAsync(int id, AtualizarUsuarioRequest request, int comercioId, int usuarioIdLogado, bool ehProprietarioLogado, IEnumerable<string> permissoesLogado)
         {
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioIdLogado);
-            _autorizacaoCargoService.GarantirPesoMinimo(chamadorEhAdmin, pesoLogado, CargoConstantes.PesoDono, "Você não pode atualizar usuários deste comércio.");
+            _autorizacaoCargoService.GarantirPermissao(chamadorEhAdmin, ehProprietarioLogado, permissoesLogado,
+                PermissaoConstantes.GerenciarUsuarios, "Você não pode atualizar usuários deste comércio.");
 
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if (usuario is null) throw new NotFoundException("Usuario não encontrado");
@@ -199,7 +204,7 @@ namespace ninx.Application.Services
             var vinculo = await _usuarioComercioRepository.GetVinculoAsync(id, comercioId);
             if (vinculo is null) throw new UnauthorizedException("Usuário não pertence ao seu comercio");
 
-            _autorizacaoCargoService.GarantirGerencia(chamadorEhAdmin, pesoLogado, vinculo.Cargo.Peso);
+            _autorizacaoCargoService.GarantirNaoProprietario(chamadorEhAdmin, vinculo.Cargo.EhProprietario, "Você não tem permissão para gerenciar um vínculo com esse cargo.");
 
             await GarantirEmailDisponivelAsync(request.Email, id);
 
@@ -209,8 +214,7 @@ namespace ninx.Application.Services
                 if (novoCargo == null || !novoCargo.Ativo || (novoCargo.ComercioID != null && novoCargo.ComercioID != comercioId))
                     throw new BadRequestException("O cargo informado é inválido para este comércio.");
 
-                if (!chamadorEhAdmin && novoCargo.Peso >= pesoLogado)
-                    throw new ForbiddenException("Você só pode atribuir cargos com peso menor que o seu.");
+                _autorizacaoCargoService.GarantirNaoProprietario(chamadorEhAdmin, novoCargo.EhProprietario, "Você não pode atribuir o cargo de proprietário.");
 
                 vinculo.CargoID = novoCargo.CargoID;
                 vinculo.Cargo = novoCargo;

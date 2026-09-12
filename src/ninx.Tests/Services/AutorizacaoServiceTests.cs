@@ -33,42 +33,76 @@ namespace ninx.Tests.Services
         }
 
         [Fact]
-        public void GarantirGerencia_AdminGlobal_NuncaLanca()
+        public void GarantirPermissao_AdminGlobal_NuncaLanca()
         {
             var service = CriarService();
-            var act = () => service.GarantirGerencia(chamadorEhAdminGlobal: true, pesoChamador: 1, pesoAlvo: 100);
+            var act = () => service.GarantirPermissao(chamadorEhAdminGlobal: true, chamadorEhProprietario: false, permissoesChamador: [], "GerenciarUsuarios", "erro");
             act.Should().NotThrow();
         }
 
         [Fact]
-        public void GarantirGerencia_PesoMenorOuIgualAoAlvo_DeveLancarForbidden()
+        public void GarantirPermissao_Proprietario_NuncaLanca()
         {
             var service = CriarService();
-            var act = () => service.GarantirGerencia(chamadorEhAdminGlobal: false, pesoChamador: 20, pesoAlvo: 20);
-            act.Should().Throw<ForbiddenException>();
-        }
-
-        [Fact]
-        public void GarantirGerencia_PesoMaiorQueAlvo_NaoDeveLancar()
-        {
-            var service = CriarService();
-            var act = () => service.GarantirGerencia(chamadorEhAdminGlobal: false, pesoChamador: 30, pesoAlvo: 20);
+            var act = () => service.GarantirPermissao(chamadorEhAdminGlobal: false, chamadorEhProprietario: true, permissoesChamador: [], "GerenciarUsuarios", "erro");
             act.Should().NotThrow();
         }
 
         [Fact]
-        public void GarantirPesoMinimo_AbaixoDoMinimo_DeveLancarForbidden()
+        public void GarantirPermissao_SemAPermissao_DeveLancarForbidden()
         {
             var service = CriarService();
-            var act = () => service.GarantirPesoMinimo(chamadorEhAdminGlobal: false, pesoChamador: 5, pesoMinimo: 20, "sem permissão");
+            var act = () => service.GarantirPermissao(chamadorEhAdminGlobal: false, chamadorEhProprietario: false, permissoesChamador: ["VisualizarRelatorios"], "GerenciarUsuarios", "sem permissão");
             act.Should().Throw<ForbiddenException>().WithMessage("sem permissão");
         }
 
         [Fact]
-        public void GarantirPesoMinimo_AdminGlobal_NuncaLanca()
+        public void GarantirPermissao_ComAPermissao_NaoDeveLancar()
         {
             var service = CriarService();
-            var act = () => service.GarantirPesoMinimo(chamadorEhAdminGlobal: true, pesoChamador: 0, pesoMinimo: 999, "erro");
+            var act = () => service.GarantirPermissao(chamadorEhAdminGlobal: false, chamadorEhProprietario: false, permissoesChamador: ["GerenciarUsuarios"], "GerenciarUsuarios", "erro");
+            act.Should().NotThrow();
+        }
+
+        [Fact]
+        public void GarantirNaoProprietario_AdminGlobal_NuncaLanca()
+        {
+            var service = CriarService();
+            var act = () => service.GarantirNaoProprietario(chamadorEhAdminGlobal: true, ehProprietario: true, "erro");
+            act.Should().NotThrow();
+        }
+
+        [Fact]
+        public void GarantirNaoProprietario_AlvoProprietario_DeveLancarForbidden()
+        {
+            var service = CriarService();
+            var act = () => service.GarantirNaoProprietario(chamadorEhAdminGlobal: false, ehProprietario: true, "erro");
+            act.Should().Throw<ForbiddenException>().WithMessage("erro");
+        }
+
+        [Fact]
+        public void GarantirNaoProprietario_AlvoComum_NaoDeveLancar()
+        {
+            var service = CriarService();
+            var act = () => service.GarantirNaoProprietario(chamadorEhAdminGlobal: false, ehProprietario: false, "erro");
+            act.Should().NotThrow();
+        }
+
+        [Fact]
+        public void GarantirSemEscalonamento_PermissaoAlemDoChamador_DeveLancarForbidden()
+        {
+            var service = CriarService();
+            var act = () => service.GarantirSemEscalonamento(chamadorEhAdminGlobal: false, chamadorEhProprietario: false,
+                permissoesChamador: ["GerenciarCargos"], permissoesRequisitadas: ["GerenciarCargos", "GerenciarComercio"], "erro");
+            act.Should().Throw<ForbiddenException>().WithMessage("erro");
+        }
+
+        [Fact]
+        public void GarantirSemEscalonamento_Proprietario_NuncaLanca()
+        {
+            var service = CriarService();
+            var act = () => service.GarantirSemEscalonamento(chamadorEhAdminGlobal: false, chamadorEhProprietario: true,
+                permissoesChamador: [], permissoesRequisitadas: ["GerenciarComercio"], "erro");
             act.Should().NotThrow();
         }
     }

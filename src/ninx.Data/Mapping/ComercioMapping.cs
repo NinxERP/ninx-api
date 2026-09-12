@@ -47,7 +47,7 @@ public class ComercioMapping : IEntityTypeConfiguration<Comercio>
 
         builder.Property(x => x.EnderecoCEP)
             .IsRequired(false)
-            .HasMaxLength(8);
+            .HasMaxLength(9);
 
         builder.Property(x => x.CNPJ)
             .IsRequired(false)

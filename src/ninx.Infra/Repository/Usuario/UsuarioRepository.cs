@@ -29,7 +29,7 @@ namespace ninx.Infra.Repository
         {
             return await _context.Usuarios.AsNoTracking()
                 .Include(x => x.UsuarioComercios.Where(uc => uc.ComercioID == comercioId)).ThenInclude(uc => uc.Comercio)
-                .Include(x => x.UsuarioComercios.Where(uc => uc.ComercioID == comercioId)).ThenInclude(uc => uc.Cargo)
+                .Include(x => x.UsuarioComercios.Where(uc => uc.ComercioID == comercioId)).ThenInclude(uc => uc.Cargo).ThenInclude(c => c.CargoPermissoes).ThenInclude(cp => cp.Permissao)
                 .Where(x => x.UsuarioComercios.Any(uc => uc.ComercioID == comercioId))
                 .ToListAsync();
         }
@@ -46,7 +46,7 @@ namespace ninx.Infra.Repository
         {
             return await _context.Usuarios
                 .AsNoTracking()
-                .Include(x => x.UsuarioComercios).ThenInclude(uc => uc.Cargo)
+                .Include(x => x.UsuarioComercios).ThenInclude(uc => uc.Cargo).ThenInclude(c => c.CargoPermissoes).ThenInclude(cp => cp.Permissao)
                 .FirstOrDefaultAsync(x =>
                     x.UsuarioID == usuarioId &&
                     x.UsuarioComercios.Any(uc => uc.ComercioID == comercioId));

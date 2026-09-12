@@ -16,9 +16,10 @@ namespace ninx.Tests.Services
     public class AssinaturaPlanoServiceTests
     {
         private readonly Mock<IAssinaturaPlanoRepository> _assinaturaPlanoRepository = new();
+        private readonly IAutorizacaoCargoService _autorizacaoCargoService = new AutorizacaoCargoService(new Mock<IUsuarioRepository>().Object);
         private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
-        private AssinaturaPlanoService CriarService() => new(_assinaturaPlanoRepository.Object, _unitOfWork.Object);
+        private AssinaturaPlanoService CriarService() => new(_assinaturaPlanoRepository.Object, _autorizacaoCargoService, _unitOfWork.Object);
 
         [Fact]
         public async Task GetByIdAsync_Inexistente_DeveLancarNotFound()
@@ -32,11 +33,11 @@ namespace ninx.Tests.Services
         }
 
         [Fact]
-        public async Task GetByComercioIdAsync_PesoInsuficiente_DeveLancarForbidden()
+        public async Task GetByComercioIdAsync_SemPermissao_DeveLancarForbidden()
         {
             var service = CriarService();
 
-            var act = async () => await service.GetByComercioIdAsync(1, pesoLogado: 5);
+            var act = async () => await service.GetByComercioIdAsync(1, ehProprietarioLogado: false, permissoesLogado: []);
 
             await act.Should().ThrowAsync<ForbiddenException>();
         }
@@ -47,7 +48,7 @@ namespace ninx.Tests.Services
             _assinaturaPlanoRepository.Setup(x => x.GetByComercioIdAsync(1)).ReturnsAsync((AssinaturaPlano?)null);
             var service = CriarService();
 
-            var act = async () => await service.GetByComercioIdAsync(1, pesoLogado: 20);
+            var act = async () => await service.GetByComercioIdAsync(1, ehProprietarioLogado: true, permissoesLogado: []);
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
@@ -59,17 +60,17 @@ namespace ninx.Tests.Services
             _assinaturaPlanoRepository.Setup(x => x.GetByComercioIdAsync(1)).ReturnsAsync(assinatura);
             var service = CriarService();
 
-            var response = await service.GetByComercioIdAsync(1, pesoLogado: 20);
+            var response = await service.GetByComercioIdAsync(1, ehProprietarioLogado: true, permissoesLogado: []);
 
             response.ComercioID.Should().Be(1);
         }
 
         [Fact]
-        public async Task CancelarAsync_PesoInsuficiente_DeveLancarForbidden()
+        public async Task CancelarAsync_SemPermissao_DeveLancarForbidden()
         {
             var service = CriarService();
 
-            var act = async () => await service.CancelarAsync(1, pesoLogado: 5);
+            var act = async () => await service.CancelarAsync(1, ehProprietarioLogado: false, permissoesLogado: []);
 
             await act.Should().ThrowAsync<ForbiddenException>();
         }
@@ -80,7 +81,7 @@ namespace ninx.Tests.Services
             _assinaturaPlanoRepository.Setup(x => x.GetByComercioIdAsync(1)).ReturnsAsync((AssinaturaPlano?)null);
             var service = CriarService();
 
-            var act = async () => await service.CancelarAsync(1, pesoLogado: 20);
+            var act = async () => await service.CancelarAsync(1, ehProprietarioLogado: true, permissoesLogado: []);
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
@@ -92,7 +93,7 @@ namespace ninx.Tests.Services
             _assinaturaPlanoRepository.Setup(x => x.GetByComercioIdAsync(1)).ReturnsAsync(assinatura);
             var service = CriarService();
 
-            var act = async () => await service.CancelarAsync(1, pesoLogado: 20);
+            var act = async () => await service.CancelarAsync(1, ehProprietarioLogado: true, permissoesLogado: []);
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -104,7 +105,7 @@ namespace ninx.Tests.Services
             _assinaturaPlanoRepository.Setup(x => x.GetByComercioIdAsync(1)).ReturnsAsync(assinatura);
             var service = CriarService();
 
-            var act = async () => await service.CancelarAsync(1, pesoLogado: 20);
+            var act = async () => await service.CancelarAsync(1, ehProprietarioLogado: true, permissoesLogado: []);
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -116,7 +117,7 @@ namespace ninx.Tests.Services
             _assinaturaPlanoRepository.Setup(x => x.GetByComercioIdAsync(1)).ReturnsAsync(assinatura);
             var service = CriarService();
 
-            await service.CancelarAsync(1, pesoLogado: 20);
+            await service.CancelarAsync(1, ehProprietarioLogado: true, permissoesLogado: []);
 
             assinatura.CancelamentoSolicitadoEm.Should().NotBeNull();
             assinatura.Status.Should().Be(StatusAssinatura.Ativa);

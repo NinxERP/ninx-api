@@ -17,8 +17,8 @@ public class CargoMapping : IEntityTypeConfiguration<Cargo>
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(x => x.Peso)
-            .IsRequired();
+        builder.Property(x => x.EhProprietario)
+            .HasDefaultValue(false);
 
         builder.Property(x => x.Ativo)
             .HasDefaultValue(true);

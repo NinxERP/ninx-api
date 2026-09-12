@@ -32,6 +32,8 @@ namespace ninx.Tests.Services
         {
             _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(1, 1)).ReturnsAsync((UsuarioComercio?)null);
             _autorizacaoCargoService.Setup(x => x.EhAdminGlobalAsync(1)).ReturnsAsync(false);
+            _autorizacaoCargoService.Setup(x => x.GarantirPermissao(false, false, It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Throws(new ForbiddenException("Você não tem permissão para vincular usuários a este comércio."));
 
             var service = CriarService();
             var request = new CriarUsuarioComercioRequest { UsuarioID = 2, ComercioID = 1, CargoID = 1 };
@@ -44,7 +46,7 @@ namespace ninx.Tests.Services
         [Fact]
         public async Task CriarAsync_CargoInvalido_DeveLancarBadRequest()
         {
-            var vinculoDono = Builders.NovoVinculo(1, 1, Builders.NovoCargo(peso: 20));
+            var vinculoDono = Builders.NovoVinculo(1, 1, Builders.NovoCargo(ehProprietario: true));
             _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(1, 1)).ReturnsAsync(vinculoDono);
             _autorizacaoCargoService.Setup(x => x.EhAdminGlobalAsync(1)).ReturnsAsync(false);
             _cargoRepository.Setup(x => x.GetByIdAsync(99)).ReturnsAsync((Cargo?)null);
@@ -60,8 +62,8 @@ namespace ninx.Tests.Services
         [Fact]
         public async Task CriarAsync_UsuarioJaVinculado_DeveLancarBadRequest()
         {
-            var vinculoDono = Builders.NovoVinculo(1, 1, Builders.NovoCargo(peso: 20));
-            var cargoAlvo = Builders.NovoCargo(2, peso: 5, comercioId: 1);
+            var vinculoDono = Builders.NovoVinculo(1, 1, Builders.NovoCargo(ehProprietario: true));
+            var cargoAlvo = Builders.NovoCargo(2, comercioId: 1);
             _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(1, 1)).ReturnsAsync(vinculoDono);
             _autorizacaoCargoService.Setup(x => x.EhAdminGlobalAsync(1)).ReturnsAsync(false);
             _cargoRepository.Setup(x => x.GetByIdAsync(2)).ReturnsAsync(cargoAlvo);
@@ -78,8 +80,8 @@ namespace ninx.Tests.Services
         [Fact]
         public async Task CriarAsync_Valido_DeveVincularUsuario()
         {
-            var vinculoDono = Builders.NovoVinculo(1, 1, Builders.NovoCargo(peso: 20));
-            var cargoAlvo = Builders.NovoCargo(2, peso: 5, comercioId: 1);
+            var vinculoDono = Builders.NovoVinculo(1, 1, Builders.NovoCargo(ehProprietario: true));
+            var cargoAlvo = Builders.NovoCargo(2, comercioId: 1);
             var usuarioAlvo = Builders.NovoUsuario(2);
 
             _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(1, 1)).ReturnsAsync(vinculoDono);
@@ -100,7 +102,7 @@ namespace ninx.Tests.Services
         [Fact]
         public async Task DesativarAsync_VinculoInexistente_DeveLancarNotFound()
         {
-            var vinculoDono = Builders.NovoVinculo(1, 1, Builders.NovoCargo(peso: 20));
+            var vinculoDono = Builders.NovoVinculo(1, 1, Builders.NovoCargo(ehProprietario: true));
             _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(1, 1)).ReturnsAsync(vinculoDono);
             _autorizacaoCargoService.Setup(x => x.EhAdminGlobalAsync(1)).ReturnsAsync(false);
             _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(2, 1)).ReturnsAsync((UsuarioComercio?)null);

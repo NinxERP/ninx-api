@@ -72,35 +72,35 @@ namespace ninx.Tests.Validators
         [Fact]
         public void Validate_NomeVazio_DeveTerErro()
         {
-            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "", Peso = 5 });
+            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "", PermissaoIds = [1] });
             result.ShouldHaveValidationErrorFor(x => x.Nome);
         }
 
         [Fact]
-        public void Validate_PesoZero_DeveTerErro()
+        public void Validate_PermissaoIdZero_DeveTerErro()
         {
-            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "Gerente", Peso = 0 });
-            result.ShouldHaveValidationErrorFor(x => x.Peso);
+            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "Gerente", PermissaoIds = [0] });
+            result.ShouldHaveValidationErrorFor("PermissaoIds[0]");
         }
 
         [Fact]
         public void Validate_ComercioIdZero_DeveTerErro()
         {
-            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "Gerente", Peso = 5, ComercioID = 0 });
+            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "Gerente", PermissaoIds = [1], ComercioID = 0 });
             result.ShouldHaveValidationErrorFor(x => x.ComercioID);
         }
 
         [Fact]
         public void Validate_ComercioIdNulo_NaoDeveTerErro()
         {
-            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "Gerente", Peso = 5, ComercioID = null });
+            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "Gerente", PermissaoIds = [1], ComercioID = null });
             result.ShouldNotHaveValidationErrorFor(x => x.ComercioID);
         }
 
         [Fact]
         public void Validate_Valido_NaoDeveTerErros()
         {
-            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "Gerente", Peso = 5, ComercioID = 1 });
+            var result = _validator.TestValidate(new CriarCargoRequest { Nome = "Gerente", PermissaoIds = [1], ComercioID = 1 });
             result.ShouldNotHaveAnyValidationErrors();
         }
     }

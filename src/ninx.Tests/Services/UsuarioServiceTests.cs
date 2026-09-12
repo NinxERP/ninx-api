@@ -62,7 +62,7 @@ namespace ninx.Tests.Services
             var service = CriarService();
             var request = new CriarUsuarioRequest { Nome = "X", Email = "x@x.com", Senha = "senha123", CargoID = 1, ComercioId = 1 };
 
-            var act = async () => await service.CriarAsync(request, executorId: 1, pesoLogado: 20, comercioIdLogado: 2);
+            var act = async () => await service.CriarAsync(request, executorId: 1, ehProprietarioLogado: true, permissoesLogado: [], comercioIdLogado: 2);
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -71,27 +71,29 @@ namespace ninx.Tests.Services
         public async Task CriarAsync_EmailJaCadastrado_DeveLancarBadRequest()
         {
             _autorizacaoCargoService.Setup(x => x.EhAdminGlobalAsync(1)).ReturnsAsync(false);
-            _cargoRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCargo(1, peso: 5, comercioId: 1));
+            _cargoRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCargo(1, comercioId: 1));
             _usuarioRepository.Setup(x => x.GetUsuarioByEmail("existente@teste.com")).ReturnsAsync(Builders.NovoUsuario(2));
 
             var service = CriarService();
             var request = new CriarUsuarioRequest { Nome = "X", Email = "existente@teste.com", Senha = "senha123", CargoID = 1, ComercioId = 1 };
 
-            var act = async () => await service.CriarAsync(request, executorId: 1, pesoLogado: 20, comercioIdLogado: 1);
+            var act = async () => await service.CriarAsync(request, executorId: 1, ehProprietarioLogado: true, permissoesLogado: [], comercioIdLogado: 1);
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
 
         [Fact]
-        public async Task CriarAsync_CargoComPesoIgualOuMaiorQueOChamador_DeveLancarForbidden()
+        public async Task CriarAsync_CargoDeProprietario_DeveLancarForbidden()
         {
             _autorizacaoCargoService.Setup(x => x.EhAdminGlobalAsync(1)).ReturnsAsync(false);
-            _cargoRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCargo(1, peso: 20, comercioId: 1));
+            _cargoRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCargo(1, ehProprietario: true, comercioId: 1));
+            _autorizacaoCargoService.Setup(x => x.GarantirNaoProprietario(false, true, It.IsAny<string>()))
+                .Throws(new ForbiddenException("Você não pode cadastrar usuários com o cargo de proprietário."));
 
             var service = CriarService();
             var request = new CriarUsuarioRequest { Nome = "X", Email = "novo@teste.com", Senha = "senha123", CargoID = 1, ComercioId = 1 };
 
-            var act = async () => await service.CriarAsync(request, executorId: 1, pesoLogado: 20, comercioIdLogado: 1);
+            var act = async () => await service.CriarAsync(request, executorId: 1, ehProprietarioLogado: true, permissoesLogado: [], comercioIdLogado: 1);
 
             await act.Should().ThrowAsync<ForbiddenException>();
         }
@@ -100,13 +102,13 @@ namespace ninx.Tests.Services
         public async Task CriarAsync_Valido_DeveCriarUsuarioEVincular()
         {
             _autorizacaoCargoService.Setup(x => x.EhAdminGlobalAsync(1)).ReturnsAsync(false);
-            _cargoRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCargo(1, peso: 5, comercioId: 1));
+            _cargoRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCargo(1, comercioId: 1));
             _usuarioRepository.Setup(x => x.GetUsuarioByEmail("novo@teste.com")).ReturnsAsync((Usuario?)null);
 
             var service = CriarService();
             var request = new CriarUsuarioRequest { Nome = "Novo", Email = "novo@teste.com", Senha = "senha123", CargoID = 1, ComercioId = 1 };
 
-            var response = await service.CriarAsync(request, executorId: 1, pesoLogado: 20, comercioIdLogado: 1);
+            var response = await service.CriarAsync(request, executorId: 1, ehProprietarioLogado: true, permissoesLogado: [], comercioIdLogado: 1);
 
             response.Should().NotBeNull();
             _usuarioRepository.Verify(x => x.AddAsync(It.IsAny<Usuario>()), Times.Once);
@@ -123,7 +125,7 @@ namespace ninx.Tests.Services
             var service = CriarService();
             var request = new AtualizarUsuarioRequest { Nome = "X", Email = "x@x.com" };
 
-            var act = async () => await service.AtualizarAsync(2, request, comercioId: 1, usuarioIdLogado: 1, pesoLogado: 20);
+            var act = async () => await service.AtualizarAsync(2, request, comercioId: 1, usuarioIdLogado: 1, ehProprietarioLogado: true, permissoesLogado: []);
 
             await act.Should().ThrowAsync<UnauthorizedException>();
         }

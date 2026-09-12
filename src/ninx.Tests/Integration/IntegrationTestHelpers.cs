@@ -16,14 +16,14 @@ namespace ninx.Tests.Integration
             NinxDB db,
             string emailUsuario = "dono@teste.com",
             string nomeComercio = "Comércio Teste",
-            int pesoCargo = 20,
+            bool ehProprietario = true,
             bool admin = false)
         {
             var comercio = new Comercio { NomeComercio = nomeComercio, Ativo = true };
             db.Comercio.Add(comercio);
             db.SaveChanges();
 
-            var cargo = new Cargo { Nome = "Dono", Peso = pesoCargo, ComercioID = comercio.ComercioID, Ativo = true };
+            var cargo = new Cargo { Nome = "Dono", EhProprietario = ehProprietario, ComercioID = comercio.ComercioID, Ativo = true };
             db.Cargos.Add(cargo);
             db.SaveChanges();
 

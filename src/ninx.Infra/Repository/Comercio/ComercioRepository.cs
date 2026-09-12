@@ -20,5 +20,23 @@ namespace ninx.Infra.Repository
                 .Any(uc => uc.UsuarioID == usuarioId))
                 .ToListAsync();
         }
+
+        public async Task<(IEnumerable<Comercio> Data, int TotalCount)> GetPaginatedAsync(int pageNumber, int pageSize, string? termoBusca)
+        {
+            var query = _context.Comercio.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(termoBusca))
+                query = query.Where(c => c.NomeComercio.Contains(termoBusca));
+
+            var totalCount = await query.CountAsync();
+
+            var data = await query
+                .OrderBy(c => c.NomeComercio)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (data, totalCount);
+        }
     }
 }
