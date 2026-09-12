@@ -60,8 +60,9 @@ namespace ninx.API.Controllers
         public async Task<IActionResult> GetHistorico([FromQuery] PaginationRequest request)
         {
             var comercioId = GetComercioId();
-            var pesoLogado = GetCargoPeso();
-            var result = await _pagamentoService.GetHistoricoByComercioIdAsync(comercioId, pesoLogado, request);
+            var ehProprietarioLogado = GetCargoEhProprietario();
+            var permissoesLogado = GetCargoPermissoes();
+            var result = await _pagamentoService.GetHistoricoByComercioIdAsync(comercioId, ehProprietarioLogado, permissoesLogado, request);
             return Ok(result);
         }
     }

@@ -11,10 +11,12 @@ namespace ninx.Application.Services
     public class AssinaturaPlanoService : IAssinaturaPlanoService
     {
         private readonly IAssinaturaPlanoRepository _AssinaturaPlanoRepository;
+        private readonly IAutorizacaoCargoService _autorizacaoCargoService;
         private readonly IUnitOfWork _unitOfWork;
-        public AssinaturaPlanoService(IAssinaturaPlanoRepository AssinaturaPlanoRepository, IUnitOfWork unitOfWork)
+        public AssinaturaPlanoService(IAssinaturaPlanoRepository AssinaturaPlanoRepository, IAutorizacaoCargoService autorizacaoCargoService, IUnitOfWork unitOfWork)
         {
             _AssinaturaPlanoRepository = AssinaturaPlanoRepository;
+            _autorizacaoCargoService = autorizacaoCargoService;
             _unitOfWork = unitOfWork;
         }
     
@@ -40,10 +42,10 @@ namespace ninx.Application.Services
             return AssinaturaPlano.Adapt<AssinaturaPlanoResponse>();
         }
 
-        public async Task<AssinaturaPlanoResponse> GetByComercioIdAsync(int comercioId, int pesoLogado)
+        public async Task<AssinaturaPlanoResponse> GetByComercioIdAsync(int comercioId, bool ehProprietarioLogado, IEnumerable<string> permissoesLogado)
         {
-            if (pesoLogado < CargoConstantes.PesoDono)
-                throw new ForbiddenException("Funcionários não podem consultar a assinatura do comércio.");
+            _autorizacaoCargoService.GarantirPermissao(false, ehProprietarioLogado, permissoesLogado,
+                PermissaoConstantes.GerenciarAssinatura, "Funcionários não podem consultar a assinatura do comércio.");
 
             var assinatura = await _AssinaturaPlanoRepository.GetByComercioIdAsync(comercioId);
             if (assinatura == null)
@@ -52,10 +54,10 @@ namespace ninx.Application.Services
             return assinatura.Adapt<AssinaturaPlanoResponse>();
         }
 
-        public async Task CancelarAsync(int comercioId, int pesoLogado)
+        public async Task CancelarAsync(int comercioId, bool ehProprietarioLogado, IEnumerable<string> permissoesLogado)
         {
-            if (pesoLogado < CargoConstantes.PesoDono)
-                throw new ForbiddenException("Funcionários não podem cancelar a assinatura do comércio.");
+            _autorizacaoCargoService.GarantirPermissao(false, ehProprietarioLogado, permissoesLogado,
+                PermissaoConstantes.GerenciarAssinatura, "Funcionários não podem cancelar a assinatura do comércio.");
 
             var assinatura = await _AssinaturaPlanoRepository.GetByComercioIdAsync(comercioId);
             if (assinatura == null)

@@ -6,7 +6,7 @@ namespace ninx.Application.Services
     {
         Task<AssinaturaPlanoResponse> GetByIdAsync(int id);
         Task<PaginatedResponse<AssinaturaPlanoResponse>> GetAll(PaginationRequest request);
-        Task<AssinaturaPlanoResponse> GetByComercioIdAsync(int comercioId, int pesoLogado);
-        Task CancelarAsync(int comercioId, int pesoLogado);
+        Task<AssinaturaPlanoResponse> GetByComercioIdAsync(int comercioId, bool ehProprietarioLogado, IEnumerable<string> permissoesLogado);
+        Task CancelarAsync(int comercioId, bool ehProprietarioLogado, IEnumerable<string> permissoesLogado);
     }
 }

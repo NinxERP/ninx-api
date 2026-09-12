@@ -48,16 +48,17 @@ namespace ninx.Application.Services
         {
             var vinculoChamador = await _usuarioComercioRepository.GetVinculoAsync(usuarioLogadoId, request.ComercioID);
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioLogadoId);
+            var chamadorEhProprietario = vinculoChamador?.Cargo.EhProprietario ?? false;
+            var permissoesChamador = vinculoChamador?.Cargo.CargoPermissoes.Select(cp => cp.Permissao.Chave) ?? [];
 
-            if (!chamadorEhAdmin && (vinculoChamador == null || vinculoChamador.Cargo.Peso < CargoConstantes.PesoDono))
-                throw new ForbiddenException("Você não tem permissão para vincular usuários a este comércio.");
+            _autorizacaoCargoService.GarantirPermissao(chamadorEhAdmin, chamadorEhProprietario, permissoesChamador,
+                PermissaoConstantes.GerenciarUsuarios, "Você não tem permissão para vincular usuários a este comércio.");
 
             var cargo = await _cargoRepository.GetByIdAsync(request.CargoID);
             if (cargo == null || !cargo.Ativo || (cargo.ComercioID != null && cargo.ComercioID != request.ComercioID))
                 throw new BadRequestException("O cargo informado é inválido para este comércio.");
 
-            if (!chamadorEhAdmin && cargo.Peso >= vinculoChamador!.Cargo.Peso)
-                throw new ForbiddenException("Você só pode atribuir cargos com peso menor que o seu.");
+            _autorizacaoCargoService.GarantirNaoProprietario(chamadorEhAdmin, cargo.EhProprietario, "Você não pode atribuir o cargo de proprietário.");
 
             var existe = await _usuarioComercioRepository.ExisteVinculoAsync(request.UsuarioID, request.ComercioID);
             if (existe)
@@ -87,9 +88,11 @@ namespace ninx.Application.Services
         {
             var vinculoChamador = await _usuarioComercioRepository.GetVinculoAsync(usuarioLogadoId, request.ComercioID);
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioLogadoId);
+            var chamadorEhProprietario = vinculoChamador?.Cargo.EhProprietario ?? false;
+            var permissoesChamador = vinculoChamador?.Cargo.CargoPermissoes.Select(cp => cp.Permissao.Chave) ?? [];
 
-            if (!chamadorEhAdmin && (vinculoChamador == null || vinculoChamador.Cargo.Peso < CargoConstantes.PesoDono))
-                throw new ForbiddenException("Você não tem permissão para atualizar vínculos deste comércio.");
+            _autorizacaoCargoService.GarantirPermissao(chamadorEhAdmin, chamadorEhProprietario, permissoesChamador,
+                PermissaoConstantes.GerenciarUsuarios, "Você não tem permissão para atualizar vínculos deste comércio.");
 
             var usuarioComercio = await _usuarioComercioRepository.GetVinculoAsync(request.UsuarioID, request.ComercioID);
             if (usuarioComercio == null) throw new NotFoundException("Vínculo entre usuário e comércio não encontrado.");
@@ -110,7 +113,7 @@ namespace ninx.Application.Services
 
             if (request.Ativo.HasValue)
             {
-                _autorizacaoCargoService.GarantirGerencia(chamadorEhAdmin, vinculoChamador?.Cargo.Peso ?? 0, usuarioComercio.Cargo.Peso);
+                _autorizacaoCargoService.GarantirNaoProprietario(chamadorEhAdmin, usuarioComercio.Cargo.EhProprietario, "Você não tem permissão para gerenciar um vínculo com esse cargo.");
                 usuarioComercio.Ativo = request.Ativo.Value;
             }
 
@@ -124,9 +127,11 @@ namespace ninx.Application.Services
         {
             var vinculoChamador = await _usuarioComercioRepository.GetVinculoAsync(usuarioLogadoId, comercioId);
             var chamadorEhAdmin = await _autorizacaoCargoService.EhAdminGlobalAsync(usuarioLogadoId);
+            var chamadorEhProprietario = vinculoChamador?.Cargo.EhProprietario ?? false;
+            var permissoesChamador = vinculoChamador?.Cargo.CargoPermissoes.Select(cp => cp.Permissao.Chave) ?? [];
 
-            if (!chamadorEhAdmin && (vinculoChamador == null || vinculoChamador.Cargo.Peso < CargoConstantes.PesoDono))
-                throw new ForbiddenException("Você não tem permissão para desativar vínculos deste comércio.");
+            _autorizacaoCargoService.GarantirPermissao(chamadorEhAdmin, chamadorEhProprietario, permissoesChamador,
+                PermissaoConstantes.GerenciarUsuarios, "Você não tem permissão para desativar vínculos deste comércio.");
 
             var usuarioComercioFiltrado = await _usuarioComercioRepository.GetVinculoAsync(usuarioId, comercioId);
             if (usuarioComercioFiltrado == null)
@@ -134,7 +139,7 @@ namespace ninx.Application.Services
                 throw new NotFoundException("Usuário não possui vínculo com o comércio.");
             }
 
-            _autorizacaoCargoService.GarantirGerencia(chamadorEhAdmin, vinculoChamador?.Cargo.Peso ?? 0, usuarioComercioFiltrado.Cargo.Peso);
+            _autorizacaoCargoService.GarantirNaoProprietario(chamadorEhAdmin, usuarioComercioFiltrado.Cargo.EhProprietario, "Você não tem permissão para gerenciar um vínculo com esse cargo.");
 
             usuarioComercioFiltrado.Ativo = false;
             await _usuarioComercioRepository.UpdateAsync(usuarioComercioFiltrado);

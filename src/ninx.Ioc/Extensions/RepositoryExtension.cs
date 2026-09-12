@@ -33,6 +33,7 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<ILogAuditoriaRepository, LogAuditoriaRepository>();
             services.AddScoped<IRedefinicaoSenhaRepository, RedefinicaoSenhaRepository>();
             services.AddScoped<ICargoRepository, CargoRepository>();
+            services.AddScoped<IPermissaoRepository, PermissaoRepository>();
 
             return services;
         }

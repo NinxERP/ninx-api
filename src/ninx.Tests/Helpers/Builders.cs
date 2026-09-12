@@ -19,13 +19,22 @@ namespace ninx.Tests.Helpers
             Ativo = ativo
         };
 
-        public static Cargo NovoCargo(int id = 1, int peso = 50, int? comercioId = 1, bool ativo = true) => new()
+        public static Cargo NovoCargo(int id = 1, bool ehProprietario = false, IEnumerable<string>? permissoes = null, int? comercioId = 1, bool ativo = true) => new()
         {
             CargoID = id,
             Nome = "Gerente",
-            Peso = peso,
+            EhProprietario = ehProprietario,
             ComercioID = comercioId,
-            Ativo = ativo
+            Ativo = ativo,
+            CargoPermissoes = (permissoes ?? [])
+                .Select((chave, i) => new CargoPermissao
+                {
+                    CargoPermissaoID = i + 1,
+                    CargoID = id,
+                    PermissaoID = i + 1,
+                    Permissao = new Permissao { PermissaoID = i + 1, Chave = chave, Nome = chave }
+                })
+                .ToList()
         };
 
         public static Comercio NovoComercio(int id = 1, string nome = "Comércio Teste") => new()

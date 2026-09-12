@@ -19,6 +19,7 @@ namespace ninx.Infra.Repository
         {
             return await _context.Cargos
                 .AsNoTracking()
+                .Include(x => x.CargoPermissoes).ThenInclude(cp => cp.Permissao)
                 .Where(x => x.Ativo && !x.Reservado && (x.ComercioID == null || x.ComercioID == comercioId))
                 .ToListAsync();
         }
@@ -27,6 +28,7 @@ namespace ninx.Infra.Repository
         {
             return await _context.Cargos
                 .AsNoTracking()
+                .Include(x => x.CargoPermissoes).ThenInclude(cp => cp.Permissao)
                 .Where(x => x.ComercioID == null)
                 .ToListAsync();
         }
@@ -42,7 +44,15 @@ namespace ninx.Infra.Repository
         {
             return await _context.Cargos
                 .AsNoTracking()
+                .Include(x => x.CargoPermissoes).ThenInclude(cp => cp.Permissao)
                 .FirstOrDefaultAsync(x => x.ComercioID == null && x.Nome == CargoConstantes.NomeAdmin);
+        }
+
+        public async Task<Cargo?> GetComPermissoesAsync(int cargoId)
+        {
+            return await _context.Cargos
+                .Include(x => x.CargoPermissoes).ThenInclude(cp => cp.Permissao)
+                .FirstOrDefaultAsync(x => x.CargoID == cargoId);
         }
     }
 }

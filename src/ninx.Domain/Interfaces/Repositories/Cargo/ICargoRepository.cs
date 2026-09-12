@@ -8,5 +8,6 @@ namespace ninx.Domain.Interfaces
         Task<IEnumerable<Cargo>> GetCargosBaseAsync();
         Task<bool> ExisteNomeAsync(string nome, int? comercioId);
         Task<Cargo?> GetCargoAdminAsync();
+        Task<Cargo?> GetComPermissoesAsync(int cargoId);
     }
 }

@@ -15,6 +15,7 @@ namespace ninx.Application.Services
         private readonly IPagamentoHistoricoAssinaturaPlanoRepository _pagamentoHistoricoAssinaturaPlanoRepository;
         private readonly IAssinaturaPlanoRepository _assinaturaPlanoRepository;
         private readonly IAutorizacaoGlobalService _autorizacaoGlobalService;
+        private readonly IAutorizacaoCargoService _autorizacaoCargoService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<PagamentoHistoricoAssinaturaPlanoService> _logger;
 
@@ -22,12 +23,14 @@ namespace ninx.Application.Services
             IPagamentoHistoricoAssinaturaPlanoRepository PagamentoHistoricoAssinaturaPlanoRepository,
             IAssinaturaPlanoRepository assinaturaPlanoRepository,
             IAutorizacaoGlobalService autorizacaoGlobalService,
+            IAutorizacaoCargoService autorizacaoCargoService,
             IUnitOfWork unitOfWork,
             ILogger<PagamentoHistoricoAssinaturaPlanoService> logger)
         {
             _pagamentoHistoricoAssinaturaPlanoRepository = PagamentoHistoricoAssinaturaPlanoRepository;
             _assinaturaPlanoRepository = assinaturaPlanoRepository;
             _autorizacaoGlobalService = autorizacaoGlobalService;
+            _autorizacaoCargoService = autorizacaoCargoService;
             _unitOfWork = unitOfWork;
             _logger = logger;
         }
@@ -67,10 +70,10 @@ namespace ninx.Application.Services
            );
         }
 
-        public async Task<PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>> GetHistoricoByComercioIdAsync(int comercioId, int pesoLogado, PaginationRequest request)
+        public async Task<PaginatedResponse<PagamentoHistoricoAssinaturaPlanoResponse>> GetHistoricoByComercioIdAsync(int comercioId, bool ehProprietarioLogado, IEnumerable<string> permissoesLogado, PaginationRequest request)
         {
-            if (pesoLogado < CargoConstantes.PesoDono)
-                throw new ForbiddenException("Funcionários não podem consultar o histórico de pagamentos da assinatura.");
+            _autorizacaoCargoService.GarantirPermissao(false, ehProprietarioLogado, permissoesLogado,
+                PermissaoConstantes.GerenciarPagamentos, "Funcionários não podem consultar o histórico de pagamentos da assinatura.");
 
             var (entidades, total) = await _pagamentoHistoricoAssinaturaPlanoRepository.GetPaginadoByComercioIdAsync(comercioId, request.PageNumber, request.PageSize);
             var listaResponse = entidades.Adapt<List<PagamentoHistoricoAssinaturaPlanoResponse>>();

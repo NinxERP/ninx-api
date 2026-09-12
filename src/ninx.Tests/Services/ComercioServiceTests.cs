@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using ninx.Application.Services;
 using ninx.Communication;
+using ninx.Domain.Constants;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
@@ -94,18 +95,20 @@ namespace ninx.Tests.Services
         }
 
         [Fact]
-        public async Task AtualizarAsync_UsuarioSemCargoDeDono_DeveLancarUnauthorized()
+        public async Task AtualizarAsync_UsuarioSemPermissaoDeGerenciarComercio_DeveLancarForbidden()
         {
             var comercio = Builders.NovoComercio(1);
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(comercio);
-            _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(1, 1)).ReturnsAsync(Builders.NovoVinculo(1, 1, Builders.NovoCargo(peso: 5)));
+            _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(1, 1)).ReturnsAsync(Builders.NovoVinculo(1, 1, Builders.NovoCargo()));
             _autorizacaoCargoService.Setup(x => x.EhAdminGlobalAsync(1)).ReturnsAsync(false);
+            _autorizacaoCargoService.Setup(x => x.GarantirPermissao(false, false, It.IsAny<IEnumerable<string>>(), PermissaoConstantes.GerenciarComercio, It.IsAny<string>()))
+                .Throws(new ForbiddenException("Acesso negado."));
 
             var service = CriarService();
 
             var act = async () => await service.AtualizarAsync(1, 1, new ComercioRequest { Nome = "X" });
 
-            await act.Should().ThrowAsync<UnauthorizedException>();
+            await act.Should().ThrowAsync<ForbiddenException>();
         }
 
         [Fact]
@@ -113,7 +116,7 @@ namespace ninx.Tests.Services
         {
             var comercio = Builders.NovoComercio(1);
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(comercio);
-            _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(1, 1)).ReturnsAsync(Builders.NovoVinculo(1, 1, Builders.NovoCargo(peso: 20)));
+            _usuarioComercioRepository.Setup(x => x.GetVinculoAsync(1, 1)).ReturnsAsync(Builders.NovoVinculo(1, 1, Builders.NovoCargo(ehProprietario: true)));
             _autorizacaoCargoService.Setup(x => x.EhAdminGlobalAsync(1)).ReturnsAsync(false);
 
             var service = CriarService();

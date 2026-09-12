@@ -77,8 +77,9 @@ namespace ninx.Api.Controllers
         {
             var comercioId = GetComercioId();
             var usuarioIdLogado = GetUsuarioId();
-            var pesoLogado = GetCargoPeso();
-            var usuario = await _usuarioService.GetAllByComercioId(comercioId, usuarioIdLogado, pesoLogado, request);
+            var ehProprietarioLogado = GetCargoEhProprietario();
+            var permissoesLogado = GetCargoPermissoes();
+            var usuario = await _usuarioService.GetAllByComercioId(comercioId, usuarioIdLogado, ehProprietarioLogado, permissoesLogado, request);
             return Ok(usuario);
         }
 
@@ -98,8 +99,9 @@ namespace ninx.Api.Controllers
         {
             var comercioId = GetComercioId();
             var usuarioIdLogado = GetUsuarioId();
-            var pesoLogado = GetCargoPeso();
-            var usuario = await _usuarioService.GetByIdAndComercioIdAsync(id, comercioId, usuarioIdLogado, pesoLogado);
+            var ehProprietarioLogado = GetCargoEhProprietario();
+            var permissoesLogado = GetCargoPermissoes();
+            var usuario = await _usuarioService.GetByIdAndComercioIdAsync(id, comercioId, usuarioIdLogado, ehProprietarioLogado, permissoesLogado);
             return Ok(usuario);
         }
 
@@ -119,8 +121,9 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> BuscarPorEmail([FromQuery] string email)
         {
             var usuarioIdLogado = GetUsuarioId();
-            var pesoLogado = GetCargoPeso();
-            var usuario = await _usuarioService.BuscarPorEmailAsync(email, usuarioIdLogado, pesoLogado);
+            var ehProprietarioLogado = GetCargoEhProprietario();
+            var permissoesLogado = GetCargoPermissoes();
+            var usuario = await _usuarioService.BuscarPorEmailAsync(email, usuarioIdLogado, ehProprietarioLogado, permissoesLogado);
             return Ok(usuario);
         }
 
@@ -140,9 +143,10 @@ namespace ninx.Api.Controllers
         {
             var usuarioId = GetUsuarioId();
             var comercioId = GetComercioId();
-            var pesoLogado = GetCargoPeso();
+            var ehProprietarioLogado = GetCargoEhProprietario();
+            var permissoesLogado = GetCargoPermissoes();
 
-            var usuario = await _usuarioService.CriarAsync(request, usuarioId, pesoLogado, comercioId);
+            var usuario = await _usuarioService.CriarAsync(request, usuarioId, ehProprietarioLogado, permissoesLogado, comercioId);
             return CreatedAtAction(nameof(GetById), new { id = usuario.UsuarioID }, usuario);
         }
 
@@ -165,8 +169,9 @@ namespace ninx.Api.Controllers
         {
             var comercioId = GetComercioId();
             var usuarioIdLogado = GetUsuarioId();
-            var pesoLogado = GetCargoPeso();
-            var usuario = await _usuarioService.AtualizarAsync(id, request, comercioId, usuarioIdLogado, pesoLogado);
+            var ehProprietarioLogado = GetCargoEhProprietario();
+            var permissoesLogado = GetCargoPermissoes();
+            var usuario = await _usuarioService.AtualizarAsync(id, request, comercioId, usuarioIdLogado, ehProprietarioLogado, permissoesLogado);
             return Ok(usuario);
         }
 

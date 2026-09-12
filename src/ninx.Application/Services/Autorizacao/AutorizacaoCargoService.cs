@@ -4,9 +4,10 @@ using ninx.Domain.Interfaces;
 namespace ninx.Application.Services
 {
     /// <summary>
-    /// Centraliza a checagem de hierarquia por peso entre Cargos de um mesmo vínculo (UsuarioComercio),
+    /// Centraliza a checagem de permissões granulares do Cargo de um vínculo (UsuarioComercio),
     /// distinta do administrador de plataforma (Usuario.Admin, ver AutorizacaoGlobalService), que sempre
-    /// tem bypass total sobre essas regras.
+    /// tem bypass total sobre essas regras, e do cargo "proprietário" (Dono), que também tem bypass
+    /// sobre as permissões comuns dentro do próprio comércio.
     /// </summary>
     public class AutorizacaoCargoService : IAutorizacaoCargoService
     {
@@ -23,19 +24,34 @@ namespace ninx.Application.Services
             return usuario is not null && usuario.Admin;
         }
 
-        public void GarantirGerencia(bool chamadorEhAdminGlobal, int pesoChamador, int pesoAlvo)
+        public void GarantirPermissao(bool chamadorEhAdminGlobal, bool chamadorEhProprietario, IEnumerable<string> permissoesChamador, string permissaoRequerida, string mensagemErro)
         {
-            if (chamadorEhAdminGlobal) return;
+            if (chamadorEhAdminGlobal || chamadorEhProprietario) return;
 
-            if (pesoChamador <= pesoAlvo)
-                throw new ForbiddenException("Você não tem permissão para gerenciar um vínculo com esse cargo.");
+            if (!permissoesChamador.Contains(permissaoRequerida))
+                throw new ForbiddenException(mensagemErro);
         }
 
-        public void GarantirPesoMinimo(bool chamadorEhAdminGlobal, int pesoChamador, int pesoMinimo, string mensagemErro)
+        public void GarantirNaoProprietario(bool chamadorEhAdminGlobal, bool ehProprietario, string mensagemErro)
         {
             if (chamadorEhAdminGlobal) return;
 
-            if (pesoChamador < pesoMinimo)
+            if (ehProprietario)
+                throw new ForbiddenException(mensagemErro);
+        }
+
+        public void GarantirProprietario(bool chamadorEhAdminGlobal, bool chamadorEhProprietario, string mensagemErro)
+        {
+            if (chamadorEhAdminGlobal || chamadorEhProprietario) return;
+
+            throw new ForbiddenException(mensagemErro);
+        }
+
+        public void GarantirSemEscalonamento(bool chamadorEhAdminGlobal, bool chamadorEhProprietario, IEnumerable<string> permissoesChamador, IEnumerable<string> permissoesRequisitadas, string mensagemErro)
+        {
+            if (chamadorEhAdminGlobal || chamadorEhProprietario) return;
+
+            if (permissoesRequisitadas.Except(permissoesChamador).Any())
                 throw new ForbiddenException(mensagemErro);
         }
     }

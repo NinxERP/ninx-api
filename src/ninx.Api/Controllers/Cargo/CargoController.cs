@@ -7,13 +7,13 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace ninx.Api.Controllers
 {
     /// <summary>
-    /// Cargos (hierarquia por peso) disponíveis para os vínculos usuário-comércio.
+    /// Cargos (conjuntos de permissões) disponíveis para os vínculos usuário-comércio.
     /// </summary>
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [SwaggerTag("Cargos (hierarquia por peso) disponíveis para os vínculos usuário-comércio. Cargos base (ComercioID nulo) são compartilhados por todos os comércios e restritos a administradores de plataforma para criação/edição/desativação; cargos customizados pertencem a um comércio.")]
+    [SwaggerTag("Cargos (conjuntos configuráveis de permissões) disponíveis para os vínculos usuário-comércio. Cargos base (ComercioID nulo) são compartilhados por todos os comércios e restritos a administradores de plataforma para criação/edição/desativação; cargos customizados pertencem a um comércio.")]
     public class CargoController : NinxControllerBase
     {
         private readonly ICargoService _cargoService;
@@ -38,15 +38,28 @@ namespace ninx.Api.Controllers
         }
 
         /// <summary>
+        /// Lista todas as permissões disponíveis para compor cargos.
+        /// </summary>
+        /// <response code="200">Permissões retornadas com sucesso.</response>
+        [HttpGet("permissoes")]
+        [SwaggerOperation(Summary = "Listar permissões disponíveis", Description = "Lista todas as permissões que podem ser atribuídas a um cargo, para popular a tela de gestão de cargos.")]
+        [ProducesResponseType(typeof(IEnumerable<PermissaoResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPermissoes()
+        {
+            var result = await _cargoService.GetPermissoesDisponiveisAsync();
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Cria um cargo customizado de um comércio, ou um cargo base.
         /// </summary>
         /// <param name="request">Dados do cargo a ser criado. ComercioID nulo cria um cargo base.</param>
         /// <response code="201">Cargo criado com sucesso.</response>
         /// <response code="400">Dados inválidos ou nome já em uso.</response>
         /// <response code="401">Cargo base informado (ComercioID nulo) sem ser administrador de plataforma.</response>
-        /// <response code="403">Sem permissão para criar cargos neste comércio, ou peso informado maior ou igual ao do chamador.</response>
+        /// <response code="403">Sem permissão para criar cargos neste comércio, ou permissões requisitadas além das que o chamador possui.</response>
         [HttpPost]
-        [SwaggerOperation(Summary = "Criar cargo", Description = "Com ComercioID informado, cria um cargo exclusivo desse comércio — restrito a quem tem cargo de peso Dono ou superior no comércio (ou administrador de plataforma), com peso estritamente menor que o do chamador. Com ComercioID nulo, cria um cargo base — restrito a administradores de plataforma (Usuario.Admin == true).")]
+        [SwaggerOperation(Summary = "Criar cargo", Description = "Com ComercioID informado, cria um cargo exclusivo desse comércio — restrito a quem tem a permissão GerenciarCargos no comércio (ou é o proprietário, ou administrador de plataforma); só é possível conceder permissões que o próprio chamador possui. Com ComercioID nulo, cria um cargo base — restrito a administradores de plataforma (Usuario.Admin == true).")]
         [ProducesResponseType(typeof(CargoResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -66,10 +79,10 @@ namespace ninx.Api.Controllers
         /// <response code="200">Cargo atualizado com sucesso.</response>
         /// <response code="400">Dados inválidos ou nome já em uso.</response>
         /// <response code="401">Cargo base sem ser administrador de plataforma.</response>
-        /// <response code="403">Sem permissão para editar cargos deste comércio, peso informado maior ou igual ao do chamador, ou cargo reservado pelo sistema.</response>
+        /// <response code="403">Sem permissão para editar cargos deste comércio, permissões requisitadas além das que o chamador possui, cargo de proprietário, ou cargo reservado pelo sistema.</response>
         /// <response code="404">Cargo não encontrado.</response>
         [HttpPut("{id}")]
-        [SwaggerOperation(Summary = "Atualizar cargo", Description = "Atualiza nome e peso de um cargo. Cargos customizados seguem a mesma regra de criação (peso Dono ou superior no comércio / peso menor que o do chamador); cargos base são restritos a administradores de plataforma e não podem ser reservados pelo sistema (ex.: o cargo 'Admin').")]
+        [SwaggerOperation(Summary = "Atualizar cargo", Description = "Atualiza nome e permissões de um cargo. Cargos customizados seguem a mesma regra de criação; cargos base são restritos a administradores de plataforma. O cargo de proprietário e cargos reservados pelo sistema (ex.: 'Admin') não podem ser alterados.")]
         [ProducesResponseType(typeof(CargoResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

@@ -13,6 +13,8 @@ namespace ninx.Data.Context
         public DbSet<AssinaturaPlano> AssinaturaPlano { get; set; }
         public DbSet<AssinaturaEletronica> AssinaturaEletronica { get; set; }
         public DbSet<Cargo> Cargos { get; set; }
+        public DbSet<Permissao> Permissoes { get; set; }
+        public DbSet<CargoPermissao> CargosPermissoes { get; set; }
         public DbSet<Comercio> Comercio { get; set; }
         public DbSet<CategoriaProduto> CategoriaProduto { get; set; }
         public DbSet<Cliente> Clientes { get; set; }

@@ -19,7 +19,7 @@ namespace ninx.Infra.Repository
             return await _context.UsuarioComercio
                 .AsNoTracking()
                 .Include(x => x.Comercio)
-                .Include(x => x.Cargo)
+                .Include(x => x.Cargo).ThenInclude(c => c.CargoPermissoes).ThenInclude(cp => cp.Permissao)
                 .Where(x => x.UsuarioID == usuarioId)
                 .ToListAsync();
         }
@@ -28,7 +28,7 @@ namespace ninx.Infra.Repository
         {
             return await _context.UsuarioComercio
                 .AsNoTracking()
-                .Include(x => x.Cargo)
+                .Include(x => x.Cargo).ThenInclude(c => c.CargoPermissoes).ThenInclude(cp => cp.Permissao)
                 .Where(x => x.ComercioID == comercioId)
                 .ToListAsync();
         }
@@ -43,7 +43,7 @@ namespace ninx.Infra.Repository
         public async Task<UsuarioComercio?> GetVinculoAsync(int usuarioId, int comercioId)
         {
             return await _context.UsuarioComercio
-                .Include(x => x.Cargo)
+                .Include(x => x.Cargo).ThenInclude(c => c.CargoPermissoes).ThenInclude(cp => cp.Permissao)
                 .FirstOrDefaultAsync(x => x.UsuarioID == usuarioId && x.ComercioID == comercioId);
         }
     }
