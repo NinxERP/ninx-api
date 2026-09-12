@@ -1,5 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using ninx.Data.Context;
+using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
 
 namespace ninx.Infra.Repository
@@ -61,9 +64,13 @@ namespace ninx.Infra.Repository
             {
                 await _context.SaveChangesAsync();
             }
-            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException)
             {
-                throw new ninx.Domain.Exceptions.ConcurrencyException("O estoque foi alterado por outro usuário. Tente novamente.");
+                throw new ConcurrencyException("O estoque foi alterado por outro usuário. Tente novamente.");
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
+            {
+                throw new BadRequestException("Já existe um registro com esse valor. Verifique os dados informados.");
             }
         }
 
