@@ -63,7 +63,7 @@ namespace ninx.Data.Mappings
 
             builder.Property(x => x.EnderecoCEP)
                 .IsRequired()
-                .HasMaxLength(8)
+                .HasMaxLength(9)
                 .HasDefaultValue(string.Empty);
 
             builder.Property(x => x.LimiteCredito)
