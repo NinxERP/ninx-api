@@ -101,6 +101,15 @@ namespace ninx.Infra.Repository
                 .FirstOrDefaultAsync(x => x.ComercioID == comercioId && x.CodigoBarras == codigoBarras && x.Ativo == true);
         }
 
+        public async Task<bool> ExisteCodigoBarrasAsync(int comercioId, string codigoBarras, int? ignorarProdutoId = null)
+        {
+            return await _context.Produtos
+                .AsNoTracking()
+                .AnyAsync(x => x.ComercioID == comercioId
+                    && x.CodigoBarras == codigoBarras
+                    && (!ignorarProdutoId.HasValue || x.ProdutoID != ignorarProdutoId.Value));
+        }
+
         public async Task<IEnumerable<Produto>> GetByNomeAsync(int comercioId, string nome)
         {
             return await _context.Produtos

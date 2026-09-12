@@ -7,6 +7,7 @@ namespace ninx.Domain.Interfaces
     {
         Task<IEnumerable<Produto>> GetProdutosEstoqueByComercioIdAsync(int comercioId);
         Task<Produto?> GetAtivosByCodigoBarrasAsync(int comercioId, string codigoBarras);
+        Task<bool> ExisteCodigoBarrasAsync(int comercioId, string codigoBarras, int? ignorarProdutoId = null);
         Task<IEnumerable<Produto>> GetByNomeAsync(int comercioId, string nome);
         Task<Produto?> GetProdutoByIdAsync(int produtoId);
         Task<IEnumerable<Produto>> GetProdutosById(IEnumerable<int> produtoIds);

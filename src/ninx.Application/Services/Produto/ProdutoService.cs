@@ -1,4 +1,6 @@
 ﻿using Mapster;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using ninx.Communication;
 using ninx.Domain.Entities;
 using ninx.Domain.Exceptions;
@@ -34,6 +36,12 @@ namespace ninx.Application.Services
                 throw new BadRequestException("Categoria informada não existe para este comércio.");
             }
 
+            if (!string.IsNullOrEmpty(request.CodigoBarras) &&
+                await _produtoRepository.ExisteCodigoBarrasAsync(comercioID, request.CodigoBarras))
+            {
+                throw new BadRequestException("Já existe um produto com este código de barras.");
+            }
+
             var produto = request.Adapt<Produto>();
             produto.ComercioID = request.ComercioID; 
             produto.CriadoEm = DateTime.UtcNow;
@@ -52,7 +60,15 @@ namespace ninx.Application.Services
                 await _estoqueRepository.AddAsync(estoque);
             }
 
-            await _unitOfWork.SaveChangesAsync();
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
+            {
+                throw new BadRequestException("Já existe um produto com este código de barras.");
+            }
+
             return produto.Adapt<ProdutoResponse>();
         }
 
@@ -67,11 +83,25 @@ namespace ninx.Application.Services
                 throw new BadRequestException("Categoria informada não existe para este comércio.");
             }
 
+            if (!string.IsNullOrEmpty(request.CodigoBarras) &&
+                await _produtoRepository.ExisteCodigoBarrasAsync(comercioId, request.CodigoBarras, id))
+            {
+                throw new BadRequestException("Já existe um produto com este código de barras.");
+            }
+
             request.Adapt(produto);
             produto.AtualizadoEm = DateTime.UtcNow;
 
             await _produtoRepository.UpdateAsync(produto);
-            await _unitOfWork.SaveChangesAsync();
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
+            {
+                throw new BadRequestException("Já existe um produto com este código de barras.");
+            }
 
             return produto.Adapt<ProdutoResponse>();
         }

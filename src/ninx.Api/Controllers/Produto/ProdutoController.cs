@@ -103,7 +103,7 @@ namespace ninx.Api.Controllers
         {
             var comercioID = GetComercioId();
             var produto = await _produtoService.CriarAsync(request, comercioID);
-            return CreatedAtAction(string.Empty, produto);
+            return CreatedAtAction(nameof(GetById), new { id = produto.ProdutoID }, produto);
         }
 
         /// <summary>
