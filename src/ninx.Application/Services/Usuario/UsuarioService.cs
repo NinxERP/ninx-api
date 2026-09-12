@@ -90,6 +90,8 @@ namespace ninx.Application.Services
 
             var vinculos = usuarios
                 .Select(u => (Usuario: u, Vinculo: u.UsuarioComercios.First(uc => uc.ComercioID == comercioId)))
+                .OrderByDescending(x => x.Usuario.UsuarioID == usuarioIdLogado)
+                .ThenByDescending(x => x.Vinculo.Cargo.Peso)
                 .ToList();
 
             if (vinculos.Count == 0)
