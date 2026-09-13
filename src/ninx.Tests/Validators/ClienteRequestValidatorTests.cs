@@ -19,7 +19,8 @@ namespace ninx.Tests.Validators
             EnderecoBairro = "Centro",
             EnderecoCidade = "São Paulo",
             EnderecoUF = "SP",
-            EnderecoCEP = "01000000"
+            EnderecoCEP = "01000000",
+            LimiteCredito = 300m
         };
 
         [Fact]
@@ -93,12 +94,12 @@ namespace ninx.Tests.Validators
         }
 
         [Fact]
-        public void Validate_LimiteCreditoNulo_NaoDeveTerErro()
+        public void Validate_LimiteCreditoNulo_DeveTerErro()
         {
             var request = RequestValido();
             request.LimiteCredito = null;
             var result = _validator.TestValidate(request);
-            result.ShouldNotHaveValidationErrorFor(x => x.LimiteCredito);
+            result.ShouldHaveValidationErrorFor(x => x.LimiteCredito);
         }
     }
 }

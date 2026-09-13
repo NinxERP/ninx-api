@@ -72,7 +72,9 @@ namespace ninx.Tests.Integration
                         {
                             ["Jwt:Issuer"] = "NinxSGC",
                             ["Jwt:Audience"] = "NinxSGCClient",
-                            ["Jwt:Secret"] = "REMOVIDO-segredo-substituido-no-historico-0000",
+                            // Segredo exclusivo de testes. Nunca reutilizar o valor de produção aqui:
+                            // este arquivo é versionado.
+                            ["Jwt:Secret"] = "segredo-de-teste-apenas-para-a-suite-de-integracao-0001",
                             ["Jwt:ExpiresInMinutes"] = "1200",
                             ["Brevo:ApiKey"] = "fake-key-testes",
                             ["Brevo:SenderEmail"] = "testes@ninx.local",

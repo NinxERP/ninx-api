@@ -1,4 +1,4 @@
-﻿using ninx.Communication;
+using ninx.Communication;
 using ninx.Domain.Entities;
 
 namespace ninx.Domain.Interfaces

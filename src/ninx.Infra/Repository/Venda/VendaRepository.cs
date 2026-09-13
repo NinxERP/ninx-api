@@ -3,6 +3,7 @@ using ninx.Data.Context;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Interfaces;
+using ninx.Domain.Regras;
 
 namespace ninx.Infra.Repository
 {
@@ -88,18 +89,19 @@ namespace ninx.Infra.Repository
         }
         public async Task<Dictionary<int, decimal>> GetSaldoDevedorClientesPorComercio(int comercioId)
         {
+            // Antes, esta soma não filtrava o status do pagamento: pagamentos estornados
+            // entravam na conta. Agora usa o mesmo critério do restante do sistema.
             return await _context.Vendas
-                .Where(v => v.ComercioID == comercioId
-                    && v.ClienteID != null
-                    && v.TipoVenda == TipoVenda.Fiado
-                    && v.Status == StatusVenda.Aberta)
-                .GroupBy(v => v.ClienteID.Value)
+                .Where(SaldoDevedor.VendaEmAberto)
+                .Where(v => v.ComercioID == comercioId && v.ClienteID != null)
+                .GroupBy(v => v.ClienteID!.Value)
                 .Select(g => new
                 {
                     ClienteID = g.Key,
-                    SaldoDevedor = g.Sum(v => v.Total) - g.Sum(v => v.PagamentosVenda.Sum(p => (decimal?)p.Valor) ?? 0)
+                    Saldo = g.Sum(v => v.Total)
+                        - g.Sum(v => v.PagamentosVenda.AsQueryable().Where(SaldoDevedor.PagamentoEfetivo).Sum(p => (decimal?)p.Valor) ?? 0)
                 })
-                .ToDictionaryAsync(x => x.ClienteID, x => x.SaldoDevedor);
+                .ToDictionaryAsync(x => x.ClienteID, x => x.Saldo);
         }
 
         public async Task<IEnumerable<Venda>> GetVendasFiadoByClienteIDAsync(int? clienteId)
@@ -112,15 +114,16 @@ namespace ninx.Infra.Repository
 
         public async Task<IEnumerable<Venda>> GetVendasFiadoAtivasPorClienteAsync(int clienteId)
         {
+            // O "?? 0" evita que uma venda sem nenhum pagamento efetivo seja descartada:
+            // sem ele, Total > NULL é falso no SQL e a venda sumiria da quitação global.
             return await _context.Vendas
-                .Include(v => v.PagamentosVenda) 
-                .Where(v => v.ClienteID == clienteId &&
-                            v.TipoVenda == TipoVenda.Fiado &&
-                            v.Status == StatusVenda.Aberta)
-                .Where(v => v.Total > v.PagamentosVenda
-                    .Where(p => p.Status == StatusPagamento.Pago)
-                    .Sum(p => (decimal?)p.Valor)) 
-                .OrderBy(v => v.CriadoEm) 
+                .Include(v => v.PagamentosVenda)
+                .Where(SaldoDevedor.VendaEmAberto)
+                .Where(v => v.ClienteID == clienteId)
+                .Where(v => v.Total > (v.PagamentosVenda.AsQueryable()
+                    .Where(SaldoDevedor.PagamentoEfetivo)
+                    .Sum(p => (decimal?)p.Valor) ?? 0))
+                .OrderBy(v => v.CriadoEm)
                 .ToListAsync();
         }
     }

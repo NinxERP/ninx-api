@@ -3,6 +3,7 @@ using System.Text;
 using ninx.Communication.Helpers;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
+using ninx.Domain.Regras;
 
 namespace ninx.Application.Services
 {
@@ -13,10 +14,8 @@ namespace ninx.Application.Services
 
         public static Dictionary<string, string> BuildTermoCompromissoTokens(Venda venda, Cliente cliente, Comercio comercio)
         {
-            var totalPago = venda.PagamentosVenda
-                .Where(p => p.Status == StatusPagamento.Pago)
-                .Sum(p => p.Valor);
-            var saldoDevedor = venda.Total - totalPago;
+            var totalPago = SaldoDevedor.TotalPago(venda.PagamentosVenda);
+            var saldoDevedor = SaldoDevedor.DaVenda(venda);
 
             var tokens = BuildTokensComuns(cliente, comercio, venda.CriadoEm);
             tokens["Html.TabelaItens"] = BuildTabelaItensHtml(venda);
@@ -82,10 +81,20 @@ namespace ninx.Application.Services
         public static string FormatarEnderecoComercio(Comercio comercio)
         {
             if (string.IsNullOrWhiteSpace(comercio.EnderecoLogradouro))
-                return comercio.Endereco ?? "Não informado";
+                return "Não informado";
 
-            var complemento = string.IsNullOrWhiteSpace(comercio.EnderecoComplemento) ? "" : $", {comercio.EnderecoComplemento}";
-            return $"{comercio.EnderecoLogradouro}, {comercio.EnderecoNumero}{complemento} - {comercio.EnderecoBairro}, {comercio.EnderecoCidade}/{comercio.EnderecoUF} - CEP {comercio.EnderecoCEP}";
+            // Partes vazias são omitidas: comércios que só tinham o endereço legado em texto
+            // livre passam a tê-lo no logradouro, sem número, bairro ou CEP estruturados.
+            var endereco = comercio.EnderecoLogradouro;
+            if (!string.IsNullOrWhiteSpace(comercio.EnderecoNumero)) endereco += $", {comercio.EnderecoNumero}";
+            if (!string.IsNullOrWhiteSpace(comercio.EnderecoComplemento)) endereco += $", {comercio.EnderecoComplemento}";
+            if (!string.IsNullOrWhiteSpace(comercio.EnderecoBairro)) endereco += $" - {comercio.EnderecoBairro}";
+
+            var cidadeUf = string.Join("/", new[] { comercio.EnderecoCidade, comercio.EnderecoUF }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            if (cidadeUf.Length > 0) endereco += $", {cidadeUf}";
+            if (!string.IsNullOrWhiteSpace(comercio.EnderecoCEP)) endereco += $" - CEP {comercio.EnderecoCEP}";
+
+            return endereco;
         }
 
         private static string BuildComercioAssinaturaHtml(Comercio comercio)
@@ -155,27 +164,33 @@ namespace ninx.Application.Services
             return $"{MarcadorInicio}<div class=\"bloco-assinatura\"><p style=\"font-size:9pt;color:#64748B;\">Assinatura eletrônica pendente.</p></div>{MarcadorFim}";
         }
 
-        public static string BuildBlocoAssinaturaConfirmada(string imagemAssinaturaBase64, DateTime dataAssinatura, string ip, string dispositivo)
+        /// <summary>
+        /// Página de evidências anexada ao final do documento assinado. As páginas anteriores são o
+        /// PDF exatamente como o signatário o enviou; os resumos permitem verificar isso.
+        /// </summary>
+        public static string BuildCertificadoAssinaturaHtml(AssinaturaEletronica assinatura)
         {
-            var conteudo = new StringBuilder();
-            conteudo.Append("<div class=\"bloco-assinatura\">");
-            conteudo.Append($"<img src=\"data:image/png;base64,{imagemAssinaturaBase64}\" style=\"max-height:60px;\" />");
-            conteudo.Append($"<p style=\"font-size:8pt;color:#64748B;\">Assinado eletronicamente em {dataAssinatura:dd/MM/yyyy HH:mm:ss} UTC — IP {WebUtility.HtmlEncode(ip)} — {WebUtility.HtmlEncode(dispositivo)}</p>");
-            conteudo.Append("</div>");
+            static string Linha(string rotulo, string? valor) =>
+                $"<tr><td style=\"padding:6px;font-size:9pt;color:#64748B;width:32%;vertical-align:top;\">{rotulo}</td>" +
+                $"<td style=\"padding:6px;font-size:9pt;word-break:break-all;\">{WebUtility.HtmlEncode(valor ?? "Não registrado")}</td></tr>";
 
-            return $"{MarcadorInicio}{conteudo}{MarcadorFim}";
-        }
-
-        public static string SubstituirBlocoAssinatura(string htmlMesclado, string novoBloco)
-        {
-            var inicio = htmlMesclado.IndexOf(MarcadorInicio, StringComparison.Ordinal);
-            var fim = htmlMesclado.IndexOf(MarcadorFim, StringComparison.Ordinal);
-
-            if (inicio < 0 || fim < 0)
-                return htmlMesclado;
-
-            fim += MarcadorFim.Length;
-            return htmlMesclado[..inicio] + novoBloco + htmlMesclado[fim..];
+            var sb = new StringBuilder();
+            sb.Append("<html><head><meta charset=\"utf-8\" /></head><body style=\"font-family:Helvetica,Arial,sans-serif;color:#1A1A18;\">");
+            sb.Append("<h2 style=\"font-size:14pt;\">Certificado de assinatura eletrônica</h2>");
+            sb.Append("<table style=\"width:100%;border-collapse:collapse;\">");
+            sb.Append(Linha("Documento", assinatura.TipoDocumento?.ToString()));
+            sb.Append(Linha("Identificador", assinatura.DocumentoGuid.ToString()));
+            sb.Append(Linha("Emitido em", assinatura.CriadoEm.ToString("dd/MM/yyyy HH:mm:ss") + " UTC"));
+            sb.Append(Linha("Assinado em", assinatura.DataAssinatura?.ToString("dd/MM/yyyy HH:mm:ss") + " UTC (relógio do servidor)"));
+            sb.Append(Linha("IP de origem", assinatura.IpAssinante));
+            sb.Append(Linha("Dispositivo", assinatura.DispositivoInfo));
+            sb.Append(Linha("SHA-256 do documento apresentado", assinatura.HashDocumentoOriginal));
+            sb.Append(Linha("SHA-256 do documento assinado", assinatura.HashDocumentoAssinado));
+            sb.Append("</table>");
+            sb.Append("<p style=\"font-size:8pt;color:#64748B;margin-top:16px;\">As páginas anteriores reproduzem o documento assinado tal como recebido pelo servidor. " +
+                      "O resumo SHA-256 do documento assinado refere-se a esse arquivo antes da inclusão desta página, e o arquivo original permanece armazenado para verificação.</p>");
+            sb.Append("</body></html>");
+            return sb.ToString();
         }
     }
 }

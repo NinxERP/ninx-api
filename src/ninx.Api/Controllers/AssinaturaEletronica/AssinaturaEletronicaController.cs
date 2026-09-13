@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ninx.Application.Services;
 using ninx.Communication;
 using Swashbuckle.AspNetCore.Annotations;
@@ -30,6 +31,7 @@ namespace ninx.Api.Controllers
         /// <response code="200">Dados do documento retornados com sucesso.</response>
         /// <response code="404">Documento não encontrado.</response>
         [AllowAnonymous]
+        [EnableRateLimiting("AssinaturaPublicaLeitura")]
         [HttpGet("{guid}")]
         [SwaggerOperation(Summary = "Obter documento para assinatura", Description = "Retorna os dados necessários para o assinante visualizar e assinar o documento.")]
         [ProducesResponseType(typeof(AssinaturaEletronicaResponse), StatusCodes.Status200OK)]
@@ -66,6 +68,7 @@ namespace ninx.Api.Controllers
         /// <response code="200">Assinatura registrada com sucesso.</response>
         /// <response code="404">Documento não encontrado.</response>
         [AllowAnonymous]
+        [EnableRateLimiting("AssinaturaPublicaConfirmacao")]
         [HttpPost("confirmar/{guid}")]
         [RequestSizeLimit(20_000_000)]
         [SwaggerOperation(Summary = "Confirmar assinatura", Description = "Registra a assinatura do assinante para o documento informado, junto com IP e dispositivo de origem.")]
@@ -74,8 +77,9 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         public async Task<IActionResult> ConfirmarAssinatura(Guid guid, [FromBody] ConfirmarAssinaturaEletronicaRequest request)
         {
-            var ip = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
-                     ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+            // Com o middleware de cabeçalhos encaminhados configurado no Program.cs, este é o
+            // IP observado pelo ingress — e não mais um valor que o cliente possa declarar.
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             var dispositivo = Request.Headers["User-Agent"].ToString();
 
             await _assinaturaService.ConfirmarAssinaturaAsync(
@@ -95,6 +99,7 @@ namespace ninx.Api.Controllers
         /// <response code="200">Documento já assinado.</response>
         /// <response code="400">Documento ainda não foi assinado.</response>
         [AllowAnonymous]
+        [EnableRateLimiting("AssinaturaPublicaLeitura")]
         [HttpGet("assinado/{guid}")]
         [SwaggerOperation(Summary = "Validar se documento foi assinado", Description = "Verifica se o documento informado já possui uma assinatura registrada.")]
         [ProducesResponseType(StatusCodes.Status200OK)]

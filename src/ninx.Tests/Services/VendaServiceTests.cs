@@ -50,9 +50,11 @@ namespace ninx.Tests.Services
             _documentoRendererService
                 .Setup(x => x.RenderizarHtmlAsync(It.IsAny<TipoDocumento>(), It.IsAny<Dictionary<string, string>>()))
                 .ReturnsAsync("<html></html>");
+            // O serviço calcula o SHA-256 dos bytes do PDF emitido, então o valor fictício
+            // precisa ser base64 válido, como o renderizador real sempre produz.
             _documentoRendererService
                 .Setup(x => x.ConverterParaPdfBase64Async(It.IsAny<string>()))
-                .ReturnsAsync("base64pdf");
+                .ReturnsAsync(Convert.ToBase64String("%PDF-1.7 documento de teste"u8.ToArray()));
         }
 
         private CriarVendaRequest RequestVendaNormalValida() => new()
@@ -297,7 +299,11 @@ namespace ninx.Tests.Services
             var response = await service.CriarAsync(request);
 
             response.Documentos.Should().ContainSingle(d => !d.Assinado);
-            _assinaturaEletronicaRepository.Verify(x => x.AddAsync(It.IsAny<AssinaturaEletronica>()), Times.Once);
+            // Fiado só baixa estoque quando o termo for assinado.
+            _estoqueRepository.Verify(x => x.UpdateBatchAsync(It.Is<IEnumerable<Estoque>>(e => e.Any())), Times.Never);
+            _movimentacaoEstoqueRepository.Verify(x => x.AddBatchAsync(It.Is<IEnumerable<MovimentacaoEstoque>>(m => m.Any())), Times.Never);
+            _assinaturaEletronicaRepository.Verify(x => x.AddAsync(It.Is<AssinaturaEletronica>(
+                a => a.HashDocumentoOriginal != null && a.HashDocumentoOriginal.Length == 64)), Times.Once);
         }
 
         [Fact]
@@ -563,6 +569,76 @@ namespace ninx.Tests.Services
 
             response.ValorPago.Should().Be(30m);
             response.SaldoDevedor.Should().Be(70m);
+        }
+    
+        // ---------- EfetivarDocumentoAssinadoAsync ----------
+
+        [Fact]
+        public async Task EfetivarDocumentoAssinadoAsync_TermoAssinado_DeveBaixarEstoqueEConfirmarEntrada()
+        {
+            var venda = Builders.NovaVenda(status: StatusVenda.Aguardando, tipoVenda: TipoVenda.Fiado, clienteId: 1);
+            venda.ItensVenda.Add(new ItemVenda { ProdutoID = 1, Quantidade = 3, ProdutoNome = "Pão" });
+            var entrada = new PagamentoVenda { PagamentoID = 5, VendaID = venda.VendaID, Valor = 10m, Status = StatusPagamento.Pendente };
+            venda.PagamentosVenda.Add(entrada);
+            var estoque = Builders.NovoEstoque(quantidade: 10m);
+            _vendaRepository.Setup(x => x.GetByIdParaEstornoAsync(venda.VendaID)).ReturnsAsync(venda);
+            _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), venda.ComercioID))
+                .ReturnsAsync(new List<Estoque> { estoque });
+
+            await CriarService().EfetivarDocumentoAssinadoAsync(Builders.NovaAssinatura(vendaId: venda.VendaID), DateTime.UtcNow);
+
+            estoque.Quantidade.Should().Be(7m);
+            entrada.Status.Should().Be(StatusPagamento.Pago);
+            venda.Status.Should().Be(StatusVenda.Aberta);
+            _movimentacaoEstoqueRepository.Verify(x => x.AddBatchAsync(It.Is<IEnumerable<MovimentacaoEstoque>>(
+                m => m.Single().Quantidade == 3m && m.Single().VendaID == venda.VendaID)), Times.Once);
+        }
+
+        [Fact]
+        public async Task EfetivarDocumentoAssinadoAsync_ReciboAssinado_DeveConfirmarSomenteAquelePagamento()
+        {
+            var venda = Builders.NovaVenda(status: StatusVenda.Aberta, tipoVenda: TipoVenda.Fiado, clienteId: 1);
+            var recebido = new PagamentoVenda { PagamentoID = 8, VendaID = venda.VendaID, Valor = 20m, Status = StatusPagamento.Pendente };
+            venda.PagamentosVenda.Add(recebido);
+            var recibo = Builders.NovaAssinatura(vendaId: venda.VendaID, tipoDocumento: TipoDocumento.ReciboPagamentoParcial);
+            recibo.PagamentoID = recebido.PagamentoID;
+            _vendaRepository.Setup(x => x.GetByIdParaEstornoAsync(venda.VendaID)).ReturnsAsync(venda);
+
+            await CriarService().EfetivarDocumentoAssinadoAsync(recibo, DateTime.UtcNow);
+
+            recebido.Status.Should().Be(StatusPagamento.Pago);
+            _estoqueRepository.Verify(x => x.UpdateBatchAsync(It.IsAny<IEnumerable<Estoque>>()), Times.Never);
+        }
+
+        [Theory]
+        [InlineData(StatusVenda.Cancelada)]
+        [InlineData(StatusVenda.Estornada)]
+        public async Task EfetivarDocumentoAssinadoAsync_VendaCanceladaOuEstornada_DeveLancarBadRequest(StatusVenda status)
+        {
+            var venda = Builders.NovaVenda(status: status);
+            _vendaRepository.Setup(x => x.GetByIdParaEstornoAsync(venda.VendaID)).ReturnsAsync(venda);
+
+            var act = async () => await CriarService().EfetivarDocumentoAssinadoAsync(Builders.NovaAssinatura(vendaId: venda.VendaID), DateTime.UtcNow);
+
+            await act.Should().ThrowAsync<BadRequestException>();
+        }
+
+        [Fact]
+        public async Task EstornarAsync_FiadoNaoAssinado_NaoDeveDevolverEstoqueEDeveCancelarEntrada()
+        {
+            var venda = Builders.NovaVenda(status: StatusVenda.Aguardando, tipoVenda: TipoVenda.Fiado, clienteId: 1);
+            venda.ItensVenda.Add(new ItemVenda { ProdutoID = 1, Quantidade = 3, ProdutoNome = "Pão" });
+            var entrada = new PagamentoVenda { PagamentoID = 5, VendaID = venda.VendaID, Valor = 10m, Status = StatusPagamento.Pendente };
+            venda.PagamentosVenda.Add(entrada);
+            _vendaRepository.Setup(x => x.GetByIdParaEstornoAsync(venda.VendaID)).ReturnsAsync(venda);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, venda.ComercioID)).ReturnsAsync(true);
+
+            await CriarService().EstornarAsync(venda.VendaID, 1);
+
+            venda.Status.Should().Be(StatusVenda.Estornada);
+            entrada.Status.Should().Be(StatusPagamento.Cancelado);
+            _estoqueRepository.Verify(x => x.UpdateBatchAsync(It.IsAny<IEnumerable<Estoque>>()), Times.Never);
+            _pagamentoVendaRepository.Verify(x => x.AddBatchAsync(It.IsAny<IEnumerable<PagamentoVenda>>()), Times.Never);
         }
     }
 }

@@ -56,7 +56,7 @@ namespace ninx.Tests.Helpers
             Ativo = true
         };
 
-        public static Cliente NovoCliente(int id = 1, int comercioId = 1, decimal? limiteCredito = 500m) => new()
+        public static Cliente NovoCliente(int id = 1, int comercioId = 1, decimal limiteCredito = 500m) => new()
         {
             ClienteID = id,
             ComercioID = comercioId,

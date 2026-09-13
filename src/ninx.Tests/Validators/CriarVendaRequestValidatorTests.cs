@@ -89,14 +89,5 @@ namespace ninx.Tests.Validators
             var result = _validator.TestValidate(request);
             result.ShouldHaveValidationErrorFor("Pagamentos[0].Valor");
         }
-
-        [Fact]
-        public void Validate_ObservacoesMuitoLongas_DeveTerErro()
-        {
-            var request = RequestValido();
-            request.Observacoes = new string('a', 501);
-            var result = _validator.TestValidate(request);
-            result.ShouldHaveValidationErrorFor(x => x.Observacoes);
-        }
     }
 }

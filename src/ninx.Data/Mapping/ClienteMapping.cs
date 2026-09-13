@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ninx.Domain.Entities;
 
@@ -67,7 +67,7 @@ namespace ninx.Data.Mappings
                 .HasDefaultValue(string.Empty);
 
             builder.Property(x => x.LimiteCredito)
-                .IsRequired(false)
+                .IsRequired()
                 .HasColumnType("decimal(10,2)");
 
             builder.Property(x => x.Ativo)
