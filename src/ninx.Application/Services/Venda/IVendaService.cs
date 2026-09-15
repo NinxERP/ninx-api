@@ -1,4 +1,4 @@
-﻿using ninx.Communication;
+using ninx.Communication;
 
 namespace ninx.Application.Services
 {
@@ -12,5 +12,11 @@ namespace ninx.Application.Services
         Task<Guid> ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, decimal valorPago, int formaPagamento);
         Task<IEnumerable<VendaResponse>> GetByClienteIdAsync(int clienteId, int comercioId);
         Task<Guid> ReceberPagamentoGeralFiadoAsync(int clienteId, int usuarioId, decimal valorTotalPago, int formaPagamento);
+
+        /// <summary>
+        /// Aplica os efeitos de um documento assinado: o termo baixa o estoque e confirma a entrada;
+        /// o recibo confirma o pagamento. Não salva — quem confirma a assinatura salva tudo junto.
+        /// </summary>
+        Task EfetivarDocumentoAssinadoAsync(ninx.Domain.Entities.AssinaturaEletronica assinatura, DateTime dataAssinatura);
     }
 }

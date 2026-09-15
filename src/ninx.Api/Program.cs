@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi;
 using ninx.Api.Filters;
@@ -39,6 +40,20 @@ builder.Services.AddControllers(options =>
 });
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// A API só é alcançável pelo ingress do Azure Container Apps, cujos endereços internos
+// não são fixos. As listas são limpas para confiar no proxy imediatamente anterior, e
+// ForwardLimit = 1 faz usar só o último salto de X-Forwarded-For — o valor escrito pelo
+// próprio ingress, que o cliente não consegue forjar. Sem isso, o IP registrado como
+// evidência da assinatura era o que o cliente quisesse declarar no cabeçalho, e os
+// limites de taxa por IP enxergavam o endereço do ingress em vez do cliente real.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -57,6 +72,26 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(10),
+            QueueLimit = 0
+        }));
+
+    // Endpoints públicos da assinatura. Os limites são folgados porque vários clientes
+    // podem assinar a partir do Wi-Fi da própria loja, compartilhando o mesmo IP.
+    options.AddPolicy("AssinaturaPublicaLeitura", context => RateLimitPartition.GetFixedWindowLimiter(
+        GetClientIp(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+
+    options.AddPolicy("AssinaturaPublicaConfirmacao", context => RateLimitPartition.GetFixedWindowLimiter(
+        GetClientIp(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
             Window = TimeSpan.FromMinutes(10),
             QueueLimit = 0
         }));
@@ -103,6 +138,10 @@ builder.Services.AddCors(options =>
     });
 });
 var app = builder.Build();
+
+// Precisa vir antes de tudo que lê o IP ou o esquema da requisição.
+app.UseForwardedHeaders();
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseSwagger();
 app.UseSwaggerUI();

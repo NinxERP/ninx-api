@@ -3,6 +3,7 @@ using ninx.Communication;
 using ninx.Data.Context;
 using ninx.Domain.Enums;
 using ninx.Domain.Interfaces;
+using ninx.Domain.Regras;
 
 namespace ninx.Infra.Repository
 {
@@ -42,8 +43,8 @@ namespace ninx.Infra.Repository
         {
             return await _context.PagamentoVendas
                 .AsNoTracking()
+                .Where(SaldoDevedor.PagamentoEfetivo)
                 .Where(p => p.Venda.ComercioID == comercioId
-                    && p.Status == StatusPagamento.Pago
                     && p.CriadoEm >= inicio && p.CriadoEm <= fim)
                 .GroupBy(p => p.FormaPagamento)
                 .Select(g => new FormaPagamentoResumo
@@ -60,14 +61,13 @@ namespace ninx.Infra.Repository
         {
             var vendasEmAberto = await _context.Vendas
                 .AsNoTracking()
-                .Where(v => v.ComercioID == comercioId
-                    && v.TipoVenda == TipoVenda.Fiado
-                    && v.Status == StatusVenda.Aberta)
+                .Where(SaldoDevedor.VendaEmAberto)
+                .Where(v => v.ComercioID == comercioId)
                 .Select(v => new
                 {
                     v.Total,
-                    TotalPago = v.PagamentosVenda
-                        .Where(p => p.Status == StatusPagamento.Pago)
+                    TotalPago = v.PagamentosVenda.AsQueryable()
+                        .Where(SaldoDevedor.PagamentoEfetivo)
                         .Sum(p => (decimal?)p.Valor) ?? 0
                 })
                 .Where(x => x.Total > x.TotalPago)
@@ -217,15 +217,15 @@ namespace ninx.Infra.Repository
 
             return await _context.Vendas
                 .AsNoTracking()
-                .Where(v => v.ComercioID == comercioId
-                    && v.TipoVenda == TipoVenda.Fiado
-                    && v.Status == StatusVenda.Aberta)
+                .Where(SaldoDevedor.VendaEmAberto)
+                .Where(v => v.ComercioID == comercioId)
                 .Select(v => new VendaEmAbertoResumo
                 {
                     VendaID = v.VendaID,
                     ClienteID = v.ClienteID,
                     ClienteNome = v.Cliente != null ? v.Cliente.Nome : "Cliente não identificado",
-                    SaldoDevedor = v.Total - (v.PagamentosVenda.Where(p => p.Status == StatusPagamento.Pago).Sum(p => (decimal?)p.Valor) ?? 0),
+                    // Nome qualificado só para não confundir a leitura com a propriedade de mesmo nome.
+                    SaldoDevedor = v.Total - (v.PagamentosVenda.AsQueryable().Where(Domain.Regras.SaldoDevedor.PagamentoEfetivo).Sum(p => (decimal?)p.Valor) ?? 0),
                     CriadoEm = v.CriadoEm,
                     DiasEmAberto = EF.Functions.DateDiffDay(v.CriadoEm, agora)
                 })
@@ -343,17 +343,16 @@ namespace ninx.Infra.Repository
         {
             var clientes = await _context.Clientes
                 .AsNoTracking()
-                .Where(c => c.ComercioID == comercioId && c.Ativo && c.LimiteCredito != null && c.LimiteCredito > 0)
+                .Where(c => c.ComercioID == comercioId && c.Ativo && c.LimiteCredito > 0)
                 .Select(c => new ClienteLimiteCreditoResumo
                 {
                     ClienteID = c.ClienteID,
                     ClienteNome = c.Nome,
-                    LimiteCredito = c.LimiteCredito!.Value,
+                    LimiteCredito = c.LimiteCredito,
                     SaldoDevedor = _context.Vendas
-                        .Where(v => v.ClienteID == c.ClienteID
-                            && v.TipoVenda == TipoVenda.Fiado
-                            && v.Status == StatusVenda.Aberta)
-                        .Sum(v => v.Total - (v.PagamentosVenda.Where(p => p.Status == StatusPagamento.Pago).Sum(p => (decimal?)p.Valor) ?? 0))
+                        .Where(Domain.Regras.SaldoDevedor.VendaEmAberto)
+                        .Where(v => v.ClienteID == c.ClienteID)
+                        .Sum(v => v.Total - (v.PagamentosVenda.AsQueryable().Where(Domain.Regras.SaldoDevedor.PagamentoEfetivo).Sum(p => (decimal?)p.Valor) ?? 0))
                 })
                 .Where(x => x.SaldoDevedor > 0)
                 .ToListAsync();

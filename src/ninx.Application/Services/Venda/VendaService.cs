@@ -1,9 +1,12 @@
-﻿using Mapster;
+using Mapster;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ninx.Communication;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
+using ninx.Domain.Regras;
 using ninx.Communication.Helpers;
 
 namespace ninx.Application.Services
@@ -22,6 +25,7 @@ namespace ninx.Application.Services
         private readonly IPagamentoVendaRepository _pagamentoVendaRepository;
         private readonly IAssinaturaEletronicaRepository _assinaturaEletronicaRepository;
         private readonly IDocumentoRendererService _documentoRendererService;
+        private readonly ILogger<VendaService> _logger;
         public VendaService(
             IVendaRepository vendaRepository,
             IProdutoRepository produtoRepository,
@@ -34,8 +38,10 @@ namespace ninx.Application.Services
             IClienteRepository clienteRepository,
             IPagamentoVendaRepository pagamentoVendaRepository,
             IAssinaturaEletronicaRepository assinaturaEletronicaRepository,
-            IDocumentoRendererService documentoRendererService)
+            IDocumentoRendererService documentoRendererService,
+            ILogger<VendaService>? logger = null)
         {
+            _logger = logger ?? NullLogger<VendaService>.Instance;
             _vendaRepository = vendaRepository;
             _produtoRepository = produtoRepository;
             _unitOfWork = unitOfWork;
@@ -203,11 +209,7 @@ namespace ninx.Application.Services
 
                 await ValidarPermissaoUsuarioComercioAsync(usuarioId, venda.ComercioID);
 
-                var pagamentosAnteriores = venda.PagamentosVenda
-                    .Where(p => p.Status == StatusPagamento.Pago)
-                    .Sum(p => p.Valor);
-
-                var saldoDevedorVenda = venda.Total - pagamentosAnteriores;
+                var saldoDevedorVenda = SaldoDevedor.DaVenda(venda);
 
                 if (valorPago > saldoDevedorVenda)
                     throw new BadRequestException($"Valor informado (R$ {valorPago:N2}) é maior que o saldo devedor da venda (R$ {saldoDevedorVenda:N2}).");
@@ -219,7 +221,7 @@ namespace ninx.Application.Services
                     VendaID = venda.VendaID,
                     FormaPagamento = (FormaPagamento)formaPagamento,
                     Valor = valorPago,
-                    Status = StatusPagamento.Pago,
+                    Status = StatusPagamento.Pendente,
                     CriadoEm = dataOperacao,
                     UsuarioID = usuarioId,
                 };
@@ -236,12 +238,14 @@ namespace ninx.Application.Services
                 var assinatura = new AssinaturaEletronica
                 {
                     Venda = venda,
+                    Pagamento = novoPagamento,
                     DocumentoGuid = identificadorAssinatura,
                     Assinado = false,
                     CriadoEm = dataOperacao,
                     TipoDocumento = TipoDocumento.ReciboPagamentoParcial,
                     DocumentoHtmlMesclado = htmlRecibo,
-                    DocumentoOriginalBase64 = pdfRecibo
+                    DocumentoOriginalBase64 = pdfRecibo,
+                    HashDocumentoOriginal = HashDocumento.Sha256Hex(pdfRecibo)
                 };
 
                 venda.AtualizadoEm = DateTime.UtcNow;
@@ -281,11 +285,20 @@ namespace ninx.Application.Services
                 if (vendasDoCliente.Any(x => x.Status == StatusVenda.Aguardando))
                     throw new BadRequestException("Não é possível receber pagamentos para uma venda que não foi aberta.");
 
+                // Um recibo ainda não assinado não abate o saldo; aceitar outro pagamento agora
+                // permitiria receber duas vezes o mesmo valor.
+                foreach (var vendaCliente in vendasDoCliente)
+                {
+                    if (await _assinaturaEletronicaRepository.ExisteAssinaturaPendenteAsync(vendaCliente.VendaID))
+                        throw new BadRequestException("Não é possível receber pagamentos: este cliente tem recibos aguardando assinatura.");
+                }
+
                 var primeiraVenda = vendasDoCliente.First();
                 await ValidarPermissaoUsuarioComercioAsync(usuarioId, primeiraVenda.ComercioID);
 
                 var dataOperacao = DateTime.UtcNow;
                 var detalheAbatimentos = new List<ItemAbatimentoGlobal>();
+                var pagamentosPorVenda = new Dictionary<int, PagamentoVenda>();
                 decimal valorRestanteParaDistribuir = valorTotalPago;
 
                 foreach (var venda in vendasDoCliente.OrderBy(v => v.CriadoEm))
@@ -293,11 +306,7 @@ namespace ninx.Application.Services
                     if (valorRestanteParaDistribuir <= 0)
                         break;
 
-                    var pagamentosAnteriores = venda.PagamentosVenda
-                        .Where(p => p.Status == StatusPagamento.Pago)
-                        .Sum(p => p.Valor);
-
-                    var saldoDevedorVenda = venda.Total - pagamentosAnteriores;
+                    var saldoDevedorVenda = SaldoDevedor.DaVenda(venda);
 
                     if (saldoDevedorVenda <= 0)
                         continue;
@@ -309,12 +318,13 @@ namespace ninx.Application.Services
                         VendaID = venda.VendaID,
                         FormaPagamento = (FormaPagamento)formaPagamento,
                         Valor = valorAbatidoNestaVenda,
-                        Status = StatusPagamento.Pago,
+                        Status = StatusPagamento.Pendente,
                         CriadoEm = dataOperacao,
                         UsuarioID = usuarioId,
                     };
 
                     await _pagamentoVendaRepository.AddAsync(novoPagamento);
+                    pagamentosPorVenda[venda.VendaID] = novoPagamento;
 
                     detalheAbatimentos.Add(new ItemAbatimentoGlobal
                     {
@@ -346,12 +356,14 @@ namespace ninx.Application.Services
                     var assinaturaVinculada = new AssinaturaEletronica
                     {
                         VendaID = abatimento.VendaId,
+                        Pagamento = pagamentosPorVenda[abatimento.VendaId],
                         DocumentoGuid = identificadorAssinatura,
                         Assinado = false,
                         CriadoEm = dataOperacao,
                         TipoDocumento = TipoDocumento.ReciboQuitacaoGlobal,
                         DocumentoHtmlMesclado = htmlGlobal,
-                        DocumentoOriginalBase64 = pdfBase64
+                        DocumentoOriginalBase64 = pdfBase64,
+                        HashDocumentoOriginal = HashDocumento.Sha256Hex(pdfBase64)
                     };
 
                     await _assinaturaEletronicaRepository.AddAsync(assinaturaVinculada);
@@ -369,6 +381,71 @@ namespace ninx.Application.Services
             }
         }
 
+        public async Task EfetivarDocumentoAssinadoAsync(AssinaturaEletronica assinatura, DateTime dataAssinatura)
+        {
+            var venda = await _vendaRepository.GetByIdParaEstornoAsync(assinatura.VendaID)
+                ?? throw new NotFoundException("Venda não encontrada.");
+
+            if (venda.Status == StatusVenda.Cancelada || venda.Status == StatusVenda.Estornada)
+                throw new BadRequestException("Não é possível assinar o documento de uma venda cancelada ou estornada.");
+
+            if (assinatura.TipoDocumento == TipoDocumento.TermoCompromisso && venda.Status == StatusVenda.Aguardando)
+            {
+                await BaixarEstoqueVendaAssinadaAsync(venda, dataAssinatura);
+
+                foreach (var entrada in venda.PagamentosVenda.Where(p => p.Status == StatusPagamento.Pendente))
+                {
+                    entrada.Status = StatusPagamento.Pago;
+                    entrada.AtualizadoEm = dataAssinatura;
+                }
+            }
+            else if (assinatura.PagamentoID.HasValue)
+            {
+                var pagamento = venda.PagamentosVenda.FirstOrDefault(p => p.PagamentoID == assinatura.PagamentoID);
+                if (pagamento is { Status: StatusPagamento.Pendente })
+                {
+                    pagamento.Status = StatusPagamento.Pago;
+                    pagamento.AtualizadoEm = dataAssinatura;
+                }
+            }
+
+            venda.Status = StatusVenda.Aberta;
+            venda.AtualizadoEm = dataAssinatura;
+            await _vendaRepository.UpdateAsync(venda);
+        }
+
+        private async Task BaixarEstoqueVendaAssinadaAsync(Venda venda, DateTime dataOperacao)
+        {
+            var produtoIds = venda.ItensVenda.Select(i => i.ProdutoID).ToList();
+            var estoquesDb = await _estoqueRepository.GetByProdutosIdsAsync(produtoIds, venda.ComercioID);
+
+            var movimentacoes = new List<MovimentacaoEstoque>();
+            foreach (var item in venda.ItensVenda)
+            {
+                var estoque = estoquesDb.FirstOrDefault(e => e.ProdutoID == item.ProdutoID)
+                    ?? throw new NotFoundException($"Estoque não encontrado para o produto {item.ProdutoNome}.");
+
+                // ponytail: não bloqueia a assinatura se o estoque ficou insuficiente desde a venda —
+                // o produto já saiu da loja com o cliente. O saldo pode ficar negativo e aparece na gestão de estoque.
+                estoque.Quantidade -= item.Quantidade;
+                estoque.AtualizadoEm = dataOperacao;
+
+                movimentacoes.Add(new MovimentacaoEstoque
+                {
+                    ComercioID = venda.ComercioID,
+                    ProdutoID = item.ProdutoID,
+                    UsuarioID = venda.UsuarioID,
+                    VendaID = venda.VendaID,
+                    Tipo = TipoMovimentacao.Venda,
+                    Quantidade = item.Quantidade,
+                    DataHora = dataOperacao
+                });
+            }
+
+            await _estoqueRepository.UpdateBatchAsync(estoquesDb.Where(e => produtoIds.Contains(e.ProdutoID)));
+            await _movimentacaoEstoqueRepository.AddBatchAsync(movimentacoes);
+        }
+
         private async Task<List<VendaResponse>> PopulaSaldoTotalAsync(IEnumerable<Venda> vendas)
         {
             var vendasList = vendas as IList<Venda> ?? vendas.ToList();
@@ -380,12 +457,8 @@ namespace ninx.Application.Services
             {
                 var response = lookup[venda.VendaID];
 
-                var totalPago = venda.PagamentosVenda
-                    .Where(p => p.Status == StatusPagamento.Pago)
-                    .Sum(p => p.Valor);
-
-                response.ValorPago = totalPago;
-                response.SaldoDevedor = venda.Total - totalPago;
+                response.ValorPago = SaldoDevedor.TotalPago(venda.PagamentosVenda);
+                response.SaldoDevedor = SaldoDevedor.DaVenda(venda);
             }
 
             var vendaIds = vendasList.Select(v => v.VendaID).ToList();
@@ -437,13 +510,16 @@ namespace ninx.Application.Services
             var produtosDb = await _produtoRepository.GetProdutosById(produtoIds);
             var estoquesDb = await _estoqueRepository.GetByProdutosIdsAsync(produtoIds, request.ComercioID);
 
-            var (itensVenda, movimentacoes, totalVenda) = await PrepararItensVendaAsync(
-                request, produtosDb, estoquesDb, dataOperacao);
+            var ehFiado = request.TipoVenda == (int)TipoVenda.Fiado;
 
-            var pagamentos = PrepararPagamentosVenda(request, dataOperacao);
+            // Venda fiada só existe de fato quando o termo é assinado: até lá não baixa estoque
+            // e a entrada fica pendente. A baixa acontece em EfetivarDocumentoAssinadoAsync.
+            var (itensVenda, movimentacoes, totalVenda) = await PrepararItensVendaAsync(
+                request, produtosDb, estoquesDb, dataOperacao, baixarEstoque: !ehFiado);
+
+            var pagamentos = PrepararPagamentosVenda(request, dataOperacao, ehFiado ? StatusPagamento.Pendente : StatusPagamento.Pago);
             decimal totalPago = pagamentos.Sum(p => p.Valor);
 
-            var ehFiado = request.TipoVenda == (int)TipoVenda.Fiado;
             Guid? identificadorAssinatura = null;
 
             if (ehFiado)
@@ -487,7 +563,8 @@ namespace ninx.Application.Services
                     CriadoEm = dataOperacao,
                     TipoDocumento = TipoDocumento.TermoCompromisso,
                     DocumentoHtmlMesclado = htmlTermo,
-                    DocumentoOriginalBase64 = pdfTermo
+                    DocumentoOriginalBase64 = pdfTermo,
+                    HashDocumentoOriginal = HashDocumento.Sha256Hex(pdfTermo)
                 };
                 await _assinaturaEletronicaRepository.AddAsync(assinatura);
             }
@@ -505,7 +582,8 @@ namespace ninx.Application.Services
             CriarVendaRequest request,
             IEnumerable<Produto> produtosDb,
             IEnumerable<Estoque> estoquesDb,
-            DateTime dataOperacao)
+            DateTime dataOperacao,
+            bool baixarEstoque)
         {
             decimal totalVenda = 0;
             var itensVenda = new List<ItemVenda>();
@@ -533,6 +611,9 @@ namespace ninx.Application.Services
                     Subtotal = subtotal
                 });
 
+                if (!baixarEstoque)
+                    continue;
+
                 estoque!.Quantidade -= itemReq.Quantidade;
                 estoque.AtualizadoEm = dataOperacao;
                 estoquesParaAtualizar.Add(estoque);
@@ -552,12 +633,13 @@ namespace ninx.Application.Services
 
             return (itensVenda, movimentacoes, totalVenda);
         }
-        private List<PagamentoVenda> PrepararPagamentosVenda(CriarVendaRequest request, DateTime dataOperacao)
+        private List<PagamentoVenda> PrepararPagamentosVenda(CriarVendaRequest request, DateTime dataOperacao, StatusPagamento status)
         {
             return request.Pagamentos?.Select(p => new PagamentoVenda
             {
                 FormaPagamento = (FormaPagamento)p.FormaPagamento,
                 Valor = p.Valor,
+                Status = status,
                 CriadoEm = dataOperacao,
                 UsuarioID = request.UsuarioID
             }).ToList() ?? new List<PagamentoVenda>();
@@ -580,7 +662,7 @@ namespace ninx.Application.Services
 
             var saldoDevedorAtual = await CalcularSaldoDevedorAsync(request.ClienteID.Value);
             decimal valorFiadoDestaVenda = totalVenda - totalPago;
-            decimal limiteCredito = cliente.LimiteCredito ?? 0m;
+            decimal limiteCredito = cliente.LimiteCredito;
 
             if ((saldoDevedorAtual + valorFiadoDestaVenda) > limiteCredito)
             {
@@ -598,15 +680,30 @@ namespace ninx.Application.Services
             {
                 await _unitOfWork.RollbackAsync();
             }
-            catch
+            catch (Exception ex)
             {
-                // Log ou ignorar erro de rollback
+                // Não relança: a exceção que motivou o rollback é a que deve chegar ao
+                // chamador. Mas registra, para que uma falha de rollback não passe despercebida.
+                _logger.LogError(ex, "Falha ao desfazer a transação da venda.");
             }
         }
 
         private async Task ProcessarEstornoEstoqueAsync(Venda venda, int usuarioId)
         {
             var dataOperacao = DateTime.UtcNow;
+
+            // Fiado com termo ainda não assinado nunca baixou estoque nem confirmou pagamento.
+            foreach (var pendente in venda.PagamentosVenda.Where(p => p.Status == StatusPagamento.Pendente))
+            {
+                pendente.Status = StatusPagamento.Cancelado;
+                pendente.AtualizadoEm = dataOperacao;
+            }
+
+            if (venda.Status == StatusVenda.Aguardando)
+            {
+                await _assinaturaEletronicaRepository.CancelarPorVendaIdAsync(venda.VendaID, dataOperacao);
+                return;
+            }
 
             var produtoIds = venda.ItensVenda.Select(i => i.ProdutoID).ToList();
             var estoquesDb = await _estoqueRepository.GetByProdutosIdsAsync(produtoIds, venda.ComercioID);
@@ -641,7 +738,7 @@ namespace ninx.Application.Services
             var estornosParaInserir = new List<PagamentoVenda>();
             var pagamentosParaAtualizar = new List<PagamentoVenda>();
 
-            foreach (var pagamento in venda.PagamentosVenda.Where(p => p.Status == StatusPagamento.Pago))
+            foreach (var pagamento in venda.PagamentosVenda.Where(SaldoDevedor.EhPagamentoEfetivo))
             {
                 estornosParaInserir.Add(new PagamentoVenda
                 {
@@ -708,17 +805,18 @@ namespace ninx.Application.Services
         private async Task<decimal> CalcularSaldoDevedorAsync(int clienteId)
         {
             var vendasFiadoCliente = await _vendaRepository.GetVendasFiadoByClienteIDAsync(clienteId);
-            var vendasAtivas = vendasFiadoCliente.Where(v => v.Status == StatusVenda.Aberta).ToList();
+            var vendasAtivas = vendasFiadoCliente.Where(SaldoDevedor.EhVendaEmAberto).ToList();
 
             if (!vendasAtivas.Any())
                 return 0m;
 
+            // As vendas vêm sem os pagamentos carregados; eles são buscados à parte e
+            // agrupados, mas o critério do que conta como pagamento é o da regra única.
             var pagamentosValidos = await _pagamentoVendaRepository.GetByClienteId(clienteId);
 
             var pagamentosPorVenda = pagamentosValidos
-                .Where(p => p.Status == StatusPagamento.Pago)
                 .GroupBy(p => p.VendaID)
-                .ToDictionary(g => g.Key, g => g.Sum(p => p.Valor));
+                .ToDictionary(g => g.Key, g => SaldoDevedor.TotalPago(g));
 
             return vendasAtivas.Sum(venda =>
             {

@@ -40,6 +40,17 @@ namespace ninx.Data.Mappings
                 .IsRequired(false)
                 .HasColumnType("nvarchar(max)");
 
+            // SHA-256 em hexadecimal: sempre 64 caracteres.
+            builder.Property(x => x.HashDocumentoOriginal)
+                .IsRequired(false)
+                .HasMaxLength(64)
+                .IsFixedLength();
+
+            builder.Property(x => x.HashDocumentoAssinado)
+                .IsRequired(false)
+                .HasMaxLength(64)
+                .IsFixedLength();
+
             builder.Property(x => x.CriadoEm)
                 .HasDefaultValueSql("GETUTCDATE()");
 
@@ -72,6 +83,12 @@ namespace ninx.Data.Mappings
 
             builder.HasOne(x => x.Venda)
                 .WithMany(x => x.AssinaturasEletronicas)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Pagamento)
+                .WithMany()
+                .HasForeignKey(x => x.PagamentoID)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

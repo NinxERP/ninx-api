@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ninx.Communication;
 using ninx.Data.Context;
 using ninx.Domain.Entities;

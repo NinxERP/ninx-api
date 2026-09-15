@@ -67,8 +67,7 @@ namespace ninx.Application.Validators.Entidades
                 .Must(ValidarCep).WithMessage("CEP inválido.");
 
             RuleFor(x => x.LimiteCredito)
-                .GreaterThan(0).WithMessage("Limite de crédito deve ser maior que zero.")
-                .When(x => x.LimiteCredito.HasValue);
+                .GreaterThan(0).WithMessage("Limite de crédito deve ser maior que zero.");
 
             RuleFor(x => x.CriadoEm)
                 .LessThanOrEqualTo(DateTime.UtcNow).WithMessage("Data de criação não pode ser futura.");

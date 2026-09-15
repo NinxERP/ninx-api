@@ -3,7 +3,6 @@
     public class ComercioRequest
     {
         public string Nome { get; set; } = null!;
-        public string? Endereco { get; set; }
         public string? EnderecoLogradouro { get; set; }
         public string? EnderecoNumero { get; set; }
         public string? EnderecoComplemento { get; set; }

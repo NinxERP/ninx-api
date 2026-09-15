@@ -61,9 +61,11 @@ namespace ninx.Application.Validators.Request
                 .NotEmpty().WithMessage("CEP é obrigatório.")
                 .Must(ValidarCep).WithMessage("CEP inválido.");
 
+            // Obrigatório: a tela de cadastro preenche com o limite padrão do comércio, e o
+            // usuário pode alterar, mas não deixar em branco.
             RuleFor(x => x.LimiteCredito)
-                .GreaterThan(0).WithMessage("Limite de crédito deve ser maior que zero.")
-                .When(x => x.LimiteCredito.HasValue);
+                .NotNull().WithMessage("Limite de crédito é obrigatório.")
+                .GreaterThan(0).WithMessage("Limite de crédito deve ser maior que zero.");
         }
 
         private static bool EhCpfMascarado(string cpf) =>

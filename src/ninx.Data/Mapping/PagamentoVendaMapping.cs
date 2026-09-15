@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
@@ -32,7 +32,7 @@ public class PagamentoVendaMapping : IEntityTypeConfiguration<PagamentoVenda>
         builder.ToTable(t => 
         {
             t.HasCheckConstraint("CK_PagamentosVenda_FormaPagamento", "[FormaPagamento] IN ('Dinheiro', 'Pix', 'Cartao')");
-            t.HasCheckConstraint("CK_PagamentosVenda_Status", "[Status] IN ('Pago', 'Estornado')");
+            t.HasCheckConstraint("CK_PagamentosVenda_Status", "[Status] IN ('Pago', 'Estornado', 'Pendente', 'Cancelado')");
         });
 
         builder.Property(x => x.CriadoEm)

@@ -15,7 +15,7 @@ namespace ninx.Communication
         public string EnderecoCidade { get; set; } = null!;
         public string EnderecoUF { get; set; } = null!;
         public string EnderecoCEP { get; set; } = null!;
-        public decimal? LimiteCredito { get; set; }
+        public decimal LimiteCredito { get; set; }
         public bool Ativo { get; set; } = true;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public string ComercioNome { get; set; } = null!;

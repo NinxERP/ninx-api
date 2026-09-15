@@ -19,10 +19,6 @@ namespace ninx.Application.Validators.Request
                 .MinimumLength(3).WithMessage("Nome deve ter no mínimo 3 caracteres.")
                 .MaximumLength(150).WithMessage("Nome deve ter no máximo 150 caracteres.");
 
-            RuleFor(x => x.Endereco)
-                .MaximumLength(250).WithMessage("Endereço deve ter no máximo 250 caracteres.")
-                .When(x => !string.IsNullOrEmpty(x.Endereco));
-
             RuleFor(x => x.EnderecoLogradouro)
                 .MaximumLength(200).WithMessage("Logradouro deve ter no máximo 200 caracteres.")
                 .When(x => !string.IsNullOrEmpty(x.EnderecoLogradouro));
@@ -52,7 +48,7 @@ namespace ninx.Application.Validators.Request
                 .When(x => !string.IsNullOrEmpty(x.EnderecoCEP));
 
             RuleFor(x => x.CNPJ)
-                .Must(ValidarCNPJ).WithMessage("CNPJ inválido.")
+                .Must(Cnpj.Valido).WithMessage("CNPJ inválido.")
                 .When(x => !string.IsNullOrEmpty(x.CNPJ));
 
             RuleFor(x => x.AssinaturaResponsavelBase64)
@@ -71,22 +67,6 @@ namespace ninx.Application.Validators.Request
 
             var digitos = new string(cep.Where(char.IsDigit).ToArray());
             return digitos.Length == 8;
-        }
-
-        private bool ValidarCNPJ(string cnpj)
-        {
-            if (string.IsNullOrEmpty(cnpj))
-                return true;
-
-            cnpj = cnpj.Replace(".", "").Replace("/", "").Replace("-", "");
-
-            if (cnpj.Length != 14)
-                return false;
-
-            if (!cnpj.All(char.IsDigit))
-                return false;
-
-            return true;
         }
 
         private bool ValidarBase64(string? base64String)

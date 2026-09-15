@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text;
 using iText.Html2pdf;
+using iText.Kernel.Pdf;
+using iText.Kernel.Utils;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
 using ninx.Domain.Interfaces;
@@ -41,6 +43,23 @@ namespace ninx.Application.Services
             HtmlConverter.ConvertToPdf(input, output);
 
             return Task.FromResult(Convert.ToBase64String(output.ToArray()));
+        }
+
+        public string AnexarPdfBase64(string pdfBase64, string anexoPdfBase64)
+        {
+            using var output = new MemoryStream();
+
+            using (var destino = new PdfDocument(new PdfWriter(output)))
+            {
+                var merger = new PdfMerger(destino);
+                foreach (var origemBase64 in new[] { pdfBase64, anexoPdfBase64 })
+                {
+                    using var origem = new PdfDocument(new PdfReader(new MemoryStream(Convert.FromBase64String(origemBase64))));
+                    merger.Merge(origem, 1, origem.GetNumberOfPages());
+                }
+            }
+
+            return Convert.ToBase64String(output.ToArray());
         }
     }
 }

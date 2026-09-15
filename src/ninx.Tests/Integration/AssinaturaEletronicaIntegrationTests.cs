@@ -98,9 +98,12 @@ namespace ninx.Tests.Integration
             var (_, venda, assinatura) = Seed("confirmar");
             var client = _factory.CreateClient();
 
+            // O servidor anexa a página de certificado ao PDF recebido, então precisa ser um PDF de verdade.
+            var pdfAssinado = await new ninx.Application.Services.DocumentoRendererService(null!).ConverterParaPdfBase64Async("<p>documento assinado</p>");
+
             var confirmar = await client.PostAsJsonAsync(
                 $"/api/AssinaturaEletronica/confirmar/{assinatura.DocumentoGuid}",
-                new ConfirmarAssinaturaEletronicaRequest { ImagemBase64 = "QXNzaW5hdHVyYURlVGVzdGU=" });
+                new ConfirmarAssinaturaEletronicaRequest { ImagemBase64 = pdfAssinado });
 
             confirmar.StatusCode.Should().Be(HttpStatusCode.OK);
 

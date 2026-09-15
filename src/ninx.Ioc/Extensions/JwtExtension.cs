@@ -12,7 +12,18 @@ namespace ninx.Ioc.Extensions
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            var key = Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]);
+            var secret = configuration["Jwt:Secret"];
+            if (string.IsNullOrWhiteSpace(secret))
+                throw new InvalidOperationException(
+                    "Configuração 'Jwt:Secret' ausente. Defina JWT_SECRET no .env ou a variável de ambiente Jwt__Secret.");
+
+            var key = Encoding.UTF8.GetBytes(secret);
+
+            // HMAC-SHA256 exige chave de pelo menos 256 bits; abaixo disso a biblioteca
+            // falharia só na emissão do primeiro token, longe da causa real.
+            if (key.Length < 32)
+                throw new InvalidOperationException(
+                    $"'Jwt:Secret' precisa ter pelo menos 32 bytes para HMAC-SHA256 (atual: {key.Length}).");
 
             services.AddAuthentication(options =>
             {

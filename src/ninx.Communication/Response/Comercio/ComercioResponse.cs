@@ -4,7 +4,6 @@
     {
         public int ComercioID { get; set; }
         public string? NomeComercio { get; set; }
-        public string? Endereco { get; set; }
         public string? EnderecoLogradouro { get; set; }
         public string? EnderecoNumero { get; set; }
         public string? EnderecoComplemento { get; set; }
