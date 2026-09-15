@@ -65,9 +65,10 @@ namespace ninx.Data.Mappings
                 .IsRequired(false)
                 .HasMaxLength(45);
 
+            // Agente de usuário de navegador móvel pode passar de 200 caracteres.
             builder.Property(x => x.DispositivoInfo)
                 .IsRequired(false)
-                .HasMaxLength(200);
+                .HasColumnType("nvarchar(max)");
 
             builder.Property(x => x.Assinado)
                 .HasDefaultValue(false);
@@ -83,7 +84,19 @@ namespace ninx.Data.Mappings
 
             builder.HasOne(x => x.Venda)
                 .WithMany(x => x.AssinaturasEletronicas)
+                .HasForeignKey(x => x.VendaID)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.TermoAbertura)
+                .WithMany()
+                .HasForeignKey(x => x.TermoAberturaID)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Todo documento pertence a exatamente um dono: uma venda ou um termo de abertura.
+            builder.ToTable(t => t.HasCheckConstraint("CK_AssinaturasEletronicas_Dono",
+                "([VendaID] IS NOT NULL AND [TermoAberturaID] IS NULL) OR ([VendaID] IS NULL AND [TermoAberturaID] IS NOT NULL)"));
 
             builder.HasOne(x => x.Pagamento)
                 .WithMany()

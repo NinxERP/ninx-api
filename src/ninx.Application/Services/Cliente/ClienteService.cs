@@ -10,13 +10,18 @@ namespace ninx.Application.Services
     {
         private readonly IClienteRepository _clienteRepository;
         private readonly IVendaRepository _vendaRepository;
+        private readonly IComercioRepository _comercioRepository;
+        private readonly IContaFiadoService _contaFiadoService;
         private readonly IUnitOfWork _unitOfWork;
 
-        public ClienteService(IClienteRepository clienteRepository, IUnitOfWork unitOfWork, IVendaRepository vendaRepository)
+        public ClienteService(IClienteRepository clienteRepository, IUnitOfWork unitOfWork, IVendaRepository vendaRepository,
+            IComercioRepository comercioRepository, IContaFiadoService contaFiadoService)
         {
             _clienteRepository = clienteRepository;
             _unitOfWork = unitOfWork;
             _vendaRepository = vendaRepository;
+            _comercioRepository = comercioRepository;
+            _contaFiadoService = contaFiadoService;
         }
         public async Task<PaginatedResponse<ClienteResponse>> GetAllByComercioId(int comercioId, PaginationRequest request)
         {
@@ -52,11 +57,27 @@ namespace ninx.Application.Services
             var cliente = request.Adapt<Cliente>();
             cliente.ComercioID = comercioId;
             NormalizarDocumentos(cliente);
+            var comercio = await _comercioRepository.GetByIdAsync(comercioId)
+                ?? throw new NotFoundException("Comércio não encontrado.");
 
-            await _clienteRepository.AddAsync(cliente);
-            await _unitOfWork.SaveChangesAsync();
+            // O cadastro já sai com a versão 1 do termo de abertura para o cliente assinar.
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+                await _clienteRepository.AddAsync(cliente);
+                await _unitOfWork.SaveChangesAsync();
+                var guid = await _contaFiadoService.GerarTermoAberturaNaTransacaoAsync(cliente, comercio);
+                await _unitOfWork.CommitAsync();
 
-            return cliente.Adapt<ClienteResponse>();
+                var response = cliente.Adapt<ClienteResponse>();
+                response.DocumentoGuidTermoAbertura = guid;
+                return response;
+            }
+            catch
+            {
+                await _unitOfWork.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<ClienteResponse> AtualizarAsync(int id, int usuarioLogadoId, ClienteRequest request, int comercioId)

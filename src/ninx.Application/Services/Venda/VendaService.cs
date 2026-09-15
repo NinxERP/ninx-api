@@ -25,6 +25,8 @@ namespace ninx.Application.Services
         private readonly IPagamentoVendaRepository _pagamentoVendaRepository;
         private readonly IAssinaturaEletronicaRepository _assinaturaEletronicaRepository;
         private readonly IDocumentoRendererService _documentoRendererService;
+        private readonly ITermoAberturaContaRepository _termoAberturaRepository;
+        private readonly IPessoaAutorizadaRepository _pessoaAutorizadaRepository;
         private readonly ILogger<VendaService> _logger;
         public VendaService(
             IVendaRepository vendaRepository,
@@ -39,8 +41,12 @@ namespace ninx.Application.Services
             IPagamentoVendaRepository pagamentoVendaRepository,
             IAssinaturaEletronicaRepository assinaturaEletronicaRepository,
             IDocumentoRendererService documentoRendererService,
+            ITermoAberturaContaRepository termoAberturaRepository,
+            IPessoaAutorizadaRepository pessoaAutorizadaRepository,
             ILogger<VendaService>? logger = null)
         {
+            _termoAberturaRepository = termoAberturaRepository;
+            _pessoaAutorizadaRepository = pessoaAutorizadaRepository;
             _logger = logger ?? NullLogger<VendaService>.Instance;
             _vendaRepository = vendaRepository;
             _produtoRepository = produtoRepository;
@@ -383,7 +389,7 @@ namespace ninx.Application.Services
 
         public async Task EfetivarDocumentoAssinadoAsync(AssinaturaEletronica assinatura, DateTime dataAssinatura)
         {
-            var venda = await _vendaRepository.GetByIdParaEstornoAsync(assinatura.VendaID)
+            var venda = await _vendaRepository.GetByIdParaEstornoAsync(assinatura.VendaID!.Value)
                 ?? throw new NotFoundException("Venda não encontrada.");
 
             if (venda.Status == StatusVenda.Cancelada || venda.Status == StatusVenda.Estornada)
@@ -459,6 +465,7 @@ namespace ninx.Application.Services
 
                 response.ValorPago = SaldoDevedor.TotalPago(venda.PagamentosVenda);
                 response.SaldoDevedor = SaldoDevedor.DaVenda(venda);
+                response.CompradorNome = venda.PessoaAutorizada?.Nome;
             }
 
             var vendaIds = vendasList.Select(v => v.VendaID).ToList();
@@ -487,6 +494,9 @@ namespace ninx.Application.Services
 
             if (request.TipoVenda != (int)TipoVenda.Normal && request.TipoVenda != (int)TipoVenda.Fiado)
                 throw new BadRequestException("Tipo de venda inválido.");
+
+            if (request.PessoaAutorizadaID.HasValue && request.TipoVenda != (int)TipoVenda.Fiado)
+                throw new BadRequestException("Pessoa autorizada só se aplica a venda fiada.");
         }
         private async Task<(Usuario, Comercio)> ValidarDadosVendaAsync(CriarVendaRequest request)
         {
@@ -521,10 +531,12 @@ namespace ninx.Application.Services
             decimal totalPago = pagamentos.Sum(p => p.Valor);
 
             Guid? identificadorAssinatura = null;
+            TermoAberturaConta? termoAbertura = null;
+            PessoaAutorizada? autorizado = null;
 
             if (ehFiado)
             {
-                identificadorAssinatura = await ValidarEPreparVendaFiadoAsync(
+                (identificadorAssinatura, termoAbertura, autorizado) = await ValidarEPreparVendaFiadoAsync(
                     request, totalVenda, totalPago, dataOperacao);
             }
             else if (totalPago < totalVenda)
@@ -537,6 +549,7 @@ namespace ninx.Application.Services
                 ComercioID = request.ComercioID,
                 UsuarioID = request.UsuarioID,
                 ClienteID = request.ClienteID == 0 ? null : request.ClienteID,
+                PessoaAutorizadaID = autorizado?.PessoaAutorizadaID,
                 Total = totalVenda,
                 TipoVenda = ehFiado ? TipoVenda.Fiado : TipoVenda.Normal,
                 Status = ehFiado ? StatusVenda.Aguardando : StatusVenda.Finalizada,
@@ -545,6 +558,13 @@ namespace ninx.Application.Services
                 PagamentosVenda = pagamentos
             };
 
+            if (ehFiado)
+            {
+                var comercioVenda = await _comercioRepository.GetByIdAsync(request.ComercioID);
+                // ponytail: data em UTC; venda após 21h (horário de Brasília) conta como o dia seguinte.
+                venda.DataVencimento = VencimentoFiado.Calcular(dataOperacao, comercioVenda!.DiaVencimentoFiado);
+            }
+
             await _vendaRepository.AddAsync(venda);
 
             if (ehFiado && identificadorAssinatura.HasValue)
@@ -552,7 +572,7 @@ namespace ninx.Application.Services
                 var cliente = await _clienteRepository.GetByIdAsync(request.ClienteID!.Value);
                 var comercio = await _comercioRepository.GetByIdAsync(request.ComercioID);
 
-                var tokensTermo = DocumentoTokenBuilder.BuildTermoCompromissoTokens(venda, cliente!, comercio!);
+                var tokensTermo = DocumentoTokenBuilder.BuildTermoCompromissoTokens(venda, cliente!, comercio!, autorizado, termoAbertura?.AssinadoEm);
                 var (htmlTermo, pdfTermo) = await RenderizarDocumentoAsync(TipoDocumento.TermoCompromisso, tokensTermo);
 
                 var assinatura = new AssinaturaEletronica
@@ -644,7 +664,7 @@ namespace ninx.Application.Services
                 UsuarioID = request.UsuarioID
             }).ToList() ?? new List<PagamentoVenda>();
         }
-        private async Task<Guid> ValidarEPreparVendaFiadoAsync(
+        private async Task<(Guid Documento, TermoAberturaConta Termo, PessoaAutorizada? Autorizado)> ValidarEPreparVendaFiadoAsync(
             CriarVendaRequest request,
             decimal totalVenda,
             decimal totalPago,
@@ -672,7 +692,27 @@ namespace ninx.Application.Services
                     $"Disponível para esta compra: R$ {limiteDisponivel:N2}");
             }
 
-            return Guid.NewGuid();
+            // O termo de abertura é o que liga à conta do titular as compras feitas nela,
+            // inclusive por pessoas autorizadas.
+            var termo = await _termoAberturaRepository.GetAtivoAsync(cliente.ClienteID)
+                ?? throw new BadRequestException(
+                    "Este cliente ainda não assinou o termo de abertura de conta. Gere o termo na tela de clientes antes de vender fiado.");
+
+            PessoaAutorizada? autorizado = null;
+            if (request.PessoaAutorizadaID.HasValue)
+            {
+                autorizado = await _pessoaAutorizadaRepository.GetDoClienteAsync(request.PessoaAutorizadaID.Value, cliente.ClienteID)
+                    ?? throw new NotFoundException("Pessoa autorizada não encontrada para este cliente.");
+                if (!autorizado.PodeComprar)
+                    throw new BadRequestException(autorizado.RevogadaEm.HasValue
+                        ? $"A autorização de {autorizado.Nome} foi revogada."
+                        : $"{autorizado.Nome} ainda não pode comprar: o titular precisa assinar o termo de abertura que a inclui.");
+                if (autorizado.LimitePorCompra.HasValue && totalVenda > autorizado.LimitePorCompra.Value)
+                    throw new BadRequestException(
+                        $"{autorizado.Nome} pode comprar até R$ {autorizado.LimitePorCompra.Value:N2} por compra. Esta compra é de R$ {totalVenda:N2}.");
+            }
+
+            return (Guid.NewGuid(), termo, autorizado);
         }
         private async Task RollbackTransacaoAsync()
         {

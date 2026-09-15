@@ -15,8 +15,11 @@ namespace ninx.Tests.Services
         private readonly Mock<IClienteRepository> _clienteRepository = new();
         private readonly Mock<IUnitOfWork> _unitOfWork = new();
         private readonly Mock<IVendaRepository> _vendaRepository = new();
+        private readonly Mock<IComercioRepository> _comercioRepository = new();
+        private readonly Mock<IContaFiadoService> _contaFiadoService = new();
 
-        private ClienteService CriarService() => new(_clienteRepository.Object, _unitOfWork.Object, _vendaRepository.Object);
+        private ClienteService CriarService() => new(_clienteRepository.Object, _unitOfWork.Object, _vendaRepository.Object,
+            _comercioRepository.Object, _contaFiadoService.Object);
 
         [Fact]
         public async Task GetByIdAsync_ClienteExistente_DeveRetornarResponse()
@@ -64,7 +67,14 @@ namespace ninx.Tests.Services
                 .ReturnsAsync((Cliente c) => c);
 
             var service = CriarService();
-            await service.CriarAsync(request, comercioId: 1);
+            _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
+            var guidTermo = Guid.NewGuid();
+            _contaFiadoService.Setup(x => x.GerarTermoAberturaNaTransacaoAsync(It.IsAny<Cliente>(), It.IsAny<Comercio>())).ReturnsAsync(guidTermo);
+
+            var response = await service.CriarAsync(request, comercioId: 1);
+
+            response.DocumentoGuidTermoAbertura.Should().Be(guidTermo);
+            _unitOfWork.Verify(x => x.CommitAsync(), Times.Once);
 
             clienteCriado.Should().NotBeNull();
             clienteCriado!.Cpf.Should().Be("12345678909");

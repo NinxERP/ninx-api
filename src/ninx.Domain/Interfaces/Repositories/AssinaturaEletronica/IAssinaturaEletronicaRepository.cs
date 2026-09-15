@@ -12,5 +12,7 @@ namespace ninx.Domain.Interfaces
         Task<bool> ExisteAssinaturaPendenteAsync(int vendaId);
         Task<List<VendaDocumentoResumo>> GetDocumentosPorVendaIdsAsync(IEnumerable<int> vendaIds);
         Task<int> CancelarPorVendaIdAsync(int vendaId, DateTime dataOperacao);
+        Task<int> CancelarPorTermoAberturaIdAsync(int termoAberturaId, DateTime dataOperacao);
+        Task<Dictionary<int, Guid>> GetGuidsPorTermosAberturaAsync(List<int> termoAberturaIds);
     }
 }

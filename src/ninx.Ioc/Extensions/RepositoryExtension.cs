@@ -18,6 +18,8 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IUsuarioComercioRepository, UsuarioComercioRepository>();
             services.AddScoped<IEstoqueRepository, EstoqueRepository>();
             services.AddScoped<IClienteRepository, ClienteRepository>();
+            services.AddScoped<IPessoaAutorizadaRepository, PessoaAutorizadaRepository>();
+            services.AddScoped<ITermoAberturaContaRepository, TermoAberturaContaRepository>();
             services.AddScoped<IVendaRepository, VendaRepository>();
             services.AddScoped<IItemVendaRepository, ItemVendaRepository>();
             services.AddScoped<IMovimentacaoEstoqueRepository, MovimentacaoEstoqueRepository>();

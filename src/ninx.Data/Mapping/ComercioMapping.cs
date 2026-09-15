@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ninx.Domain.Entities;
 
@@ -56,6 +56,11 @@ public class ComercioMapping : IEntityTypeConfiguration<Comercio>
         builder.Property(x => x.LimiteCreditoPadrao)
             .IsRequired(false)
             .HasColumnType("decimal(10,2)");
+
+        builder.Property(x => x.DiaVencimentoFiado)
+            .HasDefaultValue(ninx.Domain.Regras.VencimentoFiado.DiaPadrao);
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_Comercios_DiaVencimentoFiado", "[DiaVencimentoFiado] BETWEEN 1 AND 31"));
 
         builder.HasIndex(x => x.CNPJ)
             .IsUnique();

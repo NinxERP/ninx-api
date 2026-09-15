@@ -49,8 +49,7 @@ namespace ninx.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("DispositivoInfo")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DocumentoAssinadoBase64")
                         .HasColumnType("nvarchar(max)");
@@ -91,21 +90,28 @@ namespace ninx.Data.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasDefaultValue("Ativa");
 
+                    b.Property<int?>("TermoAberturaID")
+                        .HasColumnType("int");
+
                     b.Property<string>("TipoDocumento")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<int>("VendaID")
+                    b.Property<int?>("VendaID")
                         .HasColumnType("int");
 
                     b.HasKey("AssinaturaID");
 
                     b.HasIndex("PagamentoID");
 
+                    b.HasIndex("TermoAberturaID");
+
                     b.HasIndex("VendaID");
 
                     b.ToTable("AssinaturasEletronicas", null, t =>
                         {
+                            t.HasCheckConstraint("CK_AssinaturasEletronicas_Dono", "([VendaID] IS NOT NULL AND [TermoAberturaID] IS NULL) OR ([VendaID] IS NULL AND [TermoAberturaID] IS NOT NULL)");
+
                             t.HasCheckConstraint("CK_AssinaturasEletronicas_Status", "[Status] IN ('Ativa', 'Vencida', 'Cancelada')");
                         });
                 });
@@ -391,6 +397,11 @@ namespace ninx.Data.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
+                    b.Property<int>("DiaVencimentoFiado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(10);
+
                     b.Property<string>("EnderecoBairro")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -433,7 +444,10 @@ namespace ninx.Data.Migrations
                         .IsUnique()
                         .HasFilter("[CNPJ] IS NOT NULL");
 
-                    b.ToTable("Comercios", (string)null);
+                    b.ToTable("Comercios", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Comercios_DiaVencimentoFiado", "[DiaVencimentoFiado] BETWEEN 1 AND 31");
+                        });
                 });
 
             modelBuilder.Entity("ninx.Domain.Entities.DocumentoTemplate", b =>
@@ -797,6 +811,61 @@ namespace ninx.Data.Migrations
                     b.ToTable("Permissoes", (string)null);
                 });
 
+            modelBuilder.Entity("ninx.Domain.Entities.PessoaAutorizada", b =>
+                {
+                    b.Property<int>("PessoaAutorizadaID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PessoaAutorizadaID"));
+
+                    b.Property<DateTime?>("AutorizadaEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ClienteID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Cpf")
+                        .HasMaxLength(11)
+                        .HasColumnType("nvarchar(11)");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<decimal?>("LimitePorCompra")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<bool>("MenorDeIdade")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Parentesco")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)");
+
+                    b.Property<DateTime?>("RevogacaoSolicitadaEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevogadaEm")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PessoaAutorizadaID");
+
+                    b.HasIndex("ClienteID");
+
+                    b.ToTable("PessoasAutorizadas", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PessoasAutorizadas_Parentesco", "[Parentesco] IN ('Conjuge', 'Companheiro', 'Filho', 'Outro')");
+                        });
+                });
+
             modelBuilder.Entity("ninx.Domain.Entities.Produto", b =>
                 {
                     b.Property<int>("ProdutoID")
@@ -942,6 +1011,46 @@ namespace ninx.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ninx.Domain.Entities.TermoAberturaConta", b =>
+                {
+                    b.Property<int>("TermoAberturaID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TermoAberturaID"));
+
+                    b.Property<DateTime?>("AssinadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ClienteID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)");
+
+                    b.Property<int>("Versao")
+                        .HasColumnType("int");
+
+                    b.HasKey("TermoAberturaID");
+
+                    b.HasIndex("ClienteID", "Status");
+
+                    b.HasIndex("ClienteID", "Versao")
+                        .IsUnique();
+
+                    b.ToTable("TermosAberturaConta", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TermosAberturaConta_Status", "[Status] IN ('Aguardando', 'Ativo', 'Substituido', 'Cancelado')");
+                        });
+                });
+
             modelBuilder.Entity("ninx.Domain.Entities.Usuario", b =>
                 {
                     b.Property<int>("UsuarioID")
@@ -1047,6 +1156,12 @@ namespace ninx.Data.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
+                    b.Property<DateTime?>("DataVencimento")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("PessoaAutorizadaID")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1071,6 +1186,8 @@ namespace ninx.Data.Migrations
 
                     b.HasIndex("ComercioID");
 
+                    b.HasIndex("PessoaAutorizadaID");
+
                     b.HasIndex("UsuarioID");
 
                     b.ToTable("Vendas", null, t =>
@@ -1088,13 +1205,19 @@ namespace ninx.Data.Migrations
                         .HasForeignKey("PagamentoID")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("ninx.Domain.Entities.TermoAberturaConta", "TermoAbertura")
+                        .WithMany()
+                        .HasForeignKey("TermoAberturaID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ninx.Domain.Entities.Venda", "Venda")
                         .WithMany("AssinaturasEletronicas")
                         .HasForeignKey("VendaID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Pagamento");
+
+                    b.Navigation("TermoAbertura");
 
                     b.Navigation("Venda");
                 });
@@ -1274,6 +1397,17 @@ namespace ninx.Data.Migrations
                     b.Navigation("Venda");
                 });
 
+            modelBuilder.Entity("ninx.Domain.Entities.PessoaAutorizada", b =>
+                {
+                    b.HasOne("ninx.Domain.Entities.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cliente");
+                });
+
             modelBuilder.Entity("ninx.Domain.Entities.Produto", b =>
                 {
                     b.HasOne("ninx.Domain.Entities.CategoriaProduto", "Categoria")
@@ -1311,6 +1445,17 @@ namespace ninx.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Comercio");
+                });
+
+            modelBuilder.Entity("ninx.Domain.Entities.TermoAberturaConta", b =>
+                {
+                    b.HasOne("ninx.Domain.Entities.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cliente");
                 });
 
             modelBuilder.Entity("ninx.Domain.Entities.UsuarioComercio", b =>
@@ -1353,6 +1498,11 @@ namespace ninx.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ninx.Domain.Entities.PessoaAutorizada", "PessoaAutorizada")
+                        .WithMany()
+                        .HasForeignKey("PessoaAutorizadaID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ninx.Domain.Entities.Usuario", "Usuario")
                         .WithMany("Vendas")
                         .HasForeignKey("UsuarioID")
@@ -1362,6 +1512,8 @@ namespace ninx.Data.Migrations
                     b.Navigation("Cliente");
 
                     b.Navigation("Comercio");
+
+                    b.Navigation("PessoaAutorizada");
 
                     b.Navigation("Usuario");
                 });

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ninx.Domain.Entities;
 
 namespace ninx.Data.Context
@@ -18,6 +18,8 @@ namespace ninx.Data.Context
         public DbSet<Comercio> Comercio { get; set; }
         public DbSet<CategoriaProduto> CategoriaProduto { get; set; }
         public DbSet<Cliente> Clientes { get; set; }
+        public DbSet<PessoaAutorizada> PessoasAutorizadas { get; set; }
+        public DbSet<TermoAberturaConta> TermosAberturaConta { get; set; }
         public DbSet<DocumentoTemplate> DocumentosTemplate { get; set; }
         public DbSet<Estoque> Estoques { get; set; }
         public DbSet<ItemVenda> ItemVendas { get; set; }

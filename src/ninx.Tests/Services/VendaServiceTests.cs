@@ -30,6 +30,15 @@ namespace ninx.Tests.Services
         private readonly Mock<IPagamentoVendaRepository> _pagamentoVendaRepository = new();
         private readonly Mock<IAssinaturaEletronicaRepository> _assinaturaEletronicaRepository = new();
         private readonly Mock<IDocumentoRendererService> _documentoRendererService = new();
+        private readonly Mock<ITermoAberturaContaRepository> _termoAberturaRepository = new();
+        private readonly Mock<IPessoaAutorizadaRepository> _pessoaAutorizadaRepository = new();
+
+        public VendaServiceTests()
+        {
+            // Por padrão, todo cliente tem termo de abertura assinado; os testes da regra do termo sobrescrevem.
+            _termoAberturaRepository.Setup(x => x.GetAtivoAsync(It.IsAny<int>()))
+                .ReturnsAsync((int clienteId) => new TermoAberturaConta { TermoAberturaID = 1, ClienteID = clienteId, Status = StatusTermoAbertura.Ativo, AssinadoEm = new DateTime(2026, 9, 1) });
+        }
 
         private VendaService CriarService() => new(
             _vendaRepository.Object,
@@ -43,7 +52,9 @@ namespace ninx.Tests.Services
             _clienteRepository.Object,
             _pagamentoVendaRepository.Object,
             _assinaturaEletronicaRepository.Object,
-            _documentoRendererService.Object);
+            _documentoRendererService.Object,
+            _termoAberturaRepository.Object,
+            _pessoaAutorizadaRepository.Object);
 
         private void PrepararRenderizacaoDocumento()
         {
@@ -299,6 +310,8 @@ namespace ninx.Tests.Services
             var response = await service.CriarAsync(request);
 
             response.Documentos.Should().ContainSingle(d => !d.Assinado);
+            _vendaRepository.Verify(x => x.AddAsync(It.Is<Venda>(v =>
+                v.DataVencimento != null && v.DataVencimento.Value.Day == ninx.Domain.Regras.VencimentoFiado.DiaPadrao)), Times.Once);
             // Fiado só baixa estoque quando o termo for assinado.
             _estoqueRepository.Verify(x => x.UpdateBatchAsync(It.Is<IEnumerable<Estoque>>(e => e.Any())), Times.Never);
             _movimentacaoEstoqueRepository.Verify(x => x.AddBatchAsync(It.Is<IEnumerable<MovimentacaoEstoque>>(m => m.Any())), Times.Never);
@@ -639,6 +652,109 @@ namespace ninx.Tests.Services
             entrada.Status.Should().Be(StatusPagamento.Cancelado);
             _estoqueRepository.Verify(x => x.UpdateBatchAsync(It.IsAny<IEnumerable<Estoque>>()), Times.Never);
             _pagamentoVendaRepository.Verify(x => x.AddBatchAsync(It.IsAny<IEnumerable<PagamentoVenda>>()), Times.Never);
+        }
+            // ---------- Conta de fiado: termo de abertura e pessoa autorizada ----------
+
+        private CriarVendaRequest PrepararVendaFiado(decimal precoProduto = 10m, int quantidade = 2)
+        {
+            var request = RequestVendaNormalValida();
+            request.TipoVenda = (int)TipoVenda.Fiado;
+            request.ClienteID = 1;
+            request.ItensVenda = new List<ItemVendaRequest> { new() { ProdutoID = 1, Quantidade = quantidade } };
+            request.Pagamentos = new List<PagamentoVendaRequest>();
+
+            _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
+            _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
+                .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1, precoVenda: precoProduto) });
+            _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
+                .ReturnsAsync(new List<Estoque> { Builders.NovoEstoque(1, 1, quantidade: 500) });
+            _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCliente(1, 1, limiteCredito: 1000m));
+            _vendaRepository.Setup(x => x.GetVendasFiadoByClienteIDAsync(1)).ReturnsAsync(new List<Venda>());
+            PrepararRenderizacaoDocumento();
+            return request;
+        }
+
+        [Fact]
+        public async Task CriarAsync_FiadoSemTermoDeAbertura_DeveLancarBadRequest()
+        {
+            var request = PrepararVendaFiado();
+            _termoAberturaRepository.Setup(x => x.GetAtivoAsync(1)).ReturnsAsync((TermoAberturaConta?)null);
+
+            var act = async () => await CriarService().CriarAsync(request);
+
+            (await act.Should().ThrowAsync<BadRequestException>()).WithMessage("*termo de abertura*");
+        }
+
+        [Fact]
+        public async Task CriarAsync_FiadoPorPessoaAutorizada_DeveGravarQuemComprouEUsarClausulaDoAutorizado()
+        {
+            var request = PrepararVendaFiado();
+            request.PessoaAutorizadaID = 7;
+            _pessoaAutorizadaRepository.Setup(x => x.GetDoClienteAsync(7, 1)).ReturnsAsync(new PessoaAutorizada
+            {
+                PessoaAutorizadaID = 7, ClienteID = 1, Nome = "Maria da Silva", Parentesco = ParentescoAutorizado.Conjuge,
+                AutorizadaEm = new DateTime(2026, 9, 1)
+            });
+            Dictionary<string, string>? tokens = null;
+            _documentoRendererService
+                .Setup(x => x.RenderizarHtmlAsync(TipoDocumento.TermoCompromisso, It.IsAny<Dictionary<string, string>>()))
+                .Callback<TipoDocumento, Dictionary<string, string>>((_, t) => tokens = t)
+                .ReturnsAsync("<html></html>");
+
+            await CriarService().CriarAsync(request);
+
+            _vendaRepository.Verify(x => x.AddAsync(It.Is<Venda>(v => v.PessoaAutorizadaID == 7)), Times.Once);
+            tokens.Should().NotBeNull();
+            tokens!["Assinatura.Nome"].Should().Be("Maria da Silva");
+            tokens["Html.ClausulaReconhecimento"].Should().Contain("pessoa autorizada").And.Contain("01/09/2026");
+        }
+
+        [Fact]
+        public async Task CriarAsync_PessoaAutorizadaAcimaDoLimitePorCompra_DeveLancarBadRequest()
+        {
+            var request = PrepararVendaFiado(precoProduto: 10m, quantidade: 5); // R$ 50
+            request.PessoaAutorizadaID = 7;
+            _pessoaAutorizadaRepository.Setup(x => x.GetDoClienteAsync(7, 1)).ReturnsAsync(new PessoaAutorizada
+            {
+                PessoaAutorizadaID = 7, ClienteID = 1, Nome = "João", Parentesco = ParentescoAutorizado.Filho,
+                LimitePorCompra = 30m, AutorizadaEm = new DateTime(2026, 9, 1)
+            });
+
+            var act = async () => await CriarService().CriarAsync(request);
+
+            (await act.Should().ThrowAsync<BadRequestException>()).WithMessage("*até R$ 30,00*");
+        }
+
+        [Theory]
+        [InlineData(false, true)]  // incluída, mas termo que a lista ainda não foi assinado
+        [InlineData(true, true)]   // autorizada e depois revogada
+        public async Task CriarAsync_PessoaQueNaoPodeComprar_DeveLancarBadRequest(bool autorizada, bool revogada)
+        {
+            var request = PrepararVendaFiado();
+            request.PessoaAutorizadaID = 7;
+            _pessoaAutorizadaRepository.Setup(x => x.GetDoClienteAsync(7, 1)).ReturnsAsync(new PessoaAutorizada
+            {
+                PessoaAutorizadaID = 7, ClienteID = 1, Nome = "João", Parentesco = ParentescoAutorizado.Filho,
+                AutorizadaEm = autorizada ? new DateTime(2026, 9, 1) : null,
+                RevogadaEm = revogada && autorizada ? new DateTime(2026, 9, 10) : null
+            });
+
+            var act = async () => await CriarService().CriarAsync(request);
+
+            await act.Should().ThrowAsync<BadRequestException>();
+        }
+
+        [Fact]
+        public async Task CriarAsync_VendaNormalComPessoaAutorizada_DeveLancarBadRequest()
+        {
+            var request = RequestVendaNormalValida();
+            request.PessoaAutorizadaID = 7;
+
+            var act = async () => await CriarService().CriarAsync(request);
+
+            await act.Should().ThrowAsync<BadRequestException>();
         }
     }
 }

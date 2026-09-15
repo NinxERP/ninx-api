@@ -57,7 +57,7 @@ namespace ninx.Data.Migrations
                 value: TemplateReciboQuitacaoGlobalAntigo);
         }
 
-        private const string EstiloComumNovo = """
+        internal const string EstiloComumNovo = """
             @page { size: A4; margin: 35px 45px; }
             body { font-family: Helvetica, Arial, sans-serif; color: #1E293B; font-size: 10pt; }
             h1 { font-size: 20pt; color: #0D1B2A; margin: 0 0 4px 0; }
@@ -81,7 +81,7 @@ namespace ninx.Data.Migrations
             .bloco-assinatura { margin-top: 8px; }
             """;
 
-        private const string TemplateTermoCompromissoNovo = """
+        internal const string TemplateTermoCompromissoNovo = """
             <!DOCTYPE html>
             <html><head><meta charset="utf-8" /><style>
             """ + EstiloComumNovo + """
@@ -131,7 +131,7 @@ namespace ninx.Data.Migrations
             </body></html>
             """;
 
-        private const string TemplateReciboPagamentoParcialNovo = """
+        internal const string TemplateReciboPagamentoParcialNovo = """
             <!DOCTYPE html>
             <html><head><meta charset="utf-8" /><style>
             """ + EstiloComumNovo + """
@@ -183,7 +183,7 @@ namespace ninx.Data.Migrations
             </body></html>
             """;
 
-        private const string TemplateReciboQuitacaoGlobalNovo = """
+        internal const string TemplateReciboQuitacaoGlobalNovo = """
             <!DOCTYPE html>
             <html><head><meta charset="utf-8" /><style>
             """ + EstiloComumNovo + """

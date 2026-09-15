@@ -27,6 +27,9 @@ namespace ninx.Application.Validators.Entidades
                 .GreaterThan(0).WithMessage("Limite de crédito padrão deve ser maior que zero.")
                 .When(x => x.LimiteCreditoPadrao.HasValue);
 
+            RuleFor(x => x.DiaVencimentoFiado)
+                .InclusiveBetween(1, 31).WithMessage("Dia de vencimento do fiado deve estar entre 1 e 31.");
+
             RuleFor(x => x.CriadoEm)
                 .LessThanOrEqualTo(DateTime.UtcNow).WithMessage("Data de criação não pode ser futura.");
 

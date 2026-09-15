@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
@@ -41,6 +41,10 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
         builder.Property(x => x.AtualizadoEm)
             .IsRequired(false);
 
+        builder.Property(x => x.DataVencimento)
+            .IsRequired(false)
+            .HasColumnType("date");
+
         builder.HasOne(x => x.Comercio)
             .WithMany(x => x.Vendas)
             .HasForeignKey(x => x.ComercioID)
@@ -54,6 +58,12 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
         builder.HasOne(x => x.Cliente)
             .WithMany()
             .HasForeignKey(x => x.ClienteID)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.PessoaAutorizada)
+            .WithMany()
+            .HasForeignKey(x => x.PessoaAutorizadaID)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }

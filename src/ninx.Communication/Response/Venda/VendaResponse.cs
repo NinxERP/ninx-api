@@ -12,5 +12,8 @@
         public List<DocumentoAssinaturaResponse> Documentos { get; set; } = new List<DocumentoAssinaturaResponse>();
         public decimal ValorPago { get; set; }
         public decimal SaldoDevedor { get; set; }
+
+        /// <summary>Pessoa autorizada que fez a compra; nulo quando foi o titular.</summary>
+        public string? CompradorNome { get; set; }
     }
 }
