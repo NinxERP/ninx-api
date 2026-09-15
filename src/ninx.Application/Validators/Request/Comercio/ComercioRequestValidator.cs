@@ -58,6 +58,9 @@ namespace ninx.Application.Validators.Request
             RuleFor(x => x.LimiteCreditoPadrao)
                 .GreaterThan(0).WithMessage("Limite de crédito padrão deve ser maior que zero.")
                 .When(x => x.LimiteCreditoPadrao.HasValue);
+
+            RuleFor(x => x.DiaVencimentoFiado)
+                .InclusiveBetween(1, 31).WithMessage("Dia de vencimento do fiado deve estar entre 1 e 31.");
         }
 
         private static bool ValidarCep(string cep)

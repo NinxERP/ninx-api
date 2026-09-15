@@ -299,6 +299,8 @@ namespace ninx.Tests.Services
             var response = await service.CriarAsync(request);
 
             response.Documentos.Should().ContainSingle(d => !d.Assinado);
+            _vendaRepository.Verify(x => x.AddAsync(It.Is<Venda>(v =>
+                v.DataVencimento != null && v.DataVencimento.Value.Day == ninx.Domain.Regras.VencimentoFiado.DiaPadrao)), Times.Once);
             // Fiado só baixa estoque quando o termo for assinado.
             _estoqueRepository.Verify(x => x.UpdateBatchAsync(It.Is<IEnumerable<Estoque>>(e => e.Any())), Times.Never);
             _movimentacaoEstoqueRepository.Verify(x => x.AddBatchAsync(It.Is<IEnumerable<MovimentacaoEstoque>>(m => m.Any())), Times.Never);

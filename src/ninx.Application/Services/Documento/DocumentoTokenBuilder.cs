@@ -22,6 +22,7 @@ namespace ninx.Application.Services
             tokens["Venda.Total"] = $"R$ {venda.Total:N2}";
             tokens["Venda.ValorPago"] = $"R$ {totalPago:N2}";
             tokens["Venda.SaldoDevedor"] = $"R$ {saldoDevedor:N2}";
+            tokens["Venda.DataVencimento"] = venda.DataVencimento?.ToString("dd/MM/yyyy") ?? "Não definida";
             return tokens;
         }
 

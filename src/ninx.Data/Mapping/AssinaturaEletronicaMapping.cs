@@ -65,9 +65,10 @@ namespace ninx.Data.Mappings
                 .IsRequired(false)
                 .HasMaxLength(45);
 
+            // Agente de usuário de navegador móvel pode passar de 200 caracteres.
             builder.Property(x => x.DispositivoInfo)
                 .IsRequired(false)
-                .HasMaxLength(200);
+                .HasColumnType("nvarchar(max)");
 
             builder.Property(x => x.Assinado)
                 .HasDefaultValue(false);

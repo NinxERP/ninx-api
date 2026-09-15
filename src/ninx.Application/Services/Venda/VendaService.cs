@@ -545,6 +545,13 @@ namespace ninx.Application.Services
                 PagamentosVenda = pagamentos
             };
 
+            if (ehFiado)
+            {
+                var comercioVenda = await _comercioRepository.GetByIdAsync(request.ComercioID);
+                // ponytail: data em UTC; venda após 21h (horário de Brasília) conta como o dia seguinte.
+                venda.DataVencimento = VencimentoFiado.Calcular(dataOperacao, comercioVenda!.DiaVencimentoFiado);
+            }
+
             await _vendaRepository.AddAsync(venda);
 
             if (ehFiado && identificadorAssinatura.HasValue)

@@ -1,4 +1,4 @@
-﻿namespace ninx.Communication
+namespace ninx.Communication
 {
     public class ComercioRequest
     {
@@ -13,5 +13,6 @@
         public string? CNPJ { get; set; }
         public string? AssinaturaResponsavelBase64 { get; set; }
         public decimal? LimiteCreditoPadrao { get; set; }
+        public int DiaVencimentoFiado { get; set; } = 10;
     }
 }

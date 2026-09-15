@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
@@ -40,6 +40,10 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
 
         builder.Property(x => x.AtualizadoEm)
             .IsRequired(false);
+
+        builder.Property(x => x.DataVencimento)
+            .IsRequired(false)
+            .HasColumnType("date");
 
         builder.HasOne(x => x.Comercio)
             .WithMany(x => x.Vendas)

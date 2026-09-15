@@ -1,4 +1,4 @@
-﻿using ninx.Domain.Enums;
+using ninx.Domain.Enums;
 
 namespace ninx.Domain.Entities
 {
@@ -12,6 +12,9 @@ namespace ninx.Domain.Entities
         public StatusVenda Status { get; set; } = StatusVenda.Aguardando;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
+
+        /// <summary>Só em venda fiada. Calculada na criação, para não mudar se o comércio alterar o dia depois.</summary>
+        public DateTime? DataVencimento { get; set; }
         public TipoVenda TipoVenda { get; set; }
         public Comercio Comercio { get; set; } = null!;
         public Usuario Usuario { get; set; } = null!;

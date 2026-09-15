@@ -1,4 +1,4 @@
-﻿namespace ninx.Domain.Entities
+namespace ninx.Domain.Entities
 {
     public class Comercio
     {
@@ -14,6 +14,9 @@
         public string? CNPJ { get; set; }
         public string? AssinaturaResponsavelBase64 { get; set; }
         public decimal? LimiteCreditoPadrao { get; set; }
+
+        /// <summary>Dia do mês (1 a 31) em que vencem as vendas fiadas. Ver <c>VencimentoFiado</c>.</summary>
+        public int DiaVencimentoFiado { get; set; } = Regras.VencimentoFiado.DiaPadrao;
         public bool Ativo { get; set; } = true;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AtualizadoEm { get; set; }
