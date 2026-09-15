@@ -4,6 +4,7 @@ namespace ninx.Domain.Enums
     {
         TermoCompromisso = 1,
         ReciboPagamentoParcial = 2,
-        ReciboQuitacaoGlobal = 3
+        ReciboQuitacaoGlobal = 3,
+        TermoAberturaConta = 4
     }
 }

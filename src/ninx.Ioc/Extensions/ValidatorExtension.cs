@@ -21,6 +21,7 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IValidator<SolicitarRedefinicaoSenhaRequest>, SolicitarRedefinicaoSenhaRequestValidator>();
             services.AddScoped<IValidator<ConfirmarRedefinicaoSenhaRequest>, ConfirmarRedefinicaoSenhaRequestValidator>();
             services.AddScoped<IValidator<ClienteRequest>, ClienteRequestValidator>();
+            services.AddScoped<IValidator<PessoaAutorizadaRequest>, PessoaAutorizadaRequestValidator>();
             services.AddScoped<IValidator<ComercioRequest>, ComercioRequestValidator>();
             services.AddScoped<IValidator<CriarProdutoRequest>, CriarProdutoRequestValidator>();
             services.AddScoped<IValidator<AtualizarProdutoRequest>, AtualizarProdutoRequestValidator>();

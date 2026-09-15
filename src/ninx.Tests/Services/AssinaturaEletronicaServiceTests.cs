@@ -17,6 +17,7 @@ namespace ninx.Tests.Services
         private readonly Mock<IVendaRepository> _vendaRepository = new();
         private readonly Mock<IDocumentoRendererService> _documentoRendererService = new();
         private readonly Mock<IVendaService> _vendaService = new();
+        private readonly Mock<IContaFiadoService> _contaFiadoService = new();
 
         // A confirmação recebe o PDF assinado em base64 (validado pelo request validator).
         private static readonly string DocumentoAssinadoBase64 = Convert.ToBase64String("%PDF-1.7 documento assinado"u8.ToArray());
@@ -26,7 +27,8 @@ namespace ninx.Tests.Services
             _unitOfWork.Object,
             _vendaRepository.Object,
             _documentoRendererService.Object,
-            _vendaService.Object);
+            _vendaService.Object,
+            _contaFiadoService.Object);
 
         [Fact]
         public async Task ConfirmarAssinaturaAsync_DocumentoInexistente_DeveLancarNotFound()
@@ -129,6 +131,24 @@ namespace ninx.Tests.Services
             assinatura2.Assinado.Should().BeTrue();
             assinatura1.HashDocumentoAssinado.Should().NotBeNull().And.Be(assinatura2.HashDocumentoAssinado);
             _assinaturaRepository.Verify(x => x.UpdateAsync(It.IsAny<AssinaturaEletronica>()), Times.Exactly(2));
+        }
+
+        [Fact]
+        public async Task ConfirmarAssinaturaAsync_TermoDeAbertura_DeveEfetivarPelaContaDeFiado()
+        {
+            var assinatura = Builders.NovaAssinatura(tipoDocumento: TipoDocumento.TermoAberturaConta);
+            assinatura.VendaID = null;
+            assinatura.TermoAberturaID = 5;
+            _assinaturaRepository.Setup(x => x.GetAllByGuidAsync(It.IsAny<Guid>()))
+                .ReturnsAsync(new List<AssinaturaEletronica> { assinatura });
+            _documentoRendererService.Setup(x => x.ConverterParaPdfBase64Async(It.IsAny<string>())).ReturnsAsync("pdf");
+            _documentoRendererService.Setup(x => x.AnexarPdfBase64(DocumentoAssinadoBase64, "pdf")).Returns("assinado+certificado");
+
+            await CriarService().ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, DocumentoAssinadoBase64, "1.1.1.1", "device");
+
+            _contaFiadoService.Verify(x => x.EfetivarTermoAssinadoAsync(assinatura, It.IsAny<DateTime>()), Times.Once);
+            _vendaService.Verify(x => x.EfetivarDocumentoAssinadoAsync(It.IsAny<AssinaturaEletronica>(), It.IsAny<DateTime>()), Times.Never);
+            assinatura.Assinado.Should().BeTrue();
         }
 
         [Fact]

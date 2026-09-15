@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ninx.Data.Context;
 
@@ -11,9 +12,11 @@ using ninx.Data.Context;
 namespace ninx.Data.Migrations
 {
     [DbContext(typeof(NinxDB))]
-    partial class NinxDBModelSnapshot : ModelSnapshot
+    [Migration("20260915211357_ContaFiadoTermoAberturaAutorizados")]
+    partial class ContaFiadoTermoAberturaAutorizados
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -850,9 +853,6 @@ namespace ninx.Data.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)");
 
-                    b.Property<DateTime?>("RevogacaoSolicitadaEm")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime?>("RevogadaEm")
                         .HasColumnType("datetime2");
 
@@ -1035,15 +1035,9 @@ namespace ninx.Data.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)");
 
-                    b.Property<int>("Versao")
-                        .HasColumnType("int");
-
                     b.HasKey("TermoAberturaID");
 
                     b.HasIndex("ClienteID", "Status");
-
-                    b.HasIndex("ClienteID", "Versao")
-                        .IsUnique();
 
                     b.ToTable("TermosAberturaConta", null, t =>
                         {

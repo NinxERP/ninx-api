@@ -26,10 +26,10 @@ namespace ninx.Infra.Repository
         {
             return await _context.AssinaturaEletronica
                 .AsNoTracking()
-                .Where(a => vendaIds.Contains(a.VendaID) && a.DocumentoGuid != Guid.Empty)
+                .Where(a => a.VendaID != null && vendaIds.Contains(a.VendaID.Value) && a.DocumentoGuid != Guid.Empty)
                 .Select(a => new VendaDocumentoResumo
                 {
-                    VendaID = a.VendaID,
+                    VendaID = a.VendaID!.Value,
                     DocumentoGuid = a.DocumentoGuid,
                     Assinado = a.Assinado
                 })
@@ -43,6 +43,23 @@ namespace ninx.Infra.Repository
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(a => a.Status, StatusAssinatura.Cancelada)
                     .SetProperty(a => a.AtualizadoEm, dataOperacao));
+        }
+
+        public async Task<int> CancelarPorTermoAberturaIdAsync(int termoAberturaId, DateTime dataOperacao)
+        {
+            return await _context.AssinaturaEletronica
+                .Where(a => a.TermoAberturaID == termoAberturaId && a.Status != StatusAssinatura.Cancelada)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(a => a.Status, StatusAssinatura.Cancelada)
+                    .SetProperty(a => a.AtualizadoEm, dataOperacao));
+        }
+
+        public async Task<Dictionary<int, Guid>> GetGuidsPorTermosAberturaAsync(List<int> termoAberturaIds)
+        {
+            return await _context.AssinaturaEletronica
+                .AsNoTracking()
+                .Where(a => a.TermoAberturaID != null && termoAberturaIds.Contains(a.TermoAberturaID.Value))
+                .ToDictionaryAsync(a => a.TermoAberturaID!.Value, a => a.DocumentoGuid);
         }
 
         public async Task<AssinaturaEletronica?> GetByGuidAsync(Guid guid)
@@ -72,6 +89,8 @@ namespace ninx.Infra.Repository
                         .ThenInclude(v => v.Comercio)
                     .Include(a => a.Venda) 
                         .ThenInclude(v => v.ItensVenda)
+                    .Include(a => a.TermoAbertura)
+                        .ThenInclude(t => t!.Cliente)
                     .FirstOrDefaultAsync(a => a.DocumentoGuid == guid);
         }
 

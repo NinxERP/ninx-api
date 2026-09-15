@@ -17,10 +17,78 @@ namespace ninx.Api.Controllers
     public class ClienteController : NinxControllerBase
     {
         private readonly IClienteService _clienteService;
+        private readonly IContaFiadoService _contaFiadoService;
 
-        public ClienteController(IClienteService clienteService)
+        public ClienteController(IClienteService clienteService, IContaFiadoService contaFiadoService)
         {
             _clienteService = clienteService;
+            _contaFiadoService = contaFiadoService;
+        }
+
+        /// <summary>
+        /// Situação da conta de fiado: termo de abertura e pessoas autorizadas.
+        /// </summary>
+        /// <param name="id">Identificador do cliente.</param>
+        /// <response code="200">Situação da conta retornada com sucesso.</response>
+        /// <response code="404">Cliente não encontrado no comércio autenticado.</response>
+        [HttpGet("{id}/conta-fiado")]
+        [SwaggerOperation(Summary = "Obter conta de fiado", Description = "Retorna se o cliente tem termo de abertura assinado e a lista de pessoas autorizadas.")]
+        [ProducesResponseType(typeof(ContaFiadoResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ObterContaFiado(int id)
+        {
+            return Ok(await _contaFiadoService.ObterAsync(id, GetComercioId()));
+        }
+
+        /// <summary>
+        /// Inclui uma pessoa autorizada a comprar fiado na conta do cliente.
+        /// </summary>
+        /// <remarks>A pessoa só pode comprar depois que o titular assinar um termo de abertura que a inclua.</remarks>
+        /// <param name="id">Identificador do cliente.</param>
+        /// <param name="request">Dados da pessoa autorizada.</param>
+        /// <response code="200">Pessoa incluída, aguardando o termo de abertura.</response>
+        /// <response code="400">Dados inválidos.</response>
+        [HttpPost("{id}/autorizados")]
+        [SwaggerOperation(Summary = "Incluir pessoa autorizada", Description = "Inclui uma pessoa autorizada; ela passa a poder comprar após a assinatura de novo termo de abertura.")]
+        [ProducesResponseType(typeof(PessoaAutorizadaResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> AdicionarAutorizado(int id, [FromBody] PessoaAutorizadaRequest request)
+        {
+            return Ok(await _contaFiadoService.AdicionarAutorizadoAsync(id, request, GetComercioId()));
+        }
+
+        /// <summary>
+        /// Revoga a autorização de uma pessoa.
+        /// </summary>
+        /// <remarks>Vale imediatamente e só para compras posteriores.</remarks>
+        /// <param name="id">Identificador do cliente.</param>
+        /// <param name="autorizadoId">Identificador da pessoa autorizada.</param>
+        /// <response code="204">Autorização revogada.</response>
+        /// <response code="404">Cliente ou pessoa não encontrados.</response>
+        [HttpDelete("{id}/autorizados/{autorizadoId}")]
+        [SwaggerOperation(Summary = "Revogar pessoa autorizada", Description = "Revoga a autorização; compras anteriores continuam válidas.")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> RevogarAutorizado(int id, int autorizadoId)
+        {
+            await _contaFiadoService.RevogarAutorizadoAsync(id, autorizadoId, GetComercioId());
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Gera o termo de abertura de conta para o titular assinar.
+        /// </summary>
+        /// <remarks>Um termo anterior ainda não assinado é cancelado.</remarks>
+        /// <param name="id">Identificador do cliente.</param>
+        /// <response code="200">Termo gerado; retorna o identificador do documento para assinatura.</response>
+        /// <response code="404">Cliente não encontrado no comércio autenticado.</response>
+        [HttpPost("{id}/termo-abertura")]
+        [SwaggerOperation(Summary = "Gerar termo de abertura", Description = "Gera o termo de abertura de conta com as pessoas autorizadas atuais.")]
+        [ProducesResponseType(typeof(TermoAberturaGeradoResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GerarTermoAbertura(int id)
+        {
+            return Ok(await _contaFiadoService.GerarTermoAberturaAsync(id, GetComercioId()));
         }
 
         /// <summary>

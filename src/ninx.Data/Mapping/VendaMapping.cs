@@ -60,5 +60,11 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
             .HasForeignKey(x => x.ClienteID)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.PessoaAutorizada)
+            .WithMany()
+            .HasForeignKey(x => x.PessoaAutorizadaID)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

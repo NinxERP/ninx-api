@@ -13,18 +13,21 @@ namespace ninx.Application.Services
         private readonly IVendaRepository _vendaRepository;
         private readonly IDocumentoRendererService _documentoRendererService;
         private readonly IVendaService _vendaService;
+        private readonly IContaFiadoService _contaFiadoService;
         public AssinaturaEletronicaService
             (IAssinaturaEletronicaRepository assinaturaEletronicaRepository,
             IUnitOfWork unitOfWork,
             IVendaRepository vendaRepository,
             IDocumentoRendererService documentoRendererService,
-            IVendaService vendaService)
+            IVendaService vendaService,
+            IContaFiadoService contaFiadoService)
         {
             _assinaturaEletronicaRepository = assinaturaEletronicaRepository;
             _unitOfWork = unitOfWork;
             _vendaRepository = vendaRepository;
             _documentoRendererService = documentoRendererService;
             _vendaService = vendaService;
+            _contaFiadoService = contaFiadoService;
         }
  
         public async Task<IEnumerable<AssinaturaEletronicaResponse>> GetAll()
@@ -99,8 +102,12 @@ namespace ninx.Application.Services
             // abate várias vendas de uma vez) — todos os registros precisam ser assinados juntos, não só o primeiro.
             foreach (var assinatura in assinaturas)
             {
-                // Só aqui a venda fiada baixa estoque e o pagamento passa a contar no saldo.
-                await _vendaService.EfetivarDocumentoAssinadoAsync(assinatura, dataAssinatura);
+                // Só aqui a venda fiada baixa estoque e o pagamento passa a contar no saldo;
+                // no termo de abertura, é aqui que a conta passa a aceitar fiado.
+                if (assinatura.TermoAberturaID.HasValue)
+                    await _contaFiadoService.EfetivarTermoAssinadoAsync(assinatura, dataAssinatura);
+                else
+                    await _vendaService.EfetivarDocumentoAssinadoAsync(assinatura, dataAssinatura);
 
                 // ImagemAssinatura guarda o PDF exatamente como recebido: é sobre ele que o hash foi calculado.
                 assinatura.ImagemAssinatura = imagemBase64;
@@ -127,7 +134,8 @@ namespace ninx.Application.Services
         public async Task<AssinaturaEletronicaResponse> ObterDocumentoAssinadoAsync(Guid guid, int comercioId)
         {
             var assinatura = await _assinaturaEletronicaRepository.GetClienteLojaAssinaturaByGuidAsync(guid);
-            if (assinatura == null || assinatura.Venda.ComercioID != comercioId)
+            var comercioDoDocumento = assinatura?.Venda?.ComercioID ?? assinatura?.TermoAbertura?.Cliente.ComercioID;
+            if (assinatura == null || comercioDoDocumento != comercioId)
                 throw new NotFoundException("Documento não encontrado.");
 
             return assinatura.Adapt<AssinaturaEletronicaResponse>();

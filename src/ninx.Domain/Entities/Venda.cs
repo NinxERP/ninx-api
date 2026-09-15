@@ -8,6 +8,9 @@ namespace ninx.Domain.Entities
         public int ComercioID { get; set; }
         public int UsuarioID { get; set; }
         public int? ClienteID { get; set; }
+
+        /// <summary>Quem comprou em nome do titular; nulo quando foi o próprio titular.</summary>
+        public int? PessoaAutorizadaID { get; set; }
         public decimal Total { get; set; }
         public StatusVenda Status { get; set; } = StatusVenda.Aguardando;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
@@ -19,6 +22,7 @@ namespace ninx.Domain.Entities
         public Comercio Comercio { get; set; } = null!;
         public Usuario Usuario { get; set; } = null!;
         public Cliente? Cliente { get; set; } = null!;
+        public PessoaAutorizada? PessoaAutorizada { get; set; }
         public ICollection<ItemVenda> ItensVenda { get; set; } = [];
         public ICollection<PagamentoVenda> PagamentosVenda { get; set; } = [];
         public virtual ICollection<AssinaturaEletronica> AssinaturasEletronicas { get; set; }

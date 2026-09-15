@@ -12,18 +12,105 @@ namespace ninx.Application.Services
         private const string MarcadorInicio = "<!--BLOCO_ASSINATURA_INICIO-->";
         private const string MarcadorFim = "<!--BLOCO_ASSINATURA_FIM-->";
 
-        public static Dictionary<string, string> BuildTermoCompromissoTokens(Venda venda, Cliente cliente, Comercio comercio)
+        /// <param name="autorizado">Pessoa que comprou em nome do titular; nulo quando foi o próprio titular.</param>
+        /// <param name="termoAssinadoEm">Data de assinatura do termo de abertura que autorizou a pessoa.</param>
+        public static Dictionary<string, string> BuildTermoCompromissoTokens(Venda venda, Cliente cliente, Comercio comercio,
+            PessoaAutorizada? autorizado = null, DateTime? termoAssinadoEm = null)
         {
-            var totalPago = SaldoDevedor.TotalPago(venda.PagamentosVenda);
-            var saldoDevedor = SaldoDevedor.DaVenda(venda);
+            // O termo é emitido antes da assinatura, quando a entrada ainda está pendente. Ela é
+            // confirmada no mesmo ato em que o termo é assinado, então o documento já a considera.
+            var totalPago = venda.PagamentosVenda
+                .Where(p => p.Status == StatusPagamento.Pago || p.Status == StatusPagamento.Pendente)
+                .Sum(p => p.Valor);
+            var saldoDevedor = venda.Total - totalPago;
+            var vencimento = venda.DataVencimento?.ToString("dd/MM/yyyy") ?? "Não definida";
 
             var tokens = BuildTokensComuns(cliente, comercio, venda.CriadoEm);
             tokens["Html.TabelaItens"] = BuildTabelaItensHtml(venda);
             tokens["Venda.Total"] = $"R$ {venda.Total:N2}";
             tokens["Venda.ValorPago"] = $"R$ {totalPago:N2}";
             tokens["Venda.SaldoDevedor"] = $"R$ {saldoDevedor:N2}";
-            tokens["Venda.DataVencimento"] = venda.DataVencimento?.ToString("dd/MM/yyyy") ?? "Não definida";
+            tokens["Venda.DataVencimento"] = vencimento;
+
+            var titular = WebUtility.HtmlEncode(cliente.Nome);
+            var credor = WebUtility.HtmlEncode(comercio.NomeComercio);
+            if (autorizado is null)
+            {
+                tokens["Html.ClausulaReconhecimento"] =
+                    "<div class=\"declaracao\">Declaro ter recebido os produtos acima descritos e reconheço o saldo devedor de " +
+                    $"<strong>R$ {saldoDevedor:N2}</strong>, que me comprometo a pagar a {credor} até <strong>{vencimento}</strong>.</div>";
+                tokens["Assinatura.Rotulo"] = "ASSINATURA DO DEVEDOR";
+                tokens["Assinatura.Nome"] = cliente.Nome;
+            }
+            else
+            {
+                var comprador = WebUtility.HtmlEncode(autorizado.Nome);
+                var dataTermo = termoAssinadoEm?.ToString("dd/MM/yyyy") ?? "não informada";
+                tokens["Html.ClausulaReconhecimento"] =
+                    $"<div class=\"declaracao\">Declaro ter recebido os produtos acima descritos, adquiridos na conta de <strong>{titular}</strong> " +
+                    $"na condição de pessoa autorizada no termo de abertura de conta assinado pelo titular em <strong>{dataTermo}</strong>. " +
+                    $"O saldo devedor de <strong>R$ {saldoDevedor:N2}</strong> é de responsabilidade do titular da conta, com vencimento em " +
+                    $"<strong>{vencimento}</strong>, nos termos daquele documento.</div>";
+                tokens["Assinatura.Rotulo"] = "ASSINATURA DO COMPRADOR AUTORIZADO";
+                tokens["Assinatura.Nome"] = autorizado.Nome;
+            }
+
             return tokens;
+        }
+
+        public static Dictionary<string, string> BuildTermoAberturaTokens(Cliente cliente, Comercio comercio, int versao,
+            IEnumerable<PessoaAutorizada> autorizados, IEnumerable<PessoaAutorizada> revogados, DateTime data)
+        {
+            var tokens = BuildTokensComuns(cliente, comercio, data);
+            tokens["Termo.Versao"] = versao.ToString();
+            tokens["Html.Revogacoes"] = BuildRevogacoesHtml(revogados.ToList());
+            tokens["Cliente.LimiteCredito"] = $"R$ {cliente.LimiteCredito:N2}";
+            tokens["Comercio.DiaVencimento"] = comercio.DiaVencimentoFiado.ToString();
+            tokens["Html.TabelaAutorizados"] = BuildTabelaAutorizadosHtml(autorizados.ToList());
+            return tokens;
+        }
+
+        private static string BuildRevogacoesHtml(List<PessoaAutorizada> revogados)
+        {
+            if (revogados.Count == 0)
+                return "";
+
+            var nomes = string.Join(", ", revogados.Select(p => WebUtility.HtmlEncode(p.Nome)));
+            return $"<div class=\"declaracao\">Revogo, a partir da assinatura desta versão, a autorização concedida em versão anterior deste termo a: <strong>{nomes}</strong>. As compras feitas por essas pessoas até esta data continuam sendo de minha responsabilidade.</div>";
+        }
+
+        private static string BuildTabelaAutorizadosHtml(List<PessoaAutorizada> autorizados)
+        {
+            if (autorizados.Count == 0)
+                return "<p style=\"font-size:10pt;color:#64748B;\">Nenhuma pessoa autorizada. Somente o titular pode comprar nesta conta.</p>";
+
+            var sb = new StringBuilder();
+            sb.Append("<table style=\"width:100%;border-collapse:collapse;\"><thead><tr>");
+            foreach (var (titulo, alinhamento) in new[] { ("Nome", "left"), ("CPF", "center"), ("Parentesco", "center"), ("Limite por compra", "right") })
+                sb.Append(CelulaCabecalhoItens(titulo, alinhamento));
+            sb.Append("</tr></thead><tbody>");
+
+            foreach (var p in autorizados)
+            {
+                var parentesco = p.Parentesco switch
+                {
+                    ParentescoAutorizado.Conjuge => "Cônjuge",
+                    ParentescoAutorizado.Companheiro => "Companheiro(a)",
+                    ParentescoAutorizado.Filho => "Filho(a)",
+                    _ => "Outro"
+                };
+                if (p.MenorDeIdade) parentesco += " (menor de idade)";
+
+                sb.Append("<tr>");
+                sb.Append($"<td style=\"padding:8px;border-bottom:0.5px solid #E2E8F0;font-size:10pt;\">{WebUtility.HtmlEncode(p.Nome)}</td>");
+                sb.Append($"<td style=\"padding:8px;border-bottom:0.5px solid #E2E8F0;font-size:10pt;text-align:center;\">{(string.IsNullOrEmpty(p.Cpf) ? "Não informado" : FormatarCpf(p.Cpf))}</td>");
+                sb.Append($"<td style=\"padding:8px;border-bottom:0.5px solid #E2E8F0;font-size:10pt;text-align:center;\">{parentesco}</td>");
+                sb.Append($"<td style=\"padding:8px;border-bottom:0.5px solid #E2E8F0;font-size:10pt;text-align:right;\">{(p.LimitePorCompra.HasValue ? $"R$ {p.LimitePorCompra:N2}" : "Sem limite próprio")}</td>");
+                sb.Append("</tr>");
+            }
+
+            sb.Append("</tbody></table>");
+            return sb.ToString();
         }
 
         public static Dictionary<string, string> BuildReciboPagamentoTokens(Venda venda, PagamentoVenda pagamento, Cliente cliente, Comercio comercio, decimal saldoDevedorAnterior)

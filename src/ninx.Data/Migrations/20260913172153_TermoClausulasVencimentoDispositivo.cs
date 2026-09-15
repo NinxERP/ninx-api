@@ -78,7 +78,7 @@ namespace ninx.Data.Migrations
             migrationBuilder.UpdateData("DocumentosTemplate", "TipoDocumento", "ReciboQuitacaoGlobal", "ConteudoHtml", reciboGlobal);
         }
 
-        private sealed class Anterior
+        internal sealed class Anterior
         {
             internal const string TemplateTermoCompromissoNovo = AjustaLayoutAssinaturaCredorTemplates.TemplateTermoCompromissoNovo;
             internal const string TemplateReciboPagamentoParcialNovo = AjustaLayoutAssinaturaCredorTemplates.TemplateReciboPagamentoParcialNovo;
@@ -94,7 +94,7 @@ namespace ninx.Data.Migrations
               </div>
             """;
 
-        private const string ClausulaReconhecimentoDivida = """
+        internal const string ClausulaReconhecimentoDivida = """
               <div class="declaracao">
                 Declaro ter recebido os produtos acima descritos e reconheço o saldo devedor de
                 <strong>{{Venda.SaldoDevedor}}</strong>, que me comprometo a pagar a {{Comercio.Nome}} até
@@ -108,7 +108,7 @@ namespace ninx.Data.Migrations
 
         private const string LinhaVencimento = "\n    <tr><td class=\"label\">Vencimento</td><td class=\"valor\">{{Venda.DataVencimento}}</td></tr>";
 
-        private static readonly string TermoNovo = Anterior.TemplateTermoCompromissoNovo
+        internal static readonly string TermoNovo = Anterior.TemplateTermoCompromissoNovo
             .Replace(LinhaSaldoTermo, LinhaSaldoTermo + LinhaVencimento)
             .Replace(AntesDasAssinaturas, ClausulaReconhecimentoDivida + "\n\n" + ClausulaAssinaturaEletronica + "\n\n" + AntesDasAssinaturas);
 

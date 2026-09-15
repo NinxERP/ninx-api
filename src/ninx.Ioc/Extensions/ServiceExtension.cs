@@ -18,6 +18,7 @@ namespace ninx.Ioc.Extensions
             services.AddScoped<IUsuarioService, UsuarioService>();
             services.AddScoped<IUsuarioComercioService, UsuarioComercioService>();
             services.AddScoped<IClienteService, ClienteService>();
+            services.AddScoped<IContaFiadoService, ContaFiadoService>();
             services.AddScoped<IVendaService, VendaService>();
             services.AddScoped<IAssinaturaEletronicaService, AssinaturaEletronicaService>();
             services.AddScoped<IEstoqueService, EstoqueService>();
