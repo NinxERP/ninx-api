@@ -4,6 +4,7 @@
 
 **Backend do sistema Ninx — API multi-tenant de gestão de comércio, estoque e vendas, com fluxo de assinatura eletrônica de documentos.**
 
+
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
 ![EF Core](https://img.shields.io/badge/EF%20Core-SQL%20Server-CC2927?logo=microsoftsqlserver&logoColor=white)
 ![JWT](https://img.shields.io/badge/Auth-JWT-000000?logo=jsonwebtokens&logoColor=white)
