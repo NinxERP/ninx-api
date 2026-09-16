@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  # Qualquer commit enviado, em qualquer branch. Tags ficam de fora: delas cuida o
+  # fluxo de release, que roda os testes por conta propria.
+  push:
+    tags-ignore: ["**"]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore ninx-api.slnx
+
+      - name: Build
+        run: dotnet build ninx-api.slnx --no-restore
+
+      - name: Testes
+        run: dotnet test src/ninx.Tests --no-build

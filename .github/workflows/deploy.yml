@@ -12,7 +12,27 @@ env:
   IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/ninx-api
 
 jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore ninx-api.slnx
+
+      - name: Build
+        run: dotnet build ninx-api.slnx --no-restore
+
+      - name: Testes
+        run: dotnet test src/ninx.Tests --no-build
+
   migrate-and-deploy:
+    needs: testes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

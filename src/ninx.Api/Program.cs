@@ -1,11 +1,17 @@
-using Microsoft.AspNetCore.HttpOverrides;
+﻿using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi;
 using ninx.Api.Filters;
 using ninx.Api.Middlewares;
 using ninx.Ioc;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Globalization;
 using System.Threading.RateLimiting;
+
+// Valores e datas nas mensagens/documentos sao em pt-BR. Sem isso o host adota a
+// cultura do SO (invariante no container Linux/CI) e sai "R$ 30.00" / "MM/dd/yyyy".
+CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("pt-BR");
+CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("pt-BR");
 
 var builder = WebApplication.CreateBuilder(args);
 
