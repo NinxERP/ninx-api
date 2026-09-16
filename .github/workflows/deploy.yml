@@ -82,10 +82,18 @@ jobs:
         run: |
           dotnet tool install --global dotnet-ef
           for i in 1 2 3 4 5; do
-            dotnet ef database update \
+            saida=$(dotnet ef database update \
               --project ninx.Data \
               --startup-project ninx.Api \
-              --connection "${{ secrets.DB_CONNECTION_STRING }}" && exit 0
+              --connection "${{ secrets.DB_CONNECTION_STRING }}" 2>&1) && { echo "$saida"; exit 0; }
+            echo "$saida"
+            # Só o banco serverless acordando justifica nova tentativa. Qualquer outra
+            # falha (migração inconsistente, erro de SQL) aborta na hora, em vez de
+            # repetir cinco vezes e mascarar a causa.
+            if ! echo "$saida" | grep -qiE "not currently available|is not currently|paused|resuming|40613|40197|49918|49919|49920|10928|10929|transport-level|timeout expired|A network-related"; then
+              echo "Falha nao transitoria na migracao: abortando sem novas tentativas."
+              exit 1
+            fi
             echo "Banco ainda acordando (tentativa $i), aguardando..."
             sleep 15
           done
