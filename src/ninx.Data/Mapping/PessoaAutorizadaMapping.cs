@@ -28,7 +28,7 @@ namespace ninx.Data.Mappings
                 .HasMaxLength(12)
                 .HasConversion<string>();
 
-            builder.Property(x => x.LimitePorCompra)
+            builder.Property(x => x.LimiteCredito)
                 .IsRequired(false)
                 .HasColumnType("decimal(10,2)");
 

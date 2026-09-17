@@ -105,6 +105,21 @@ namespace ninx.Infra.Repository
                 .ToDictionaryAsync(x => x.ClienteID, x => x.Saldo);
         }
 
+        public async Task<Dictionary<int, decimal>> GetSaldoDevedorPorAutorizadoAsync(int clienteId)
+        {
+            return await _context.Vendas
+                .Where(SaldoDevedor.VendaEmAberto)
+                .Where(v => v.ClienteID == clienteId && v.PessoaAutorizadaID != null)
+                .GroupBy(v => v.PessoaAutorizadaID!.Value)
+                .Select(g => new
+                {
+                    PessoaAutorizadaID = g.Key,
+                    Saldo = g.Sum(v => v.Total)
+                        - g.Sum(v => v.PagamentosVenda.AsQueryable().Where(SaldoDevedor.PagamentoEfetivo).Sum(p => (decimal?)p.Valor) ?? 0)
+                })
+                .ToDictionaryAsync(x => x.PessoaAutorizadaID, x => x.Saldo);
+        }
+
         public async Task<IEnumerable<Venda>> GetVendasFiadoByClienteIDAsync(int? clienteId)
         {
             return await _context.Vendas

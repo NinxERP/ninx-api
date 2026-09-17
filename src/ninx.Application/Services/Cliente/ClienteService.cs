@@ -88,15 +88,40 @@ namespace ninx.Application.Services
             if (cliente.ComercioID != comercioId) throw new NotFoundException("Cliente não pertence ao seu comercio.");
 
             var cpfOriginal = cliente.Cpf;
+            var limiteOriginal = cliente.LimiteCredito;
             request.Adapt(cliente);
             cliente.Cpf = cpfOriginal;
+            // O limite não muda aqui: vira uma nova versão do termo e só vale quando assinado.
+            cliente.LimiteCredito = limiteOriginal;
             NormalizarDocumentos(cliente);
             cliente.AtualizadoEm = DateTime.UtcNow;
 
-            await _clienteRepository.UpdateAsync(cliente);
-            await _unitOfWork.SaveChangesAsync();
+            if (request.LimiteCredito == limiteOriginal)
+            {
+                await _clienteRepository.UpdateAsync(cliente);
+                await _unitOfWork.SaveChangesAsync();
+                return cliente.Adapt<ClienteResponse>();
+            }
 
-            return cliente.Adapt<ClienteResponse>();
+            var comercio = await _comercioRepository.GetByIdAsync(comercioId)
+                ?? throw new NotFoundException("Comércio não encontrado.");
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+                await _clienteRepository.UpdateAsync(cliente);
+                await _unitOfWork.SaveChangesAsync();
+                var guid = await _contaFiadoService.GerarTermoAberturaNaTransacaoAsync(cliente, comercio, request.LimiteCredito);
+                await _unitOfWork.CommitAsync();
+
+                var response = cliente.Adapt<ClienteResponse>();
+                response.DocumentoGuidTermoAbertura = guid;
+                return response;
+            }
+            catch
+            {
+                await _unitOfWork.RollbackAsync();
+                throw;
+            }
         }
 
         private static void NormalizarDocumentos(Cliente cliente)

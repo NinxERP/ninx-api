@@ -15,9 +15,10 @@ namespace ninx.Application.Services
 
         /// <summary>
         /// Gera a próxima versão do termo sem abrir transação, para quem já está dentro de uma
-        /// (o cadastro do cliente).
+        /// (cadastro e edição do cliente). <paramref name="novoLimite"/> é o limite que a versão
+        /// concede; sem ele, vale o de uma versão ainda pendente ou, na falta dela, o vigente.
         /// </summary>
-        Task<Guid> GerarTermoAberturaNaTransacaoAsync(Cliente cliente, Comercio comercio);
+        Task<Guid> GerarTermoAberturaNaTransacaoAsync(Cliente cliente, Comercio comercio, decimal? novoLimite = null);
 
         /// <summary>
         /// Efeitos da assinatura do termo de abertura. Não salva: a confirmação da assinatura
@@ -33,6 +34,7 @@ namespace ninx.Application.Services
         private readonly IPessoaAutorizadaRepository _pessoaAutorizadaRepository;
         private readonly ITermoAberturaContaRepository _termoRepository;
         private readonly IAssinaturaEletronicaRepository _assinaturaRepository;
+        private readonly IVendaRepository _vendaRepository;
         private readonly IDocumentoRendererService _documentoRendererService;
         private readonly IUnitOfWork _unitOfWork;
 
@@ -42,9 +44,11 @@ namespace ninx.Application.Services
             IPessoaAutorizadaRepository pessoaAutorizadaRepository,
             ITermoAberturaContaRepository termoRepository,
             IAssinaturaEletronicaRepository assinaturaRepository,
+            IVendaRepository vendaRepository,
             IDocumentoRendererService documentoRendererService,
             IUnitOfWork unitOfWork)
         {
+            _vendaRepository = vendaRepository;
             _clienteRepository = clienteRepository;
             _comercioRepository = comercioRepository;
             _pessoaAutorizadaRepository = pessoaAutorizadaRepository;
@@ -56,26 +60,30 @@ namespace ninx.Application.Services
 
         public async Task<ContaFiadoResponse> ObterAsync(int clienteId, int comercioId)
         {
-            await GetClienteDoComercioAsync(clienteId, comercioId);
+            var cliente = await GetClienteDoComercioAsync(clienteId, comercioId);
 
             var termos = await _termoRepository.GetPorClienteAsync(clienteId);
             var guids = await _assinaturaRepository.GetGuidsPorTermosAberturaAsync(termos.Select(t => t.TermoAberturaID).ToList());
             var ativo = termos.FirstOrDefault(t => t.Status == StatusTermoAbertura.Ativo);
             var pendente = termos.FirstOrDefault(t => t.Status == StatusTermoAbertura.Aguardando);
             var autorizados = await _pessoaAutorizadaRepository.GetPorClienteAsync(clienteId);
+            var saldos = await _vendaRepository.GetSaldoDevedorPorAutorizadoAsync(clienteId);
 
             return new ContaFiadoResponse
             {
                 ClienteID = clienteId,
                 TermoAtivo = ativo != null,
+                LimiteCredito = cliente.LimiteCredito,
+                LimitePendente = pendente != null && pendente.LimiteCredito != cliente.LimiteCredito ? pendente.LimiteCredito : null,
                 TermoAssinadoEm = ativo?.AssinadoEm,
                 DocumentoGuidTermoAtivo = ativo != null && guids.TryGetValue(ativo.TermoAberturaID, out var guidAtivo) ? guidAtivo : null,
                 DocumentoGuidTermoPendente = pendente != null && guids.TryGetValue(pendente.TermoAberturaID, out var guidPendente) ? guidPendente : null,
                 PrecisaNovoTermo = ativo == null || autorizados.Any(p => !p.RevogadaEm.HasValue && (!p.AutorizadaEm.HasValue || p.RevogacaoSolicitadaEm.HasValue)),
-                Autorizados = autorizados.Select(ParaResponse).ToList(),
+                Autorizados = autorizados.Select(p => ParaResponse(p, saldos.GetValueOrDefault(p.PessoaAutorizadaID))).ToList(),
                 Termos = termos.Select(t => new TermoAberturaResumoResponse
                 {
                     Versao = t.Versao,
+                    LimiteCredito = t.LimiteCredito,
                     Status = t.Status.ToString(),
                     CriadoEm = t.CriadoEm,
                     AssinadoEm = t.AssinadoEm,
@@ -95,13 +103,13 @@ namespace ninx.Application.Services
                 Cpf = string.IsNullOrWhiteSpace(request.Cpf) ? null : new string(request.Cpf.Where(char.IsDigit).ToArray()),
                 Parentesco = (ParentescoAutorizado)request.Parentesco,
                 MenorDeIdade = request.MenorDeIdade,
-                LimitePorCompra = request.LimitePorCompra,
+                LimiteCredito = request.LimiteCredito,
                 CriadoEm = DateTime.UtcNow
             };
 
             await _pessoaAutorizadaRepository.AddAsync(pessoa);
             await _unitOfWork.SaveChangesAsync();
-            return ParaResponse(pessoa);
+            return ParaResponse(pessoa, 0);
         }
 
         public async Task RevogarAutorizadoAsync(int clienteId, int pessoaAutorizadaId, int comercioId)
@@ -140,10 +148,15 @@ namespace ninx.Application.Services
             }
         }
 
-        public async Task<Guid> GerarTermoAberturaNaTransacaoAsync(Cliente cliente, Comercio comercio)
+        public async Task<Guid> GerarTermoAberturaNaTransacaoAsync(Cliente cliente, Comercio comercio, decimal? novoLimite = null)
         {
             var agora = DateTime.UtcNow;
             var termos = await _termoRepository.GetPorClienteAsync(cliente.ClienteID);
+
+            // Uma alteração de limite ainda não assinada não se perde quando outra versão é gerada.
+            var limite = novoLimite
+                ?? termos.FirstOrDefault(t => t.Status == StatusTermoAbertura.Aguardando)?.LimiteCredito
+                ?? cliente.LimiteCredito;
 
             // Só uma versão pode esperar assinatura: gerar outra cancela a anterior, que continua
             // guardada no histórico com seu documento.
@@ -158,6 +171,7 @@ namespace ninx.Application.Services
             {
                 ClienteID = cliente.ClienteID,
                 Versao = termos.Count == 0 ? 1 : termos.Max(t => t.Versao) + 1,
+                LimiteCredito = limite,
                 Status = StatusTermoAbertura.Aguardando,
                 CriadoEm = agora
             };
@@ -166,7 +180,7 @@ namespace ninx.Application.Services
             var pessoas = await _pessoaAutorizadaRepository.GetPorClienteAsync(cliente.ClienteID);
             var autorizados = pessoas.Where(p => !p.RevogadaEm.HasValue && !p.RevogacaoSolicitadaEm.HasValue);
             var revogados = pessoas.Where(p => !p.RevogadaEm.HasValue && p.RevogacaoSolicitadaEm.HasValue && p.AutorizadaEm.HasValue);
-            var tokens = DocumentoTokenBuilder.BuildTermoAberturaTokens(cliente, comercio, termo.Versao, autorizados, revogados, agora);
+            var tokens = DocumentoTokenBuilder.BuildTermoAberturaTokens(cliente, comercio, termo.Versao, limite, autorizados, revogados, agora);
             var html = await _documentoRendererService.RenderizarHtmlAsync(TipoDocumento.TermoAberturaConta, tokens);
             var pdf = await _documentoRendererService.ConverterParaPdfBase64Async(html);
 
@@ -204,6 +218,16 @@ namespace ninx.Application.Services
             termo.AssinadoEm = dataAssinatura;
             await _termoRepository.UpdateAsync(termo);
 
+            // O limite do cliente é o da versão assinada: alterá-lo também passa pela assinatura.
+            var cliente = await _clienteRepository.GetByIdAsync(termo.ClienteID)
+                ?? throw new NotFoundException("Cliente não encontrado.");
+            if (cliente.LimiteCredito != termo.LimiteCredito)
+            {
+                cliente.LimiteCredito = termo.LimiteCredito;
+                cliente.AtualizadoEm = dataAssinatura;
+                await _clienteRepository.UpdateAsync(cliente);
+            }
+
             // Aplica exatamente o que o documento assinado mostra: inclusões e revogações pedidas
             // depois de gerada esta versão não estão nela e esperam a próxima.
             foreach (var pessoa in await _pessoaAutorizadaRepository.GetPorClienteAsync(termo.ClienteID))
@@ -228,14 +252,16 @@ namespace ninx.Application.Services
                 ?? throw new NotFoundException("Cliente não encontrado.");
         }
 
-        private static PessoaAutorizadaResponse ParaResponse(PessoaAutorizada p) => new()
+        private static PessoaAutorizadaResponse ParaResponse(PessoaAutorizada p, decimal saldoDevedor) => new()
         {
             PessoaAutorizadaID = p.PessoaAutorizadaID,
             Nome = p.Nome,
             Cpf = p.Cpf,
             Parentesco = (int)p.Parentesco,
             MenorDeIdade = p.MenorDeIdade,
-            LimitePorCompra = p.LimitePorCompra,
+            LimiteCredito = p.LimiteCredito,
+            SaldoDevedor = saldoDevedor,
+            SaldoDisponivel = p.LimiteCredito.HasValue ? p.LimiteCredito.Value - saldoDevedor : null,
             CriadoEm = p.CriadoEm,
             AutorizadaEm = p.AutorizadaEm,
             RevogacaoSolicitadaEm = p.RevogacaoSolicitadaEm,

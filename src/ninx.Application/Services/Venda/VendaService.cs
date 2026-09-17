@@ -707,9 +707,16 @@ namespace ninx.Application.Services
                     throw new BadRequestException(autorizado.RevogadaEm.HasValue
                         ? $"A autorização de {autorizado.Nome} foi revogada."
                         : $"{autorizado.Nome} ainda não pode comprar: o titular precisa assinar o termo de abertura que a inclui.");
-                if (autorizado.LimitePorCompra.HasValue && totalVenda > autorizado.LimitePorCompra.Value)
-                    throw new BadRequestException(
-                        $"{autorizado.Nome} pode comprar até R$ {autorizado.LimitePorCompra.Value:N2} por compra. Esta compra é de R$ {totalVenda:N2}.");
+                if (autorizado.LimiteCredito.HasValue)
+                {
+                    // O limite da pessoa é acumulado, como o da conta: conta o que ela já deve.
+                    var saldos = await _vendaRepository.GetSaldoDevedorPorAutorizadoAsync(cliente.ClienteID);
+                    var jaDeve = saldos.GetValueOrDefault(autorizado.PessoaAutorizadaID);
+                    if (jaDeve + valorFiadoDestaVenda > autorizado.LimiteCredito.Value)
+                        throw new BadRequestException(
+                            $"Limite de {autorizado.Nome} excedido. Já deve R$ {jaDeve:N2} de um limite de R$ {autorizado.LimiteCredito.Value:N2}. " +
+                            $"Disponível para esta compra: R$ {autorizado.LimiteCredito.Value - jaDeve:N2}");
+                }
             }
 
             return (Guid.NewGuid(), termo, autorizado);
