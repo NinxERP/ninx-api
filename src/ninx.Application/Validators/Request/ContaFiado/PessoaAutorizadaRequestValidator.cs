@@ -21,9 +21,9 @@ namespace ninx.Application.Validators.Request
             RuleFor(x => x.Parentesco)
                 .Must(p => Enum.IsDefined(typeof(ParentescoAutorizado), p)).WithMessage("Parentesco inválido.");
 
-            RuleFor(x => x.LimitePorCompra)
-                .GreaterThan(0).WithMessage("Limite por compra deve ser maior que zero.")
-                .When(x => x.LimitePorCompra.HasValue);
+            RuleFor(x => x.LimiteCredito)
+                .GreaterThan(0).WithMessage("Limite de crédito deve ser maior que zero.")
+                .When(x => x.LimiteCredito.HasValue);
         }
     }
 }

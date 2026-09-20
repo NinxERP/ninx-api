@@ -69,7 +69,7 @@ namespace ninx.Tests.Services
             var service = CriarService();
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
             var guidTermo = Guid.NewGuid();
-            _contaFiadoService.Setup(x => x.GerarTermoAberturaNaTransacaoAsync(It.IsAny<Cliente>(), It.IsAny<Comercio>())).ReturnsAsync(guidTermo);
+            _contaFiadoService.Setup(x => x.GerarTermoAberturaNaTransacaoAsync(It.IsAny<Cliente>(), It.IsAny<Comercio>(), null)).ReturnsAsync(guidTermo);
 
             var response = await service.CriarAsync(request, comercioId: 1);
 
@@ -145,6 +145,49 @@ namespace ninx.Tests.Services
             var response = await service.GetAllByComercioId(1, new PaginationRequest());
 
             response.Data.Should().ContainSingle(c => c.SaldoDevedor == 42.5m);
+        }
+    
+        private static ClienteRequest RequestEdicao(decimal limite) => new()
+        {
+            Nome = "Cliente Editado",
+            Cpf = "***.567.890-**",
+            EnderecoLogradouro = "Rua A",
+            EnderecoNumero = "1",
+            EnderecoBairro = "Bairro",
+            EnderecoCidade = "Cidade",
+            EnderecoUF = "SP",
+            EnderecoCEP = "01000000",
+            LimiteCredito = limite
+        };
+
+        [Fact]
+        public async Task AtualizarAsync_MudandoOLimite_DeveGerarTermoSemAplicarOLimite()
+        {
+            var cliente = Builders.NovoCliente(1, 1, limiteCredito: 500m);
+            _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(cliente);
+            _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
+            var guid = Guid.NewGuid();
+            _contaFiadoService.Setup(x => x.GerarTermoAberturaNaTransacaoAsync(cliente, It.IsAny<Comercio>(), 800m)).ReturnsAsync(guid);
+
+            var response = await CriarService().AtualizarAsync(1, usuarioLogadoId: 1, RequestEdicao(800m), comercioId: 1);
+
+            cliente.LimiteCredito.Should().Be(500m);
+            cliente.Nome.Should().Be("Cliente Editado");
+            cliente.Cpf.Should().Be("12345678909");
+            response.DocumentoGuidTermoAbertura.Should().Be(guid);
+            _unitOfWork.Verify(x => x.CommitAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task AtualizarAsync_SemMudarOLimite_NaoDeveGerarTermo()
+        {
+            var cliente = Builders.NovoCliente(1, 1, limiteCredito: 500m);
+            _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(cliente);
+
+            var response = await CriarService().AtualizarAsync(1, usuarioLogadoId: 1, RequestEdicao(500m), comercioId: 1);
+
+            response.DocumentoGuidTermoAbertura.Should().BeNull();
+            _contaFiadoService.Verify(x => x.GerarTermoAberturaNaTransacaoAsync(It.IsAny<Cliente>(), It.IsAny<Comercio>(), It.IsAny<decimal?>()), Times.Never);
         }
     }
 }

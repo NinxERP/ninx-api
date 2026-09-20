@@ -712,19 +712,39 @@ namespace ninx.Tests.Services
         }
 
         [Fact]
-        public async Task CriarAsync_PessoaAutorizadaAcimaDoLimitePorCompra_DeveLancarBadRequest()
+        public async Task CriarAsync_PessoaAutorizadaAcimaDoSeuLimite_ContandoOQueJaDeve_DeveLancarBadRequest()
         {
-            var request = PrepararVendaFiado(precoProduto: 10m, quantidade: 5); // R$ 50
+            var request = PrepararVendaFiado(precoProduto: 10m, quantidade: 3); // R$ 30
             request.PessoaAutorizadaID = 7;
             _pessoaAutorizadaRepository.Setup(x => x.GetDoClienteAsync(7, 1)).ReturnsAsync(new PessoaAutorizada
             {
                 PessoaAutorizadaID = 7, ClienteID = 1, Nome = "João", Parentesco = ParentescoAutorizado.Filho,
-                LimitePorCompra = 30m, AutorizadaEm = new DateTime(2026, 9, 1)
+                LimiteCredito = 50m, AutorizadaEm = new DateTime(2026, 9, 1)
             });
+            _vendaRepository.Setup(x => x.GetSaldoDevedorPorAutorizadoAsync(1))
+                .ReturnsAsync(new Dictionary<int, decimal> { [7] = 25m });
 
             var act = async () => await CriarService().CriarAsync(request);
 
-            (await act.Should().ThrowAsync<BadRequestException>()).WithMessage("*até R$ 30,00*");
+            (await act.Should().ThrowAsync<BadRequestException>()).WithMessage("*Disponível para esta compra: R$ 25,00*");
+        }
+
+        [Fact]
+        public async Task CriarAsync_PessoaAutorizadaDentroDoSeuLimite_DeveCriarVenda()
+        {
+            var request = PrepararVendaFiado(precoProduto: 10m, quantidade: 2); // R$ 20
+            request.PessoaAutorizadaID = 7;
+            _pessoaAutorizadaRepository.Setup(x => x.GetDoClienteAsync(7, 1)).ReturnsAsync(new PessoaAutorizada
+            {
+                PessoaAutorizadaID = 7, ClienteID = 1, Nome = "João", Parentesco = ParentescoAutorizado.Filho,
+                LimiteCredito = 50m, AutorizadaEm = new DateTime(2026, 9, 1)
+            });
+            _vendaRepository.Setup(x => x.GetSaldoDevedorPorAutorizadoAsync(1))
+                .ReturnsAsync(new Dictionary<int, decimal> { [7] = 25m });
+
+            await CriarService().CriarAsync(request);
+
+            _vendaRepository.Verify(x => x.AddAsync(It.Is<Venda>(v => v.PessoaAutorizadaID == 7)), Times.Once);
         }
 
         [Theory]

@@ -6,6 +6,12 @@ namespace ninx.Communication
 
         /// <summary>Há termo de abertura assinado: o cliente pode comprar fiado.</summary>
         public bool TermoAtivo { get; set; }
+
+        /// <summary>Limite de crédito em vigor, o da última versão assinada.</summary>
+        public decimal LimiteCredito { get; set; }
+
+        /// <summary>Novo limite de uma versão ainda não assinada, quando difere do vigente.</summary>
+        public decimal? LimitePendente { get; set; }
         public DateTime? TermoAssinadoEm { get; set; }
         public Guid? DocumentoGuidTermoAtivo { get; set; }
 
@@ -23,6 +29,7 @@ namespace ninx.Communication
     public class TermoAberturaResumoResponse
     {
         public int Versao { get; set; }
+        public decimal LimiteCredito { get; set; }
 
         /// <summary>"Aguardando", "Ativo", "Substituido" ou "Cancelado".</summary>
         public string Status { get; set; } = null!;

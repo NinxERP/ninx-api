@@ -16,7 +16,11 @@ namespace ninx.Domain.Entities
         public string? Cpf { get; set; }
         public ParentescoAutorizado Parentesco { get; set; }
         public bool MenorDeIdade { get; set; }
-        public decimal? LimitePorCompra { get; set; }
+        /// <summary>
+        /// Limite de crédito próprio da pessoa, somado sobre as compras dela ainda em aberto.
+        /// Nulo: compra dentro do limite da conta, sem teto individual.
+        /// </summary>
+        public decimal? LimiteCredito { get; set; }
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AutorizadaEm { get; set; }
         public DateTime? RevogacaoSolicitadaEm { get; set; }

@@ -21,7 +21,10 @@ namespace ninx.Communication
         public string ComercioNome { get; set; } = null!;
         public decimal SaldoDevedor { get; set; }
 
-        /// <summary>Preenchido só no cadastro: termo de abertura gerado para o cliente assinar.</summary>
+        /// <summary>
+        /// Preenchido no cadastro e na edição que muda o limite: versão do termo de abertura
+        /// gerada para o cliente assinar.
+        /// </summary>
         public Guid? DocumentoGuidTermoAbertura { get; set; }
     }
 }

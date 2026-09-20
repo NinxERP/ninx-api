@@ -59,12 +59,12 @@ namespace ninx.Application.Services
         }
 
         public static Dictionary<string, string> BuildTermoAberturaTokens(Cliente cliente, Comercio comercio, int versao,
-            IEnumerable<PessoaAutorizada> autorizados, IEnumerable<PessoaAutorizada> revogados, DateTime data)
+            decimal limiteCredito, IEnumerable<PessoaAutorizada> autorizados, IEnumerable<PessoaAutorizada> revogados, DateTime data)
         {
             var tokens = BuildTokensComuns(cliente, comercio, data);
             tokens["Termo.Versao"] = versao.ToString();
             tokens["Html.Revogacoes"] = BuildRevogacoesHtml(revogados.ToList());
-            tokens["Cliente.LimiteCredito"] = $"R$ {cliente.LimiteCredito:N2}";
+            tokens["Cliente.LimiteCredito"] = $"R$ {limiteCredito:N2}";
             tokens["Comercio.DiaVencimento"] = comercio.DiaVencimentoFiado.ToString();
             tokens["Html.TabelaAutorizados"] = BuildTabelaAutorizadosHtml(autorizados.ToList());
             return tokens;
@@ -86,7 +86,7 @@ namespace ninx.Application.Services
 
             var sb = new StringBuilder();
             sb.Append("<table style=\"width:100%;border-collapse:collapse;\"><thead><tr>");
-            foreach (var (titulo, alinhamento) in new[] { ("Nome", "left"), ("CPF", "center"), ("Parentesco", "center"), ("Limite por compra", "right") })
+            foreach (var (titulo, alinhamento) in new[] { ("Nome", "left"), ("CPF", "center"), ("Parentesco", "center"), ("Limite de crédito", "right") })
                 sb.Append(CelulaCabecalhoItens(titulo, alinhamento));
             sb.Append("</tr></thead><tbody>");
 
@@ -105,7 +105,7 @@ namespace ninx.Application.Services
                 sb.Append($"<td style=\"padding:8px;border-bottom:0.5px solid #E2E8F0;font-size:10pt;\">{WebUtility.HtmlEncode(p.Nome)}</td>");
                 sb.Append($"<td style=\"padding:8px;border-bottom:0.5px solid #E2E8F0;font-size:10pt;text-align:center;\">{(string.IsNullOrEmpty(p.Cpf) ? "Não informado" : FormatarCpf(p.Cpf))}</td>");
                 sb.Append($"<td style=\"padding:8px;border-bottom:0.5px solid #E2E8F0;font-size:10pt;text-align:center;\">{parentesco}</td>");
-                sb.Append($"<td style=\"padding:8px;border-bottom:0.5px solid #E2E8F0;font-size:10pt;text-align:right;\">{(p.LimitePorCompra.HasValue ? $"R$ {p.LimitePorCompra:N2}" : "Sem limite próprio")}</td>");
+                sb.Append($"<td style=\"padding:8px;border-bottom:0.5px solid #E2E8F0;font-size:10pt;text-align:right;\">{(p.LimiteCredito.HasValue ? $"R$ {p.LimiteCredito:N2}" : "Limite da conta")}</td>");
                 sb.Append("</tr>");
             }
 

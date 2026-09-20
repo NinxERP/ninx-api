@@ -18,6 +18,7 @@ namespace ninx.Tests.Services
         private readonly Mock<IPessoaAutorizadaRepository> _pessoaRepository = new();
         private readonly Mock<ITermoAberturaContaRepository> _termoRepository = new();
         private readonly Mock<IAssinaturaEletronicaRepository> _assinaturaRepository = new();
+        private readonly Mock<IVendaRepository> _vendaRepository = new();
         private readonly Mock<IDocumentoRendererService> _renderer = new();
         private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
@@ -26,6 +27,8 @@ namespace ninx.Tests.Services
             _clienteRepository.Setup(x => x.GetByIdAndComercioIdAsync(1, 1)).ReturnsAsync(Builders.NovoCliente(1, 1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
             _termoRepository.Setup(x => x.GetPorClienteAsync(1)).ReturnsAsync(new List<TermoAberturaConta>());
+            _vendaRepository.Setup(x => x.GetSaldoDevedorPorAutorizadoAsync(1)).ReturnsAsync(new Dictionary<int, decimal>());
+            _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCliente(1, 1));
             _assinaturaRepository.Setup(x => x.GetGuidsPorTermosAberturaAsync(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, Guid>());
             _pessoaRepository.Setup(x => x.GetPorClienteAsync(1)).ReturnsAsync(new List<PessoaAutorizada>());
             _renderer.Setup(x => x.RenderizarHtmlAsync(It.IsAny<TipoDocumento>(), It.IsAny<Dictionary<string, string>>())).ReturnsAsync("<html></html>");
@@ -34,7 +37,7 @@ namespace ninx.Tests.Services
 
         private ContaFiadoService CriarService() => new(
             _clienteRepository.Object, _comercioRepository.Object, _pessoaRepository.Object,
-            _termoRepository.Object, _assinaturaRepository.Object, _renderer.Object, _unitOfWork.Object);
+            _termoRepository.Object, _assinaturaRepository.Object, _vendaRepository.Object, _renderer.Object, _unitOfWork.Object);
 
         [Fact]
         public async Task GerarTermoAberturaAsync_ComTermoPendenteAnterior_DeveCancelarOAnteriorECriarDocumento()
@@ -154,6 +157,74 @@ namespace ninx.Tests.Services
             var act = async () => await CriarService().ObterAsync(1, 999);
 
             await act.Should().ThrowAsync<NotFoundException>();
+        }
+    
+        [Fact]
+        public async Task GerarTermoAberturaNaTransacaoAsync_ComNovoLimite_DeveGravarNoTermoSemMudarOCliente()
+        {
+            var cliente = Builders.NovoCliente(1, 1, limiteCredito: 500m);
+            Dictionary<string, string>? tokens = null;
+            _renderer.Setup(x => x.RenderizarHtmlAsync(TipoDocumento.TermoAberturaConta, It.IsAny<Dictionary<string, string>>()))
+                .Callback<TipoDocumento, Dictionary<string, string>>((_, t) => tokens = t).ReturnsAsync("<html></html>");
+
+            await CriarService().GerarTermoAberturaNaTransacaoAsync(cliente, Builders.NovoComercio(1), novoLimite: 800m);
+
+            cliente.LimiteCredito.Should().Be(500m);
+            tokens!["Cliente.LimiteCredito"].Should().Be("R$ 800,00");
+            _termoRepository.Verify(x => x.AddAsync(It.Is<TermoAberturaConta>(t => t.LimiteCredito == 800m)), Times.Once);
+        }
+
+        [Fact]
+        public async Task GerarTermoAberturaNaTransacaoAsync_SemNovoLimite_DeveManterOLimiteDaVersaoPendente()
+        {
+            var pendente = new TermoAberturaConta { TermoAberturaID = 4, ClienteID = 1, Versao = 2, LimiteCredito = 800m, Status = StatusTermoAbertura.Aguardando };
+            _termoRepository.Setup(x => x.GetPorClienteAsync(1)).ReturnsAsync(new List<TermoAberturaConta> { pendente });
+
+            await CriarService().GerarTermoAberturaNaTransacaoAsync(Builders.NovoCliente(1, 1, limiteCredito: 500m), Builders.NovoComercio(1));
+
+            _termoRepository.Verify(x => x.AddAsync(It.Is<TermoAberturaConta>(t => t.LimiteCredito == 800m && t.Versao == 3)), Times.Once);
+        }
+
+        [Fact]
+        public async Task EfetivarTermoAssinadoAsync_DeveAplicarAoClienteOLimiteDaVersaoAssinada()
+        {
+            var cliente = Builders.NovoCliente(1, 1, limiteCredito: 500m);
+            _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(cliente);
+            _termoRepository.Setup(x => x.GetByIdAsync(5)).ReturnsAsync(new TermoAberturaConta
+            {
+                TermoAberturaID = 5, ClienteID = 1, LimiteCredito = 800m, Status = StatusTermoAbertura.Aguardando
+            });
+
+            await CriarService().EfetivarTermoAssinadoAsync(new AssinaturaEletronica { TermoAberturaID = 5 }, DateTime.UtcNow);
+
+            cliente.LimiteCredito.Should().Be(800m);
+            _clienteRepository.Verify(x => x.UpdateAsync(cliente), Times.Once);
+        }
+
+        [Fact]
+        public async Task ObterAsync_DeveInformarSaldoDeCadaAutorizadoELimitePendente()
+        {
+            _termoRepository.Setup(x => x.GetPorClienteAsync(1)).ReturnsAsync(new List<TermoAberturaConta>
+            {
+                new() { TermoAberturaID = 3, Versao = 2, LimiteCredito = 800m, Status = StatusTermoAbertura.Aguardando },
+                new() { TermoAberturaID = 2, Versao = 1, LimiteCredito = 500m, Status = StatusTermoAbertura.Ativo, AssinadoEm = DateTime.UtcNow }
+            });
+            _pessoaRepository.Setup(x => x.GetPorClienteAsync(1)).ReturnsAsync(new List<PessoaAutorizada>
+            {
+                new() { PessoaAutorizadaID = 7, Nome = "Com limite", LimiteCredito = 100m, AutorizadaEm = DateTime.UtcNow },
+                new() { PessoaAutorizadaID = 8, Nome = "Sem limite", AutorizadaEm = DateTime.UtcNow }
+            });
+            _vendaRepository.Setup(x => x.GetSaldoDevedorPorAutorizadoAsync(1))
+                .ReturnsAsync(new Dictionary<int, decimal> { [7] = 30m, [8] = 12m });
+
+            var conta = await CriarService().ObterAsync(1, 1);
+
+            conta.LimiteCredito.Should().Be(500m);
+            conta.LimitePendente.Should().Be(800m);
+            conta.Autorizados[0].SaldoDevedor.Should().Be(30m);
+            conta.Autorizados[0].SaldoDisponivel.Should().Be(70m);
+            conta.Autorizados[1].SaldoDevedor.Should().Be(12m);
+            conta.Autorizados[1].SaldoDisponivel.Should().BeNull();
         }
     }
 }

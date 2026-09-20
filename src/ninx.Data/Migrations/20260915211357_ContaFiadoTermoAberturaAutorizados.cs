@@ -232,7 +232,7 @@ namespace ninx.Data.Migrations
                      "<span class=\"rotulo\">{{Assinatura.Rotulo}}</span>{{Assinatura.Nome}}");
 
         // PENDENTE (plano-evolucao-fiado.md, fase 1): redação das cláusulas a revisar com advogado.
-        private const string TemplateTermoAbertura = """
+        internal const string TemplateTermoAbertura = """
             <!DOCTYPE html>
             <html><head><meta charset="utf-8" /><style>
             """ + AjustaLayoutAssinaturaCredorTemplates.EstiloComumNovo + """

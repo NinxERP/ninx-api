@@ -21,6 +21,9 @@ namespace ninx.Data.Mappings
                 .HasMaxLength(12)
                 .HasConversion<string>();
 
+            builder.Property(x => x.LimiteCredito)
+                .HasColumnType("decimal(10,2)");
+
             builder.Property(x => x.CriadoEm)
                 .HasDefaultValueSql("GETUTCDATE()");
 

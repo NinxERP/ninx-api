@@ -14,5 +14,8 @@ namespace ninx.Domain.Interfaces
         Task<IEnumerable<Venda>> GetVendasByClienteIdAsync(int clienteId, int comercioId);
         Task<IEnumerable<Venda>> GetVendasFiadoAtivasPorClienteAsync(int clienteId);
         Task<Dictionary<int, decimal>> GetSaldoDevedorClientesPorComercio(int comercioId);
+
+        /// <summary>Saldo devedor em aberto de cada pessoa autorizada do cliente, pelo ID dela.</summary>
+        Task<Dictionary<int, decimal>> GetSaldoDevedorPorAutorizadoAsync(int clienteId);
     }
 }

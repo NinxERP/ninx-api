@@ -13,6 +13,12 @@ namespace ninx.Domain.Entities
 
         /// <summary>Sequencial por cliente. Nenhuma versão é apagada: as anteriores ficam como histórico.</summary>
         public int Versao { get; set; }
+
+        /// <summary>
+        /// Limite de crédito concedido por esta versão. Só passa a valer para o cliente quando
+        /// a versão é assinada.
+        /// </summary>
+        public decimal LimiteCredito { get; set; }
         public StatusTermoAbertura Status { get; set; } = StatusTermoAbertura.Aguardando;
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime? AssinadoEm { get; set; }
