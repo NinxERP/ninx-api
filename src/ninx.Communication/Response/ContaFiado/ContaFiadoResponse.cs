@@ -10,6 +10,12 @@ namespace ninx.Communication
         /// <summary>Limite de crédito em vigor, o da última versão assinada.</summary>
         public decimal LimiteCredito { get; set; }
 
+        /// <summary>Tudo o que a conta deve em aberto, inclusive as compras das pessoas autorizadas.</summary>
+        public decimal SaldoDevedor { get; set; }
+
+        /// <summary>Limite menos saldo devedor: o que a conta ainda comporta.</summary>
+        public decimal LimiteDisponivel { get; set; }
+
         /// <summary>Novo limite de uma versão ainda não assinada, quando difere do vigente.</summary>
         public decimal? LimitePendente { get; set; }
         public DateTime? TermoAssinadoEm { get; set; }

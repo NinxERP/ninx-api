@@ -12,7 +12,10 @@ namespace ninx.Communication
         /// <summary>Soma do que ainda está em aberto nas compras feitas por esta pessoa.</summary>
         public decimal SaldoDevedor { get; set; }
 
-        /// <summary>Limite menos saldo devedor; nulo quando a pessoa não tem limite próprio.</summary>
+        /// <summary>
+        /// Quanto a pessoa ainda pode dever: o menor entre o que resta do limite próprio, se houver,
+        /// e o que a conta ainda comporta. O limite dela é um pedaço do limite da conta, não um a mais.
+        /// </summary>
         public decimal? SaldoDisponivel { get; set; }
         public DateTime CriadoEm { get; set; }
         public DateTime? AutorizadaEm { get; set; }

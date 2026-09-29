@@ -28,6 +28,7 @@ namespace ninx.Tests.Services
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
             _termoRepository.Setup(x => x.GetPorClienteAsync(1)).ReturnsAsync(new List<TermoAberturaConta>());
             _vendaRepository.Setup(x => x.GetSaldoDevedorPorAutorizadoAsync(1)).ReturnsAsync(new Dictionary<int, decimal>());
+            _vendaRepository.Setup(x => x.GetSaldoDevedorClientesPorComercio(1)).ReturnsAsync(new Dictionary<int, decimal>());
             _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCliente(1, 1));
             _assinaturaRepository.Setup(x => x.GetGuidsPorTermosAberturaAsync(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, Guid>());
             _pessoaRepository.Setup(x => x.GetPorClienteAsync(1)).ReturnsAsync(new List<PessoaAutorizada>());
@@ -160,6 +161,40 @@ namespace ninx.Tests.Services
         }
     
         [Fact]
+        public async Task GerarTermoAberturaAsync_SemAutorizados_NaoDeveAutorizarPessoasInexistentes()
+        {
+            Dictionary<string, string>? tokens = null;
+            _renderer.Setup(x => x.RenderizarHtmlAsync(TipoDocumento.TermoAberturaConta, It.IsAny<Dictionary<string, string>>()))
+                .Callback<TipoDocumento, Dictionary<string, string>>((_, t) => tokens = t).ReturnsAsync("<html></html>");
+
+            await CriarService().GerarTermoAberturaAsync(1, 1);
+
+            tokens!["Html.ClausulaAutorizacao"].Should().NotContain("Autorizo as pessoas").And.Contain("Esta versão substitui");
+        }
+
+        [Fact]
+        public async Task GerarTermoAberturaAsync_ComAutorizados_DeveIncluirAClausulaDeAutorizacao()
+        {
+            _pessoaRepository.Setup(x => x.GetPorClienteAsync(1)).ReturnsAsync(new List<PessoaAutorizada>
+            {
+                new() { Nome = "Maria", Parentesco = ParentescoAutorizado.Conjuge, AutorizadaEm = DateTime.UtcNow }
+            });
+            Dictionary<string, string>? tokens = null;
+            _renderer.Setup(x => x.RenderizarHtmlAsync(TipoDocumento.TermoAberturaConta, It.IsAny<Dictionary<string, string>>()))
+                .Callback<TipoDocumento, Dictionary<string, string>>((_, t) => tokens = t).ReturnsAsync("<html></html>");
+
+            await CriarService().GerarTermoAberturaAsync(1, 1);
+
+            tokens!["Html.ClausulaAutorizacao"].Should().Contain("Autorizo as pessoas").And.Contain("Esta versão substitui");
+        }
+
+        [Fact]
+        public void BlocoDeAssinaturaPendente_NaoDeveDizerQueEstaPendente()
+        {
+            DocumentoTokenBuilder.BuildBlocoAssinaturaPendente().Should().NotContainEquivalentOf("pendente");
+        }
+
+        [Fact]
         public async Task GerarTermoAberturaNaTransacaoAsync_ComNovoLimite_DeveGravarNoTermoSemMudarOCliente()
         {
             var cliente = Builders.NovoCliente(1, 1, limiteCredito: 500m);
@@ -224,7 +259,50 @@ namespace ninx.Tests.Services
             conta.Autorizados[0].SaldoDevedor.Should().Be(30m);
             conta.Autorizados[0].SaldoDisponivel.Should().Be(70m);
             conta.Autorizados[1].SaldoDevedor.Should().Be(12m);
-            conta.Autorizados[1].SaldoDisponivel.Should().BeNull();
+            conta.Autorizados[1].SaldoDisponivel.Should().Be(500m); // sem limite próprio, vale o que a conta comporta
+        }
+    
+        [Fact]
+        public async Task ObterAsync_LimiteDoDependenteNaoPassaDoQueAContaAindaComporta()
+        {
+            // conta de R$ 500 com R$ 450 em aberto: sobram R$ 50, mesmo que o dependente tenha limite de R$ 300
+            _vendaRepository.Setup(x => x.GetSaldoDevedorClientesPorComercio(1))
+                .ReturnsAsync(new Dictionary<int, decimal> { [1] = 450m });
+            _pessoaRepository.Setup(x => x.GetPorClienteAsync(1)).ReturnsAsync(new List<PessoaAutorizada>
+            {
+                new() { PessoaAutorizadaID = 7, Nome = "Com limite", LimiteCredito = 300m, AutorizadaEm = DateTime.UtcNow },
+                new() { PessoaAutorizadaID = 8, Nome = "Sem limite", AutorizadaEm = DateTime.UtcNow }
+            });
+
+            var conta = await CriarService().ObterAsync(1, 1);
+
+            conta.SaldoDevedor.Should().Be(450m);
+            conta.LimiteDisponivel.Should().Be(50m);
+            conta.Autorizados.Select(a => a.SaldoDisponivel).Should().Equal(50m, 50m);
+        }
+
+        [Fact]
+        public async Task AdicionarAutorizadoAsync_LimiteMaiorQueODaConta_DeveLancarBadRequest()
+        {
+            var request = new PessoaAutorizadaRequest { Nome = "Filho Teste", Parentesco = 3, LimiteCredito = 600m };
+
+            var act = async () => await CriarService().AdicionarAutorizadoAsync(1, request, 1);
+
+            (await act.Should().ThrowAsync<BadRequestException>()).WithMessage("*não pode passar do limite da conta*");
+        }
+
+        [Theory]
+        [InlineData(500)]  // igual ao limite da conta
+        [InlineData(300)]
+        [InlineData(null)] // sem limite próprio
+        public async Task AdicionarAutorizadoAsync_LimiteDentroDoDaConta_DeveIncluir(int? limite)
+        {
+            var request = new PessoaAutorizadaRequest { Nome = "Filho Teste", Parentesco = 3, LimiteCredito = limite };
+
+            var resposta = await CriarService().AdicionarAutorizadoAsync(1, request, 1);
+
+            resposta.Situacao.Should().Be("Pendente");
+            _pessoaRepository.Verify(x => x.AddAsync(It.IsAny<PessoaAutorizada>()), Times.Once);
         }
     }
 }

@@ -45,7 +45,7 @@ namespace ninx.Application.Services
             else
             {
                 var comprador = WebUtility.HtmlEncode(autorizado.Nome);
-                var dataTermo = termoAssinadoEm?.ToString("dd/MM/yyyy") ?? "não informada";
+                var dataTermo = termoAssinadoEm.HasValue ? HorarioBrasilia.Converter(termoAssinadoEm.Value).ToString("dd/MM/yyyy") : "não informada";
                 tokens["Html.ClausulaReconhecimento"] =
                     $"<div class=\"declaracao\">Declaro ter recebido os produtos acima descritos, adquiridos na conta de <strong>{titular}</strong> " +
                     $"na condição de pessoa autorizada no termo de abertura de conta assinado pelo titular em <strong>{dataTermo}</strong>. " +
@@ -63,11 +63,28 @@ namespace ninx.Application.Services
         {
             var tokens = BuildTokensComuns(cliente, comercio, data);
             tokens["Termo.Versao"] = versao.ToString();
+            var listaAutorizados = autorizados.ToList();
             tokens["Html.Revogacoes"] = BuildRevogacoesHtml(revogados.ToList());
+            tokens["Html.ClausulaAutorizacao"] = BuildClausulaAutorizacaoHtml(listaAutorizados.Count > 0);
             tokens["Cliente.LimiteCredito"] = $"R$ {limiteCredito:N2}";
             tokens["Comercio.DiaVencimento"] = comercio.DiaVencimentoFiado.ToString();
-            tokens["Html.TabelaAutorizados"] = BuildTabelaAutorizadosHtml(autorizados.ToList());
+            tokens["Html.TabelaAutorizados"] = BuildTabelaAutorizadosHtml(listaAutorizados);
             return tokens;
+        }
+
+        private static string BuildClausulaAutorizacaoHtml(bool haAutorizados)
+        {
+            const string substituicao =
+                "Esta versão substitui as anteriores a partir de sua assinatura; a inclusão ou a revogação de qualquer " +
+                "autorização será feita por nova versão deste termo, assinada por mim.";
+
+            // Sem ninguém na lista, "autorizo as pessoas acima relacionadas" contradiria o quadro logo acima.
+            var autorizacao = haAutorizados
+                ? "Autorizo as pessoas acima relacionadas a realizar compras a prazo em minha conta, respeitados o limite " +
+                  "da conta e, quando indicado, o limite individual de cada uma. "
+                : "";
+
+            return $"<div class=\"declaracao\">{autorizacao}{substituicao}</div>";
         }
 
         private static string BuildRevogacoesHtml(List<PessoaAutorizada> revogados)
@@ -147,7 +164,7 @@ namespace ninx.Application.Services
                 ["Cliente.Cpf"] = FormatarCpf(cliente.Cpf),
                 ["Cliente.Endereco"] = FormatarEnderecoCliente(cliente),
                 ["Cliente.Telefone"] = cliente.Telefone ?? "Não informado",
-                ["Data"] = data.ToString("dd/MM/yyyy HH:mm:ss") + " UTC",
+                ["Data"] = HorarioBrasilia.Formatar(data),
                 ["Html.BlocoAssinatura"] = BuildBlocoAssinaturaPendente()
             };
         }
@@ -236,7 +253,7 @@ namespace ninx.Application.Services
             {
                 sb.Append("<tr>");
                 sb.Append($"<td style=\"padding:5px;font-size:9pt;text-align:center;\">#{item.VendaId}</td>");
-                sb.Append($"<td style=\"padding:5px;font-size:9pt;text-align:center;\">{item.DataVenda:dd/MM/yyyy}</td>");
+                sb.Append($"<td style=\"padding:5px;font-size:9pt;text-align:center;\">{HorarioBrasilia.Converter(item.DataVenda):dd/MM/yyyy}</td>");
                 sb.Append($"<td style=\"padding:5px;font-size:9pt;text-align:right;\">R$ {item.SaldoAnterior:N2}</td>");
                 sb.Append($"<td style=\"padding:5px;font-size:9pt;text-align:right;color:#0EA5E9;\">R$ {item.ValorAbatido:N2}</td>");
                 sb.Append($"<td style=\"padding:5px;font-size:9pt;text-align:right;\">R$ {item.SaldoRestante:N2}</td>");
@@ -249,7 +266,10 @@ namespace ninx.Application.Services
 
         public static string BuildBlocoAssinaturaPendente()
         {
-            return $"{MarcadorInicio}<div class=\"bloco-assinatura\"><p style=\"font-size:9pt;color:#64748B;\">Assinatura eletrônica pendente.</p></div>{MarcadorFim}";
+            // Sem texto: este bloco é gravado no PDF na emissão e permanece no arquivo assinado, então
+            // qualquer "pendente" ficaria impresso sob uma assinatura já feita. A linha em branco basta
+            // antes de assinar, e depois valem o traço e a página de certificado.
+            return $"{MarcadorInicio}<div class=\"bloco-assinatura\"></div>{MarcadorFim}";
         }
 
         /// <summary>
@@ -268,8 +288,10 @@ namespace ninx.Application.Services
             sb.Append("<table style=\"width:100%;border-collapse:collapse;\">");
             sb.Append(Linha("Documento", assinatura.TipoDocumento?.ToString()));
             sb.Append(Linha("Identificador", assinatura.DocumentoGuid.ToString()));
-            sb.Append(Linha("Emitido em", assinatura.CriadoEm.ToString("dd/MM/yyyy HH:mm:ss") + " UTC"));
-            sb.Append(Linha("Assinado em", assinatura.DataAssinatura?.ToString("dd/MM/yyyy HH:mm:ss") + " UTC (relógio do servidor)"));
+            sb.Append(Linha("Emitido em", HorarioBrasilia.Formatar(assinatura.CriadoEm)));
+            sb.Append(Linha("Assinado em", assinatura.DataAssinatura.HasValue
+                ? HorarioBrasilia.Formatar(assinatura.DataAssinatura.Value) + " - relógio do servidor"
+                : null));
             sb.Append(Linha("IP de origem", assinatura.IpAssinante));
             sb.Append(Linha("Dispositivo", assinatura.DispositivoInfo));
             sb.Append(Linha("SHA-256 do documento apresentado", assinatura.HashDocumentoOriginal));
