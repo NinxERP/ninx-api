@@ -147,7 +147,15 @@ namespace ninx.Application.Services
         public async Task<IEnumerable<ClienteResponse>> GetByNomeAsync(string Nome, int comercioId)
         {
             var clientes = await _clienteRepository.GetByNomeAsync(Nome, comercioId);
-            return clientes.Adapt<IEnumerable<ClienteResponse>>();
+            var resposta = clientes.Adapt<List<ClienteResponse>>();
+
+            // O PDV usa esta busca para mostrar a dívida no momento de conceder crédito; sem o
+            // saldo aqui, o selo "Deve R$ x" nunca aparecia.
+            var saldos = await _vendaRepository.GetSaldoDevedorClientesPorComercio(comercioId);
+            foreach (var cliente in resposta)
+                cliente.SaldoDevedor = saldos.GetValueOrDefault(cliente.ClienteID);
+
+            return resposta;
         }
     }
 }

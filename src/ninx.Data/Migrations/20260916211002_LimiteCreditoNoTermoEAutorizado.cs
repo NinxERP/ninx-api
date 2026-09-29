@@ -47,7 +47,7 @@ namespace ninx.Data.Migrations
         }
 
         // O limite da pessoa autorizada deixou de ser por compra e passou a ser acumulado.
-        private static readonly string TemplateNovo = ContaFiadoTermoAberturaAutorizados.TemplateTermoAbertura
+        internal static readonly string TemplateNovo = ContaFiadoTermoAberturaAutorizados.TemplateTermoAbertura
             .Replace("respeitado o limite por compra", "respeitado o limite de crédito individual");
     }
 }

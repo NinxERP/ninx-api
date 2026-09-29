@@ -37,7 +37,7 @@ namespace ninx.Tests.Services
         {
             // Por padrão, todo cliente tem termo de abertura assinado; os testes da regra do termo sobrescrevem.
             _termoAberturaRepository.Setup(x => x.GetAtivoAsync(It.IsAny<int>()))
-                .ReturnsAsync((int clienteId) => new TermoAberturaConta { TermoAberturaID = 1, ClienteID = clienteId, Status = StatusTermoAbertura.Ativo, AssinadoEm = new DateTime(2026, 9, 1) });
+                .ReturnsAsync((int clienteId) => new TermoAberturaConta { TermoAberturaID = 1, ClienteID = clienteId, Status = StatusTermoAbertura.Ativo, AssinadoEm = new DateTime(2026, 9, 1, 15, 0, 0) });
         }
 
         private VendaService CriarService() => new(
@@ -775,6 +775,24 @@ namespace ninx.Tests.Services
             var act = async () => await CriarService().CriarAsync(request);
 
             await act.Should().ThrowAsync<BadRequestException>();
+        }
+    
+        [Fact]
+        public async Task CriarAsync_CompraDoDependenteAcimaDoLimiteDaConta_DeveLancarBadRequest()
+        {
+            // o dependente tem R$ 300 de limite, mas a conta do titular só comporta R$ 100
+            var request = PrepararVendaFiado(precoProduto: 10m, quantidade: 15); // R$ 150
+            request.PessoaAutorizadaID = 7;
+            _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCliente(1, 1, limiteCredito: 100m));
+            _pessoaAutorizadaRepository.Setup(x => x.GetDoClienteAsync(7, 1)).ReturnsAsync(new PessoaAutorizada
+            {
+                PessoaAutorizadaID = 7, ClienteID = 1, Nome = "João", Parentesco = ParentescoAutorizado.Filho,
+                LimiteCredito = 300m, AutorizadaEm = new DateTime(2026, 9, 1)
+            });
+
+            var act = async () => await CriarService().CriarAsync(request);
+
+            (await act.Should().ThrowAsync<BadRequestException>()).WithMessage("*Limite excedido*");
         }
     }
 }

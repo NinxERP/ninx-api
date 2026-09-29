@@ -61,6 +61,8 @@ namespace ninx.Application.Services
         public async Task<ContaFiadoResponse> ObterAsync(int clienteId, int comercioId)
         {
             var cliente = await GetClienteDoComercioAsync(clienteId, comercioId);
+            var saldoConta = await SaldoDaContaAsync(clienteId, comercioId);
+            var disponivelConta = cliente.LimiteCredito - saldoConta;
 
             var termos = await _termoRepository.GetPorClienteAsync(clienteId);
             var guids = await _assinaturaRepository.GetGuidsPorTermosAberturaAsync(termos.Select(t => t.TermoAberturaID).ToList());
@@ -74,12 +76,14 @@ namespace ninx.Application.Services
                 ClienteID = clienteId,
                 TermoAtivo = ativo != null,
                 LimiteCredito = cliente.LimiteCredito,
+                SaldoDevedor = saldoConta,
+                LimiteDisponivel = disponivelConta,
                 LimitePendente = pendente != null && pendente.LimiteCredito != cliente.LimiteCredito ? pendente.LimiteCredito : null,
                 TermoAssinadoEm = ativo?.AssinadoEm,
                 DocumentoGuidTermoAtivo = ativo != null && guids.TryGetValue(ativo.TermoAberturaID, out var guidAtivo) ? guidAtivo : null,
                 DocumentoGuidTermoPendente = pendente != null && guids.TryGetValue(pendente.TermoAberturaID, out var guidPendente) ? guidPendente : null,
                 PrecisaNovoTermo = ativo == null || autorizados.Any(p => !p.RevogadaEm.HasValue && (!p.AutorizadaEm.HasValue || p.RevogacaoSolicitadaEm.HasValue)),
-                Autorizados = autorizados.Select(p => ParaResponse(p, saldos.GetValueOrDefault(p.PessoaAutorizadaID))).ToList(),
+                Autorizados = autorizados.Select(p => ParaResponse(p, saldos.GetValueOrDefault(p.PessoaAutorizadaID), disponivelConta)).ToList(),
                 Termos = termos.Select(t => new TermoAberturaResumoResponse
                 {
                     Versao = t.Versao,
@@ -94,7 +98,14 @@ namespace ninx.Application.Services
 
         public async Task<PessoaAutorizadaResponse> AdicionarAutorizadoAsync(int clienteId, PessoaAutorizadaRequest request, int comercioId)
         {
-            await GetClienteDoComercioAsync(clienteId, comercioId);
+            var cliente = await GetClienteDoComercioAsync(clienteId, comercioId);
+
+            // O limite da pessoa é um pedaço do limite da conta: as compras dela abatem o do titular,
+            // então um limite individual maior que o da conta nunca poderia ser usado.
+            if (request.LimiteCredito.HasValue && request.LimiteCredito.Value > cliente.LimiteCredito)
+                throw new BadRequestException(
+                    $"O limite de {request.Nome.Trim()} (R$ {request.LimiteCredito.Value:N2}) não pode passar do limite da conta " +
+                    $"(R$ {cliente.LimiteCredito:N2}), porque as compras dela abatem o limite do titular.");
 
             var pessoa = new PessoaAutorizada
             {
@@ -109,7 +120,8 @@ namespace ninx.Application.Services
 
             await _pessoaAutorizadaRepository.AddAsync(pessoa);
             await _unitOfWork.SaveChangesAsync();
-            return ParaResponse(pessoa, 0);
+            var disponivelConta = cliente.LimiteCredito - await SaldoDaContaAsync(clienteId, comercioId);
+            return ParaResponse(pessoa, 0, disponivelConta);
         }
 
         public async Task RevogarAutorizadoAsync(int clienteId, int pessoaAutorizadaId, int comercioId)
@@ -252,7 +264,10 @@ namespace ninx.Application.Services
                 ?? throw new NotFoundException("Cliente não encontrado.");
         }
 
-        private static PessoaAutorizadaResponse ParaResponse(PessoaAutorizada p, decimal saldoDevedor) => new()
+        private async Task<decimal> SaldoDaContaAsync(int clienteId, int comercioId) =>
+            (await _vendaRepository.GetSaldoDevedorClientesPorComercio(comercioId)).GetValueOrDefault(clienteId);
+
+        private static PessoaAutorizadaResponse ParaResponse(PessoaAutorizada p, decimal saldoDevedor, decimal disponivelConta) => new()
         {
             PessoaAutorizadaID = p.PessoaAutorizadaID,
             Nome = p.Nome,
@@ -261,7 +276,7 @@ namespace ninx.Application.Services
             MenorDeIdade = p.MenorDeIdade,
             LimiteCredito = p.LimiteCredito,
             SaldoDevedor = saldoDevedor,
-            SaldoDisponivel = p.LimiteCredito.HasValue ? p.LimiteCredito.Value - saldoDevedor : null,
+            SaldoDisponivel = Math.Min(p.LimiteCredito.HasValue ? p.LimiteCredito.Value - saldoDevedor : disponivelConta, disponivelConta),
             CriadoEm = p.CriadoEm,
             AutorizadaEm = p.AutorizadaEm,
             RevogacaoSolicitadaEm = p.RevogacaoSolicitadaEm,

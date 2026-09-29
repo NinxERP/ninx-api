@@ -146,7 +146,21 @@ namespace ninx.Tests.Services
 
             response.Data.Should().ContainSingle(c => c.SaldoDevedor == 42.5m);
         }
-    
+
+        [Fact]
+        public async Task GetByNomeAsync_DevePopularSaldoDevedor_ESaldoZeroParaQuemNaoDeve()
+        {
+            _clienteRepository.Setup(x => x.GetByNomeAsync("cli", 1))
+                .ReturnsAsync(new List<Cliente> { Builders.NovoCliente(1, 1), Builders.NovoCliente(2, 1) });
+            _vendaRepository.Setup(x => x.GetSaldoDevedorClientesPorComercio(1))
+                .ReturnsAsync(new Dictionary<int, decimal> { { 1, 42.5m } });
+
+            var response = (await CriarService().GetByNomeAsync("cli", 1)).ToList();
+
+            response.Single(c => c.ClienteID == 1).SaldoDevedor.Should().Be(42.5m);
+            response.Single(c => c.ClienteID == 2).SaldoDevedor.Should().Be(0m);
+        }
+
         private static ClienteRequest RequestEdicao(decimal limite) => new()
         {
             Nome = "Cliente Editado",
