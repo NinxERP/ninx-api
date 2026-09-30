@@ -185,7 +185,7 @@ namespace ninx.Tests.Services
 
             await CriarService().GerarTermoAberturaAsync(1, 1);
 
-            tokens!["Html.ClausulaAutorizacao"].Should().Contain("Autorizo as pessoas").And.Contain("Esta versão substitui");
+            tokens!["Html.ClausulaAutorizacao"].Should().Contain("Autorizo as pessoas").And.Contain("16 (dezesseis) anos").And.Contain("Esta versão substitui");
         }
 
         [Fact]
