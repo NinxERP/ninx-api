@@ -1,11 +1,13 @@
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using ninx.Data.Context;
 using ninx.Domain.Entities;
+using ninx.Domain.Enums;
 using Xunit;
 
 namespace ninx.Tests.Integration
@@ -123,6 +125,66 @@ namespace ninx.Tests.Integration
 
             nomes.Should().NotContain("Cliente Exclusivo do Comércio B");
             nomes.Should().Contain("Cliente do Comércio A");
+        }
+
+        [Fact]
+        public async Task UsuarioDoComercioA_NaoDeveEstornarNemReceberPagamentoDeVendaDoComercioB()
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<NinxDB>();
+            db.Database.EnsureCreated();
+
+            var (usuarioA, cargoA, comercioA, _) = IntegrationTestHelpers.SeedComercioComUsuario(
+                db, emailUsuario: "tenantA-venda@teste.com", nomeComercio: "Comércio A Venda");
+            var (usuarioB, _, comercioB, _) = IntegrationTestHelpers.SeedComercioComUsuario(
+                db, emailUsuario: "tenantB-venda@teste.com", nomeComercio: "Comércio B Venda");
+
+            var clienteB = new Cliente
+            {
+                ComercioID = comercioB.ComercioID,
+                Nome = "Devedor do Comércio B",
+                Cpf = "52998224725",
+                EnderecoLogradouro = "Rua B",
+                EnderecoNumero = "3",
+                EnderecoBairro = "Bairro B",
+                EnderecoCidade = "Cidade B",
+                EnderecoUF = "SP",
+                EnderecoCEP = "01000000",
+                LimiteCredito = 500m,
+                Ativo = true
+            };
+            db.Clientes.Add(clienteB);
+            db.SaveChanges();
+
+            var vendaB = new Venda
+            {
+                ComercioID = comercioB.ComercioID,
+                UsuarioID = usuarioB.UsuarioID,
+                ClienteID = clienteB.ClienteID,
+                Total = 50m,
+                TipoVenda = TipoVenda.Fiado,
+                Status = StatusVenda.Aberta
+            };
+            db.Vendas.Add(vendaB);
+            db.SaveChanges();
+
+            var tokenA = IntegrationTestHelpers.GerarTokenPara(_factory, usuarioA, cargoA, comercioA.ComercioID, comercioA.NomeComercio);
+            var client = _factory.CreateClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenA);
+            var pagamento = new { valorPago = 10m, formaPagamento = (int)FormaPagamento.Dinheiro };
+
+            var estorno = await client.PostAsync($"/api/Venda/{vendaB.VendaID}/estorno", null);
+            var parcial = await client.PostAsJsonAsync($"/api/Venda/{vendaB.VendaID}/pagamento-fiado", pagamento);
+            var geral = await client.PostAsJsonAsync($"/api/Venda/cliente/{clienteB.ClienteID}/pagamento-geral-fiado", pagamento);
+
+            estorno.StatusCode.Should().Be(HttpStatusCode.NotFound, "a venda é do comércio B");
+            parcial.StatusCode.Should().Be(HttpStatusCode.NotFound, "a venda é do comércio B");
+            geral.StatusCode.Should().Be(HttpStatusCode.NotFound, "o cliente é do comércio B");
+
+            using var verificacao = _factory.Services.CreateScope();
+            var dbVerificacao = verificacao.ServiceProvider.GetRequiredService<NinxDB>();
+            dbVerificacao.Vendas.Single(v => v.VendaID == vendaB.VendaID).Status.Should().Be(StatusVenda.Aberta);
+            dbVerificacao.PagamentoVendas.Count(p => p.VendaID == vendaB.VendaID).Should().Be(0);
         }
     }
 }

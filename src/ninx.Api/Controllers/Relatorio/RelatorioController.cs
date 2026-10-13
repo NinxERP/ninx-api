@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ninx.Application.Services;
 using ninx.Communication;
+using ninx.Domain.Constants;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace ninx.Api.Controllers
@@ -17,11 +18,19 @@ namespace ninx.Api.Controllers
     public class RelatorioController : NinxControllerBase
     {
         private readonly IRelatorioService _relatorioService;
+        private readonly IAutorizacaoCargoService _autorizacaoCargoService;
 
-        public RelatorioController(IRelatorioService relatorioService)
+        public RelatorioController(IRelatorioService relatorioService, IAutorizacaoCargoService autorizacaoCargoService)
         {
             _relatorioService = relatorioService;
+            _autorizacaoCargoService = autorizacaoCargoService;
         }
+
+        // A interface esconde os relatórios de quem não tem a permissão; a API confere de novo,
+        // para que a regra não dependa só da interface.
+        private void GarantirAcessoRelatorios() =>
+            _autorizacaoCargoService.GarantirPermissao(GetAdmin(), GetCargoEhProprietario(), GetCargoPermissoes(),
+                PermissaoConstantes.VisualizarRelatorios, "Você não tem permissão para visualizar relatórios.");
 
         /// <summary>
         /// Retorna os indicadores do dashboard do comércio.
@@ -35,6 +44,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetDashboard([FromQuery] RelatorioDashboardRequest request)
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetDashboardAsync(comercioId, request);
             return Ok(result);
@@ -52,6 +62,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetCurvaAbc([FromQuery] RelatorioDashboardRequest request)
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetCurvaAbcAsync(comercioId, request);
             return Ok(result);
@@ -69,6 +80,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetMargem([FromQuery] RelatorioDashboardRequest request)
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetMargemAsync(comercioId, request);
             return Ok(result);
@@ -83,6 +95,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(RelatorioAgingResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAgingRecebiveis()
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetAgingRecebiveisAsync(comercioId);
             return Ok(result);
@@ -100,6 +113,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetDesempenhoVendedores([FromQuery] RelatorioDashboardRequest request)
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetDesempenhoVendedoresAsync(comercioId, request);
             return Ok(result);
@@ -117,6 +131,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetPicoVendas([FromQuery] RelatorioDashboardRequest request)
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetPicoVendasAsync(comercioId, request);
             return Ok(result);
@@ -134,6 +149,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetClientesInativos([FromQuery] RelatorioClientesInativosRequest request)
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetClientesInativosAsync(comercioId, request);
             return Ok(result);
@@ -148,6 +164,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(List<ClienteLimiteCreditoResumo>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetUsoLimiteCredito()
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetUsoLimiteCreditoAsync(comercioId);
             return Ok(result);
@@ -165,6 +182,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetGiroEstoque([FromQuery] RelatorioDashboardRequest request)
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetGiroEstoqueAsync(comercioId, request);
             return Ok(result);
@@ -182,6 +200,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetProdutosVencendo([FromQuery] RelatorioProdutosVencendoRequest request)
         {
+            GarantirAcessoRelatorios();
             var comercioId = GetComercioId();
             var result = await _relatorioService.GetProdutosVencendoAsync(comercioId, request);
             return Ok(result);
@@ -199,6 +218,7 @@ namespace ninx.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetComparativoComercios([FromQuery] RelatorioDashboardRequest request)
         {
+            GarantirAcessoRelatorios();
             var usuarioId = GetUsuarioId();
             var result = await _relatorioService.GetComparativoComerciosAsync(usuarioId, request);
             return Ok(result);

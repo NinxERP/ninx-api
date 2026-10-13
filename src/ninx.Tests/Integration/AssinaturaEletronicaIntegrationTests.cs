@@ -23,6 +23,11 @@ namespace ninx.Tests.Integration
             _factory = factory;
         }
 
+        private static readonly List<TracoAssinaturaRequest> Tracos = new()
+        {
+            new() { Pagina = 1, Espessura = 1.5, Pontos = new() { new() { X = 0.1, Y = 0.8 }, new() { X = 0.3, Y = 0.85 } } }
+        };
+
         private (NinxDB Db, Venda Venda, AssinaturaEletronica Assinatura) Seed(string sufixo)
         {
             using var scope = _factory.Services.CreateScope();
@@ -48,7 +53,9 @@ namespace ninx.Tests.Integration
                 DocumentoGuid = Guid.NewGuid(),
                 TipoDocumento = TipoDocumento.TermoCompromisso,
                 DocumentoHtmlMesclado = "<html><!--BLOCO_ASSINATURA_INICIO--><!--BLOCO_ASSINATURA_FIM--></html>",
-                DocumentoOriginalBase64 = "base64",
+                // O servidor desenha a assinatura sobre este PDF, então precisa ser um PDF de verdade.
+                DocumentoOriginalBase64 = new ninx.Application.Services.DocumentoRendererService(null!)
+                    .ConverterParaPdfBase64Async("<p>termo de compromisso</p>").Result,
                 Assinado = false,
                 Status = StatusAssinatura.Ativa
             };
@@ -98,17 +105,46 @@ namespace ninx.Tests.Integration
             var (_, venda, assinatura) = Seed("confirmar");
             var client = _factory.CreateClient();
 
-            // O servidor anexa a página de certificado ao PDF recebido, então precisa ser um PDF de verdade.
-            var pdfAssinado = await new ninx.Application.Services.DocumentoRendererService(null!).ConverterParaPdfBase64Async("<p>documento assinado</p>");
-
             var confirmar = await client.PostAsJsonAsync(
                 $"/api/AssinaturaEletronica/confirmar/{assinatura.DocumentoGuid}",
-                new ConfirmarAssinaturaEletronicaRequest { ImagemBase64 = pdfAssinado });
+                new ConfirmarAssinaturaEletronicaRequest { Tracos = Tracos });
 
             confirmar.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var validar = await client.GetAsync($"/api/AssinaturaEletronica/assinado/{assinatura.DocumentoGuid}");
             validar.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        [Fact]
+        public async Task ConfirmarAssinatura_TracoEmPaginaInexistente_DeveRetornar400SemAssinar()
+        {
+            var (_, _, assinatura) = Seed("pagina-inexistente");
+            var client = _factory.CreateClient();
+            var tracos = new List<TracoAssinaturaRequest>
+            {
+                new() { Pagina = 9, Espessura = 1.5, Pontos = new() { new() { X = 0.1, Y = 0.1 }, new() { X = 0.2, Y = 0.2 } } }
+            };
+
+            var confirmar = await client.PostAsJsonAsync(
+                $"/api/AssinaturaEletronica/confirmar/{assinatura.DocumentoGuid}",
+                new ConfirmarAssinaturaEletronicaRequest { Tracos = tracos });
+
+            confirmar.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            var validar = await client.GetAsync($"/api/AssinaturaEletronica/assinado/{assinatura.DocumentoGuid}");
+            validar.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
+        public async Task ConfirmarAssinatura_SemTracos_DeveRetornar400()
+        {
+            var (_, _, assinatura) = Seed("sem-tracos");
+            var client = _factory.CreateClient();
+
+            var confirmar = await client.PostAsJsonAsync(
+                $"/api/AssinaturaEletronica/confirmar/{assinatura.DocumentoGuid}",
+                new ConfirmarAssinaturaEletronicaRequest());
+
+            confirmar.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         }
 
         [Fact]
@@ -118,7 +154,7 @@ namespace ninx.Tests.Integration
 
             var response = await client.PostAsJsonAsync(
                 $"/api/AssinaturaEletronica/confirmar/{Guid.NewGuid()}",
-                new ConfirmarAssinaturaEletronicaRequest { ImagemBase64 = "QXNzaW5hdHVyYURlVGVzdGU=" });
+                new ConfirmarAssinaturaEletronicaRequest { Tracos = Tracos });
 
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }

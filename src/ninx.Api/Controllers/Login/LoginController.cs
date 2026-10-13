@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ninx.Application.Services;
 using ninx.Communication;
 using Swashbuckle.AspNetCore.Annotations;
@@ -29,6 +30,7 @@ namespace ninx.Api.Controllers
         /// <response code="400">Credenciais inválidas.</response>
         [HttpPost]
         [AllowAnonymous]
+        [EnableRateLimiting("Login")]
         [SwaggerOperation(Summary = "Login", Description = "Valida as credenciais do usuário e retorna o token JWT usado nos demais endpoints.")]
         [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]

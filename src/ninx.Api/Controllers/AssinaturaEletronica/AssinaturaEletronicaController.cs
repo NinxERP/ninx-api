@@ -70,7 +70,7 @@ namespace ninx.Api.Controllers
         [AllowAnonymous]
         [EnableRateLimiting("AssinaturaPublicaConfirmacao")]
         [HttpPost("confirmar/{guid}")]
-        [RequestSizeLimit(20_000_000)]
+        [RequestSizeLimit(2_000_000)]
         [SwaggerOperation(Summary = "Confirmar assinatura", Description = "Registra a assinatura do assinante para o documento informado, junto com IP e dispositivo de origem.")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -84,7 +84,7 @@ namespace ninx.Api.Controllers
 
             await _assinaturaService.ConfirmarAssinaturaAsync(
                 guid,
-                request.ImagemBase64,
+                request.Tracos,
                 ip ?? "IP não identificado",
                 dispositivo);
 

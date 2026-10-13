@@ -35,6 +35,9 @@ namespace ninx.Data.Mappings
 
             builder.HasIndex(x => x.TipoDocumento)
                 .IsUnique();
+
+            builder.ToTable(t => t.HasCheckConstraint("CK_DocumentosTemplate_TipoDocumento",
+                "[TipoDocumento] IN ('TermoCompromisso', 'ReciboPagamentoParcial', 'ReciboQuitacaoGlobal', 'TermoAberturaConta')"));
         }
     }
 }

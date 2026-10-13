@@ -66,6 +66,45 @@ namespace ninx.Tests.Integration
         }
 
         [Fact]
+        public async Task CriarVenda_ComVinculoDesativado_DeveSerRecusadaSemBaixarEstoque()
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<NinxDB>();
+            db.Database.EnsureCreated();
+            var (usuario, cargo, comercio, vinculo) = IntegrationTestHelpers.SeedComercioComUsuario(db, emailUsuario: "venda-vinculo-inativo@teste.com");
+
+            var produto = new Produto { ComercioID = comercio.ComercioID, Nome = "Produto Vínculo", PrecoVenda = 10m, Ativo = true };
+            db.Produtos.Add(produto);
+            db.SaveChanges();
+            db.Estoques.Add(new Estoque { ComercioID = comercio.ComercioID, ProdutoID = produto.ProdutoID, Quantidade = 20, RowVersion = new byte[] { 1 } });
+            vinculo.Ativo = false;
+            db.SaveChanges();
+
+            // O token foi emitido antes de o vínculo ser desativado.
+            var token = IntegrationTestHelpers.GerarTokenPara(_factory, usuario, cargo, comercio.ComercioID, comercio.NomeComercio);
+            var client = _factory.CreateClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var request = new CriarVendaRequest
+            {
+                ClienteID = 0,
+                TipoVenda = 1,
+                ItensVenda = new List<ItemVendaRequest> { new() { ProdutoID = produto.ProdutoID, Quantidade = 1 } },
+                Pagamentos = new List<PagamentoVendaRequest> { new() { FormaPagamento = 1, Valor = 10m } }
+            };
+
+            var response = await client.PostAsJsonAsync("/api/Venda", request);
+
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            var erro = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+            erro.GetProperty("messagem").GetString().Should().Contain("não tem permissão para acessar este comércio");
+
+            using var scopeVerificacao = _factory.Services.CreateScope();
+            var dbVerificacao = scopeVerificacao.ServiceProvider.GetRequiredService<NinxDB>();
+            dbVerificacao.Estoques.First(e => e.ProdutoID == produto.ProdutoID).Quantidade.Should().Be(20);
+        }
+
+        [Fact]
         public async Task CriarVenda_SemAutenticacao_DeveRetornar401()
         {
             var client = _factory.CreateClient();

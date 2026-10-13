@@ -113,6 +113,8 @@ namespace ninx.Data.Migrations
                             t.HasCheckConstraint("CK_AssinaturasEletronicas_Dono", "([VendaID] IS NOT NULL AND [TermoAberturaID] IS NULL) OR ([VendaID] IS NULL AND [TermoAberturaID] IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_AssinaturasEletronicas_Status", "[Status] IN ('Ativa', 'Vencida', 'Cancelada')");
+
+                            t.HasCheckConstraint("CK_AssinaturasEletronicas_TipoDocumento", "[TipoDocumento] IS NULL OR [TipoDocumento] IN ('TermoCompromisso', 'ReciboPagamentoParcial', 'ReciboQuitacaoGlobal', 'TermoAberturaConta')");
                         });
                 });
 
@@ -485,7 +487,10 @@ namespace ninx.Data.Migrations
                     b.HasIndex("TipoDocumento")
                         .IsUnique();
 
-                    b.ToTable("DocumentosTemplate", (string)null);
+                    b.ToTable("DocumentosTemplate", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DocumentosTemplate_TipoDocumento", "[TipoDocumento] IN ('TermoCompromisso', 'ReciboPagamentoParcial', 'ReciboQuitacaoGlobal', 'TermoAberturaConta')");
+                        });
                 });
 
             modelBuilder.Entity("ninx.Domain.Entities.Estoque", b =>

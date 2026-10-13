@@ -5,37 +5,34 @@ namespace ninx.Application.Validators.Request
 {
     public class ConfirmarAssinaturaEletronicaRequestValidator : AbstractValidator<ConfirmarAssinaturaEletronicaRequest>
     {
+        private const int MaxPontos = 20_000;
+
         public ConfirmarAssinaturaEletronicaRequestValidator()
         {
-            RuleFor(x => x.ImagemBase64)
-                .NotEmpty().WithMessage("Imagem em base64 é obrigatória.")
-                .Must(ValidarBase64).WithMessage("Imagem inválida ou não está em formato base64.");
+            RuleFor(x => x.Tracos)
+                .NotNull().WithMessage("A assinatura Ã© obrigatÃ³ria.")
+                .Must(t => t != null && t.Any(traco => traco.Pontos?.Count >= 2)).WithMessage("A assinatura Ã© obrigatÃ³ria.")
+                .Must(t => t == null || t.Sum(traco => traco.Pontos?.Count ?? 0) <= MaxPontos).WithMessage("A assinatura tem pontos demais.");
+
+            RuleForEach(x => x.Tracos).ChildRules(traco =>
+            {
+                traco.RuleFor(t => t.Pagina).GreaterThanOrEqualTo(1).WithMessage("PÃ¡gina invÃ¡lida.");
+                traco.RuleFor(t => t.Espessura).InclusiveBetween(0.5, 10).WithMessage("Espessura do traÃ§o invÃ¡lida.");
+                traco.RuleFor(t => t.Pontos).NotNull().WithMessage("TraÃ§o sem pontos.");
+                traco.RuleForEach(t => t.Pontos).ChildRules(ponto =>
+                {
+                    ponto.RuleFor(p => p.X).InclusiveBetween(0, 1).WithMessage("Ponto fora da pÃ¡gina.");
+                    ponto.RuleFor(p => p.Y).InclusiveBetween(0, 1).WithMessage("Ponto fora da pÃ¡gina.");
+                });
+            });
 
             RuleFor(x => x.Latitude)
-                .GreaterThanOrEqualTo(-90).WithMessage("Latitude inválida.")
-                .LessThanOrEqualTo(90).WithMessage("Latitude inválida.")
+                .InclusiveBetween(-90, 90).WithMessage("Latitude invÃ¡lida.")
                 .When(x => x.Latitude.HasValue);
 
             RuleFor(x => x.Longitude)
-                .GreaterThanOrEqualTo(-180).WithMessage("Longitude inválida.")
-                .LessThanOrEqualTo(180).WithMessage("Longitude inválida.")
+                .InclusiveBetween(-180, 180).WithMessage("Longitude invÃ¡lida.")
                 .When(x => x.Longitude.HasValue);
-        }
-
-        private bool ValidarBase64(string base64String)
-        {
-            if (string.IsNullOrEmpty(base64String))
-                return false;
-
-            try
-            {
-                Convert.FromBase64String(base64String);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 }
