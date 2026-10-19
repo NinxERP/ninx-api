@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using ninx.Application.Services;
+using ninx.Communication;
 using ninx.Domain.Entities;
 using ninx.Domain.Enums;
 using ninx.Domain.Exceptions;
@@ -19,8 +20,18 @@ namespace ninx.Tests.Services
         private readonly Mock<IVendaService> _vendaService = new();
         private readonly Mock<IContaFiadoService> _contaFiadoService = new();
 
-        // A confirmação recebe o PDF assinado em base64 (validado pelo request validator).
+        // O portal envia só os traços; o renderer (mockado) devolve o original com a assinatura desenhada.
+        private static readonly List<TracoAssinaturaRequest> Tracos = new()
+        {
+            new() { Pagina = 1, Espessura = 1.5, Pontos = new() { new() { X = 0.1, Y = 0.8 }, new() { X = 0.3, Y = 0.85 } } }
+        };
         private static readonly string DocumentoAssinadoBase64 = Convert.ToBase64String("%PDF-1.7 documento assinado"u8.ToArray());
+
+        public AssinaturaEletronicaServiceTests()
+        {
+            _documentoRendererService.Setup(x => x.AplicarTracosAssinatura(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<TracoAssinaturaRequest>>()))
+                .Returns(DocumentoAssinadoBase64);
+        }
 
         private AssinaturaEletronicaService CriarService() => new(
             _assinaturaRepository.Object,
@@ -36,7 +47,7 @@ namespace ninx.Tests.Services
             _assinaturaRepository.Setup(x => x.GetAllByGuidAsync(It.IsAny<Guid>())).ReturnsAsync(new List<AssinaturaEletronica>());
             var service = CriarService();
 
-            var act = async () => await service.ConfirmarAssinaturaAsync(Guid.NewGuid(), "img", "1.1.1.1", "device");
+            var act = async () => await service.ConfirmarAssinaturaAsync(Guid.NewGuid(), Tracos, "1.1.1.1", "device");
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
@@ -50,7 +61,7 @@ namespace ninx.Tests.Services
 
             var service = CriarService();
 
-            var act = async () => await service.ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, "img", "1.1.1.1", "device");
+            var act = async () => await service.ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, Tracos, "1.1.1.1", "device");
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -64,7 +75,7 @@ namespace ninx.Tests.Services
 
             var service = CriarService();
 
-            var act = async () => await service.ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, "img", "1.1.1.1", "device");
+            var act = async () => await service.ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, Tracos, "1.1.1.1", "device");
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -84,7 +95,7 @@ namespace ninx.Tests.Services
 
             var service = CriarService();
 
-            var act = async () => await service.ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, DocumentoAssinadoBase64, "1.1.1.1", "device");
+            var act = async () => await service.ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, Tracos, "1.1.1.1", "device");
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -100,8 +111,9 @@ namespace ninx.Tests.Services
             _documentoRendererService.Setup(x => x.AnexarPdfBase64(DocumentoAssinadoBase64, "pdf")).Returns("assinado+certificado");
 
             var service = CriarService();
-            await service.ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, DocumentoAssinadoBase64, "1.1.1.1", "device");
+            await service.ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, Tracos, "1.1.1.1", "device");
 
+            _documentoRendererService.Verify(x => x.AplicarTracosAssinatura(assinatura.DocumentoOriginalBase64, Tracos), Times.Once);
             assinatura.Assinado.Should().BeTrue();
             assinatura.ImagemAssinatura.Should().Be(DocumentoAssinadoBase64);
             assinatura.HashDocumentoAssinado.Should().Be(HashDocumento.Sha256Hex(DocumentoAssinadoBase64)).And.HaveLength(64);
@@ -125,7 +137,7 @@ namespace ninx.Tests.Services
             _documentoRendererService.Setup(x => x.AnexarPdfBase64(DocumentoAssinadoBase64, "pdf")).Returns("assinado+certificado");
 
             var service = CriarService();
-            await service.ConfirmarAssinaturaAsync(guid, DocumentoAssinadoBase64, "1.1.1.1", "device");
+            await service.ConfirmarAssinaturaAsync(guid, Tracos, "1.1.1.1", "device");
 
             assinatura1.Assinado.Should().BeTrue();
             assinatura2.Assinado.Should().BeTrue();
@@ -144,38 +156,11 @@ namespace ninx.Tests.Services
             _documentoRendererService.Setup(x => x.ConverterParaPdfBase64Async(It.IsAny<string>())).ReturnsAsync("pdf");
             _documentoRendererService.Setup(x => x.AnexarPdfBase64(DocumentoAssinadoBase64, "pdf")).Returns("assinado+certificado");
 
-            await CriarService().ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, DocumentoAssinadoBase64, "1.1.1.1", "device");
+            await CriarService().ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, Tracos, "1.1.1.1", "device");
 
             _contaFiadoService.Verify(x => x.EfetivarTermoAssinadoAsync(assinatura, It.IsAny<DateTime>()), Times.Once);
             _vendaService.Verify(x => x.EfetivarDocumentoAssinadoAsync(It.IsAny<AssinaturaEletronica>(), It.IsAny<DateTime>()), Times.Never);
             assinatura.Assinado.Should().BeTrue();
-        }
-
-        [Fact]
-        public async Task ConfirmarAssinaturaAsync_Base64Invalido_DeveLancarBadRequest()
-        {
-            var assinatura = Builders.NovaAssinatura();
-            _assinaturaRepository.Setup(x => x.GetAllByGuidAsync(It.IsAny<Guid>()))
-                .ReturnsAsync(new List<AssinaturaEletronica> { assinatura });
-
-            var act = async () => await CriarService().ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, "isto nao e base64!", "1.1.1.1", "device");
-
-            await act.Should().ThrowAsync<BadRequestException>();
-        }
-
-        [Fact]
-        public async Task ConfirmarAssinaturaAsync_PdfQueNaoAbre_DeveLancarBadRequest()
-        {
-            var assinatura = Builders.NovaAssinatura();
-            _assinaturaRepository.Setup(x => x.GetAllByGuidAsync(It.IsAny<Guid>()))
-                .ReturnsAsync(new List<AssinaturaEletronica> { assinatura });
-            _documentoRendererService.Setup(x => x.ConverterParaPdfBase64Async(It.IsAny<string>())).ReturnsAsync("pdf");
-            _documentoRendererService.Setup(x => x.AnexarPdfBase64(It.IsAny<string>(), It.IsAny<string>())).Throws(new InvalidOperationException("PDF corrompido"));
-
-            var act = async () => await CriarService().ConfirmarAssinaturaAsync(assinatura.DocumentoGuid, DocumentoAssinadoBase64, "1.1.1.1", "device");
-
-            await act.Should().ThrowAsync<BadRequestException>();
-            _unitOfWork.Verify(x => x.SaveChangesAsync(), Times.Never);
         }
 
         [Fact]

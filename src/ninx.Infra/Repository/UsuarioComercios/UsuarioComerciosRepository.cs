@@ -40,6 +40,15 @@ namespace ninx.Infra.Repository
                 .AnyAsync(x => x.UsuarioID == usuarioId && x.ComercioID == comercioId);
         }
 
+        // Para operar no comércio, o vínculo precisa estar ativo. ExisteVinculoAsync, acima, também
+        // enxerga vínculos desativados, porque é o que o cadastro precisa para não duplicá-los.
+        public async Task<bool> ExisteVinculoAtivoAsync(int usuarioId, int comercioId)
+        {
+            return await _context.UsuarioComercio
+                .AsNoTracking()
+                .AnyAsync(x => x.UsuarioID == usuarioId && x.ComercioID == comercioId && x.Ativo);
+        }
+
         public async Task<UsuarioComercio?> GetVinculoAsync(int usuarioId, int comercioId)
         {
             return await _context.UsuarioComercio

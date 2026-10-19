@@ -1,3 +1,4 @@
+using ninx.Communication;
 using ninx.Domain.Enums;
 
 namespace ninx.Application.Services
@@ -9,5 +10,8 @@ namespace ninx.Application.Services
 
         /// <summary>Devolve um PDF com as páginas de <paramref name="pdfBase64"/> seguidas das de <paramref name="anexoPdfBase64"/>.</summary>
         string AnexarPdfBase64(string pdfBase64, string anexoPdfBase64);
+
+        /// <summary>Desenha os traços da assinatura sobre as páginas de <paramref name="pdfBase64"/>.</summary>
+        string AplicarTracosAssinatura(string pdfBase64, IReadOnlyCollection<TracoAssinaturaRequest> tracos);
     }
 }

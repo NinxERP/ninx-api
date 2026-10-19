@@ -124,7 +124,7 @@ namespace ninx.Api.Controllers
         public async Task<IActionResult> Estornar(int vendaId)
         {
             var usuarioId = GetUsuarioId();
-            await _vendaService.EstornarAsync(vendaId, usuarioId);
+            await _vendaService.EstornarAsync(vendaId, usuarioId, GetComercioId());
             return NoContent();
         }
 
@@ -148,6 +148,7 @@ namespace ninx.Api.Controllers
             var response = await _vendaService.ReceberPagamentoFiadoAsync(
                 vendaId,
                 usuarioId,
+                GetComercioId(),
                 request.ValorPago,
                 request.FormaPagamento);
 
@@ -174,6 +175,7 @@ namespace ninx.Api.Controllers
             Guid documentoGuid = await _vendaService.ReceberPagamentoGeralFiadoAsync(
                 clienteId,
                 usuarioId,
+                GetComercioId(),
                 request.ValorPago,
                 request.FormaPagamento);
 

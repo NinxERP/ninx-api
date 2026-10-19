@@ -121,20 +121,21 @@ namespace ninx.Application.Services
 
             return response;
         }
-        public async Task EstornarAsync(int vendaId, int usuarioId)
+        public async Task EstornarAsync(int vendaId, int usuarioId, int comercioId)
         {
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
 
+                // Venda de outro comércio responde como inexistente, sem confirmar que o id existe.
                 var venda = await _vendaRepository.GetByIdParaEstornoAsync(vendaId);
-                if (venda == null)
+                if (venda == null || venda.ComercioID != comercioId)
                     throw new NotFoundException("Venda não encontrada.");
 
                 if (venda.Status == StatusVenda.Cancelada || venda.Status == StatusVenda.Estornada)
                     throw new BadRequestException("Esta venda já foi estornada.");
 
-                await ValidarPermissaoUsuarioComercioAsync(usuarioId, venda.ComercioID);
+                await ValidarPermissaoUsuarioComercioAsync(usuarioId, comercioId);
 
                 await ProcessarEstornoEstoqueAsync(venda, usuarioId);
 
@@ -189,7 +190,7 @@ namespace ninx.Application.Services
             throw new BadRequestException("Não foi possível processar a venda após múltiplas tentativas.");
         }
 
-        public async Task<Guid> ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, decimal valorPago, int formaPagamento)
+        public async Task<Guid> ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, int comercioId, decimal valorPago, int formaPagamento)
         {
             if (valorPago <= 0)
                 throw new BadRequestException("O valor do pagamento deve ser maior que zero.");
@@ -198,7 +199,7 @@ namespace ninx.Application.Services
                 await _unitOfWork.BeginTransactionAsync();
 
                 var venda = await _vendaRepository.GetByIdParaPagamentoFiadoAsync(vendaId);
-                if (venda == null)
+                if (venda == null || venda.ComercioID != comercioId)
                     throw new NotFoundException("Venda não encontrada.");
 
                 if (venda.TipoVenda != TipoVenda.Fiado)
@@ -210,10 +211,14 @@ namespace ninx.Application.Services
                 if (venda.Status == StatusVenda.Aguardando)
                     throw new BadRequestException("Não é possível receber pagamentos para uma venda que não foi aberta.");
 
+                // O saldo de uma venda estornada volta a ser o total; sem esta trava, o pagamento seria aceito.
+                if (venda.Status == StatusVenda.Estornada || venda.Status == StatusVenda.Cancelada)
+                    throw new BadRequestException("Não é possível receber pagamentos para uma venda estornada.");
+
                 if (await _assinaturaEletronicaRepository.ExisteAssinaturaPendenteAsync(vendaId))
                     throw new BadRequestException("Não é possível receber pagamentos para essa venda, pois ela tem assinaturas pendentes.");
 
-                await ValidarPermissaoUsuarioComercioAsync(usuarioId, venda.ComercioID);
+                await ValidarPermissaoUsuarioComercioAsync(usuarioId, comercioId);
 
                 var saldoDevedorVenda = SaldoDevedor.DaVenda(venda);
 
@@ -271,7 +276,7 @@ namespace ninx.Application.Services
             }
         }
 
-        public async Task<Guid> ReceberPagamentoGeralFiadoAsync(int clienteId, int usuarioId, decimal valorTotalPago, int formaPagamento)
+        public async Task<Guid> ReceberPagamentoGeralFiadoAsync(int clienteId, int usuarioId, int comercioId, decimal valorTotalPago, int formaPagamento)
         {
             if (valorTotalPago <= 0)
                 throw new BadRequestException("O valor do pagamento global deve ser maior que zero.");
@@ -280,7 +285,10 @@ namespace ninx.Application.Services
             {
                 await _unitOfWork.BeginTransactionAsync();
 
-                var vendasDoCliente = await _vendaRepository.GetVendasFiadoAtivasPorClienteAsync(clienteId);
+                // Só as vendas do comércio do token: cliente de outro comércio cai no "não encontrada".
+                var vendasDoCliente = (await _vendaRepository.GetVendasFiadoAtivasPorClienteAsync(clienteId))
+                    .Where(v => v.ComercioID == comercioId)
+                    .ToList();
                 
                 if (vendasDoCliente == null || !vendasDoCliente.Any())
                     throw new NotFoundException("Nenhuma venda fiada em aberto foi encontrada para este cliente.");
@@ -300,7 +308,7 @@ namespace ninx.Application.Services
                 }
 
                 var primeiraVenda = vendasDoCliente.First();
-                await ValidarPermissaoUsuarioComercioAsync(usuarioId, primeiraVenda.ComercioID);
+                await ValidarPermissaoUsuarioComercioAsync(usuarioId, comercioId);
 
                 var dataOperacao = DateTime.UtcNow;
                 var detalheAbatimentos = new List<ItemAbatimentoGlobal>();
@@ -681,15 +689,17 @@ namespace ninx.Application.Services
             if (cliente == null || cliente.ComercioID != request.ComercioID)
                 throw new NotFoundException("Cliente não encontrado.");
 
-            var saldoDevedorAtual = await CalcularSaldoDevedorAsync(request.ClienteID.Value);
+            var (saldoDevedorAtual, reservas) = await CalcularSaldoDevedorAsync(request.ClienteID.Value);
             decimal valorFiadoDestaVenda = totalVenda - totalPago;
             decimal limiteCredito = cliente.LimiteCredito;
+            decimal reservado = reservas.Sum(r => r.Valor);
 
-            if ((saldoDevedorAtual + valorFiadoDestaVenda) > limiteCredito)
+            if ((saldoDevedorAtual + reservado + valorFiadoDestaVenda) > limiteCredito)
             {
-                var limiteDisponivel = limiteCredito - saldoDevedorAtual;
+                var limiteDisponivel = limiteCredito - saldoDevedorAtual - reservado;
                 throw new BadRequestException(
-                    $"Limite excedido! O cliente já deve R$ {saldoDevedorAtual:N2}. " +
+                    $"Limite excedido! O cliente já deve R$ {saldoDevedorAtual:N2}" +
+                    (reservado > 0 ? $" e tem R$ {reservado:N2} em compras aguardando assinatura" : "") + ". " +
                     $"Disponível para esta compra: R$ {limiteDisponivel:N2}");
             }
 
@@ -712,7 +722,8 @@ namespace ninx.Application.Services
                 {
                     // O limite da pessoa é acumulado, como o da conta: conta o que ela já deve.
                     var saldos = await _vendaRepository.GetSaldoDevedorPorAutorizadoAsync(cliente.ClienteID);
-                    var jaDeve = saldos.GetValueOrDefault(autorizado.PessoaAutorizadaID);
+                    var jaDeve = saldos.GetValueOrDefault(autorizado.PessoaAutorizadaID)
+                        + reservas.Where(r => r.PessoaAutorizadaID == autorizado.PessoaAutorizadaID).Sum(r => r.Valor);
                     if (jaDeve + valorFiadoDestaVenda > autorizado.LimiteCredito.Value)
                         throw new BadRequestException(
                             $"Limite de {autorizado.Nome} excedido. Já deve R$ {jaDeve:N2} de um limite de R$ {autorizado.LimiteCredito.Value:N2}. " +
@@ -847,30 +858,46 @@ namespace ninx.Application.Services
         }
         private async Task ValidarPermissaoUsuarioComercioAsync(int usuarioId, int comercioId)
         {
-            if (!await _usuarioComercioRepository.ExisteVinculoAsync(usuarioId, comercioId))
+            if (!await _usuarioComercioRepository.ExisteVinculoAtivoAsync(usuarioId, comercioId))
                 throw new BadRequestException("Este usuário não tem permissão para acessar este comércio.");
         }
-        private async Task<decimal> CalcularSaldoDevedorAsync(int clienteId)
+        /// <summary>
+        /// Saldo devedor do cliente e, à parte, o valor das vendas a prazo ainda aguardando
+        /// assinatura. Essas vendas não são dívida, mas reservam limite: sem isso, duas
+        /// vendas pendentes, cada uma dentro do limite, o ultrapassariam juntas ao serem assinadas.
+        /// </summary>
+        private async Task<(decimal Saldo, List<(int? PessoaAutorizadaID, decimal Valor)> Reservas)> CalcularSaldoDevedorAsync(int clienteId)
         {
-            var vendasFiadoCliente = await _vendaRepository.GetVendasFiadoByClienteIDAsync(clienteId);
+            var vendasFiadoCliente = (await _vendaRepository.GetVendasFiadoByClienteIDAsync(clienteId)).ToList();
             var vendasAtivas = vendasFiadoCliente.Where(SaldoDevedor.EhVendaEmAberto).ToList();
+            var vendasAguardando = vendasFiadoCliente.Where(v => v.Status == StatusVenda.Aguardando).ToList();
 
-            if (!vendasAtivas.Any())
-                return 0m;
+            if (!vendasAtivas.Any() && !vendasAguardando.Any())
+                return (0m, new());
 
             // As vendas vêm sem os pagamentos carregados; eles são buscados à parte e
             // agrupados, mas o critério do que conta como pagamento é o da regra única.
-            var pagamentosValidos = await _pagamentoVendaRepository.GetByClienteId(clienteId);
+            var pagamentosCliente = (await _pagamentoVendaRepository.GetByClienteId(clienteId)).ToList();
 
-            var pagamentosPorVenda = pagamentosValidos
+            var pagamentosPorVenda = pagamentosCliente
                 .GroupBy(p => p.VendaID)
                 .ToDictionary(g => g.Key, g => SaldoDevedor.TotalPago(g));
 
-            return vendasAtivas.Sum(venda =>
+            var saldo = vendasAtivas.Sum(venda =>
             {
                 pagamentosPorVenda.TryGetValue(venda.VendaID, out var totalPago);
                 return venda.Total - totalPago;
             });
+
+            // Numa venda aguardando assinatura, a entrada ainda está pendente: ela já foi paga
+            // no balcão e não entra na reserva.
+            var reservas = vendasAguardando
+                .Select(venda => (venda.PessoaAutorizadaID, venda.Total - pagamentosCliente
+                    .Where(p => p.VendaID == venda.VendaID && (p.Status == StatusPagamento.Pago || p.Status == StatusPagamento.Pendente))
+                    .Sum(p => p.Valor)))
+                .ToList();
+
+            return (saldo, reservas);
         }
 
     }

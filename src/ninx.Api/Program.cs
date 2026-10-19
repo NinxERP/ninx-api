@@ -82,6 +82,17 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0
         }));
 
+    // Contra tentativa de senha por força bruta. Por IP, e não por e-mail, para não
+    // permitir que alguém bloqueie a conta de outra pessoa errando a senha dela.
+    options.AddPolicy("Login", context => RateLimitPartition.GetFixedWindowLimiter(
+        GetClientIp(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
+            Window = TimeSpan.FromMinutes(5),
+            QueueLimit = 0
+        }));
+
     // Endpoints públicos da assinatura. Os limites são folgados porque vários clientes
     // podem assinar a partir do Wi-Fi da própria loja, compartilhando o mesmo IP.
     options.AddPolicy("AssinaturaPublicaLeitura", context => RateLimitPartition.GetFixedWindowLimiter(

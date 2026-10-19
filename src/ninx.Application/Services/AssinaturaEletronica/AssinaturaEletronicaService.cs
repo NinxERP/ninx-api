@@ -53,7 +53,7 @@ namespace ninx.Application.Services
 
             return AssinaturaEletronica.Adapt<AssinaturaEletronicaResponse>();
         }
-        public async Task ConfirmarAssinaturaAsync(Guid guid, string imagemBase64, string ip, string dispositivo)
+        public async Task ConfirmarAssinaturaAsync(Guid guid, IReadOnlyCollection<TracoAssinaturaRequest> tracos, string ip, string dispositivo)
         {
             var assinaturas = await _assinaturaEletronicaRepository.GetAllByGuidAsync(guid);
             if (assinaturas.Count == 0) throw new NotFoundException("Documento não encontrado.");
@@ -63,39 +63,25 @@ namespace ninx.Application.Services
             if (primeira.Assinado) throw new BadRequestException("Este documento já foi assinado.");
             if (primeira.Status != Domain.Enums.StatusAssinatura.Ativa) throw new BadRequestException("Este documento não está mais disponível para assinatura.");
 
-            string hashRecebido;
-            try
-            {
-                hashRecebido = HashDocumento.Sha256Hex(imagemBase64)
-                    ?? throw new BadRequestException("O documento assinado não foi enviado.");
-            }
-            catch (FormatException)
-            {
-                throw new BadRequestException("O documento assinado enviado é inválido.");
-            }
+            // O cliente só envia os traços: o servidor os desenha sobre o PDF que ele mesmo gerou e
+            // exibiu, de modo que o conteúdo assinado não pode ser trocado pelo navegador.
+            var documentoAssinado = _documentoRendererService.AplicarTracosAssinatura(primeira.DocumentoOriginalBase64, tracos);
+            var hashDocumento = HashDocumento.Sha256Hex(documentoAssinado)!;
 
-            // O PDF servido ao comércio é o que o cliente assinou, sem regeneração, seguido de uma
-            // página de certificado com as evidências. Como todas as vendas do GUID compartilham o
-            // mesmo documento, o certificado é montado uma vez.
+            // O PDF servido ao comércio é o documento assinado seguido de uma página de certificado
+            // com as evidências. Como todas as vendas do GUID compartilham o mesmo documento, o
+            // certificado é montado uma vez.
             string? documentoAssinadoComCertificado = null;
             if (primeira.TipoDocumento.HasValue)
             {
-                primeira.HashDocumentoAssinado = hashRecebido;
+                primeira.HashDocumentoAssinado = hashDocumento;
                 primeira.IpAssinante = ip;
                 primeira.DispositivoInfo = dispositivo;
                 primeira.DataAssinatura = dataAssinatura;
 
                 var certificadoPdf = await _documentoRendererService.ConverterParaPdfBase64Async(
                     DocumentoTokenBuilder.BuildCertificadoAssinaturaHtml(primeira));
-                try
-                {
-                    documentoAssinadoComCertificado = _documentoRendererService.AnexarPdfBase64(imagemBase64, certificadoPdf);
-                }
-                catch (Exception ex) when (ex is not BadRequestException)
-                {
-                    // O PDF vem de fora: se não abrir, é erro de entrada, não do servidor.
-                    throw new BadRequestException("O documento assinado enviado não é um PDF válido.");
-                }
+                documentoAssinadoComCertificado = _documentoRendererService.AnexarPdfBase64(documentoAssinado, certificadoPdf);
             }
 
             // Um mesmo DocumentoGuid pode estar vinculado a mais de uma venda (ex: quitação global de fiado
@@ -109,9 +95,9 @@ namespace ninx.Application.Services
                 else
                     await _vendaService.EfetivarDocumentoAssinadoAsync(assinatura, dataAssinatura);
 
-                // ImagemAssinatura guarda o PDF exatamente como recebido: é sobre ele que o hash foi calculado.
-                assinatura.ImagemAssinatura = imagemBase64;
-                assinatura.HashDocumentoAssinado = hashRecebido;
+                // ImagemAssinatura guarda o PDF assinado, sem o certificado: é sobre ele que o hash foi calculado.
+                assinatura.ImagemAssinatura = documentoAssinado;
+                assinatura.HashDocumentoAssinado = hashDocumento;
                 assinatura.IpAssinante = ip;
                 assinatura.DispositivoInfo = dispositivo;
                 assinatura.DataAssinatura = dataAssinatura;

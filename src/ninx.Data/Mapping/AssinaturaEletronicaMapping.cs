@@ -79,6 +79,9 @@ namespace ninx.Data.Mappings
                 .HasConversion<string>()
                 .HasDefaultValue(StatusAssinatura.Ativa);
 
+            builder.ToTable(t => t.HasCheckConstraint("CK_AssinaturasEletronicas_TipoDocumento",
+                "[TipoDocumento] IS NULL OR [TipoDocumento] IN ('TermoCompromisso', 'ReciboPagamentoParcial', 'ReciboQuitacaoGlobal', 'TermoAberturaConta')"));
+
             builder.ToTable(t => t.HasCheckConstraint("CK_AssinaturasEletronicas_Status", 
                 "[Status] IN ('Ativa', 'Vencida', 'Cancelada')"));
 

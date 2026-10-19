@@ -10,7 +10,7 @@ namespace ninx.Application.Services
         Task<AssinaturaEletronicaResponse> ObterDadosParaAssinaturaAsync(Guid guid);
         Task<AssinaturaEletronicaResponse> ObterDocumentoAssinadoAsync(Guid guid, int comercioId);
 
-        Task ConfirmarAssinaturaAsync(Guid guid, string imagemBase64, string ip, string dispositivo);
+        Task ConfirmarAssinaturaAsync(Guid guid, IReadOnlyCollection<TracoAssinaturaRequest> tracos, string ip, string dispositivo);
         Task<bool> ValidaAssinado(Guid guid);
     }
 }

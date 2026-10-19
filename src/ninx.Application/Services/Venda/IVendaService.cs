@@ -8,10 +8,10 @@ namespace ninx.Application.Services
         Task<IEnumerable<VendaResponse>> GetByUsuarioIdAsync(int usuarioID, int comercioId);
         Task<VendaResponse> GetByVendaIdAsync(int id, int comercioId);
         Task<VendaResponse> CriarAsync(CriarVendaRequest request);
-        Task EstornarAsync(int vendaId, int usuarioId);
-        Task<Guid> ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, decimal valorPago, int formaPagamento);
+        Task EstornarAsync(int vendaId, int usuarioId, int comercioId);
+        Task<Guid> ReceberPagamentoFiadoAsync(int vendaId, int usuarioId, int comercioId, decimal valorPago, int formaPagamento);
         Task<IEnumerable<VendaResponse>> GetByClienteIdAsync(int clienteId, int comercioId);
-        Task<Guid> ReceberPagamentoGeralFiadoAsync(int clienteId, int usuarioId, decimal valorTotalPago, int formaPagamento);
+        Task<Guid> ReceberPagamentoGeralFiadoAsync(int clienteId, int usuarioId, int comercioId, decimal valorTotalPago, int formaPagamento);
 
         /// <summary>
         /// Aplica os efeitos de um documento assinado: o termo baixa o estoque e confirma a entrada;

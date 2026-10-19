@@ -81,7 +81,8 @@ namespace ninx.Application.Services
             // Sem ninguém na lista, "autorizo as pessoas acima relacionadas" contradiria o quadro logo acima.
             var autorizacao = haAutorizados
                 ? "Autorizo as pessoas acima relacionadas a realizar compras a prazo em minha conta, respeitados o limite " +
-                  "da conta e, quando indicado, o limite individual de cada uma. "
+                  "da conta e, quando indicado, o limite individual de cada uma, e declaro que todas têm 16 (dezesseis) " +
+                  "anos ou mais. "
                 : "";
 
             return $"<div class=\"declaracao\">{autorizacao}{substituicao}</div>";

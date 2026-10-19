@@ -97,7 +97,7 @@ namespace ninx.Tests.Services
 
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(usuario);
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(comercio);
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
             _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(new List<Produto> { produto });
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
@@ -162,7 +162,7 @@ namespace ninx.Tests.Services
             var request = RequestVendaNormalValida();
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(false);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(false);
 
             var service = CriarService();
 
@@ -179,7 +179,7 @@ namespace ninx.Tests.Services
 
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
             _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1) });
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
@@ -201,7 +201,7 @@ namespace ninx.Tests.Services
 
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
             _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1, precoVenda: 10m) });
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
@@ -221,7 +221,7 @@ namespace ninx.Tests.Services
 
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
             _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(new List<Produto>());
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
@@ -244,7 +244,7 @@ namespace ninx.Tests.Services
 
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
             _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1) });
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
@@ -270,7 +270,7 @@ namespace ninx.Tests.Services
 
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
             _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1, precoVenda: 10m) });
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
@@ -297,7 +297,7 @@ namespace ninx.Tests.Services
 
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
             _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1, precoVenda: 10m) });
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
@@ -334,7 +334,7 @@ namespace ninx.Tests.Services
 
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
             _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1, precoVenda: 10m) });
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
@@ -358,7 +358,7 @@ namespace ninx.Tests.Services
 
             var service = CriarService();
 
-            var act = async () => await service.EstornarAsync(1, 1);
+            var act = async () => await service.EstornarAsync(1, 1, 1);
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
@@ -373,7 +373,7 @@ namespace ninx.Tests.Services
 
             var service = CriarService();
 
-            var act = async () => await service.EstornarAsync(1, 1);
+            var act = async () => await service.EstornarAsync(1, 1, 1);
 
             await act.Should().ThrowAsync<BadRequestException>();
             _unitOfWork.Verify(x => x.RollbackAsync(), Times.Once);
@@ -393,12 +393,12 @@ namespace ninx.Tests.Services
             };
 
             _vendaRepository.Setup(x => x.GetByIdParaEstornoAsync(1)).ReturnsAsync(venda);
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, venda.ComercioID)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, venda.ComercioID)).ReturnsAsync(true);
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), venda.ComercioID))
                 .ReturnsAsync(new List<Estoque> { Builders.NovoEstoque(1, venda.ComercioID, quantidade: 10) });
 
             var service = CriarService();
-            await service.EstornarAsync(1, 1);
+            await service.EstornarAsync(1, 1, 1);
 
             venda.Status.Should().Be(StatusVenda.Estornada);
             _estoqueRepository.Verify(x => x.UpdateBatchAsync(It.Is<IEnumerable<Estoque>>(e => e.Any(x => x.Quantidade == 12))), Times.Once);
@@ -411,11 +411,11 @@ namespace ninx.Tests.Services
         {
             var venda = Builders.NovaVenda(status: StatusVenda.Finalizada);
             _vendaRepository.Setup(x => x.GetByIdParaEstornoAsync(1)).ReturnsAsync(venda);
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, venda.ComercioID)).ReturnsAsync(false);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, venda.ComercioID)).ReturnsAsync(false);
 
             var service = CriarService();
 
-            var act = async () => await service.EstornarAsync(1, 1);
+            var act = async () => await service.EstornarAsync(1, 1, 1);
 
             await act.Should().ThrowAsync<BadRequestException>();
             _unitOfWork.Verify(x => x.RollbackAsync(), Times.Once);
@@ -428,7 +428,7 @@ namespace ninx.Tests.Services
         {
             var service = CriarService();
 
-            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 0m, (int)FormaPagamento.Dinheiro);
+            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 1, 0m, (int)FormaPagamento.Dinheiro);
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -439,7 +439,7 @@ namespace ninx.Tests.Services
             _vendaRepository.Setup(x => x.GetByIdParaPagamentoFiadoAsync(1)).ReturnsAsync((Venda?)null);
             var service = CriarService();
 
-            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 10m, (int)FormaPagamento.Dinheiro);
+            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 1, 10m, (int)FormaPagamento.Dinheiro);
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
@@ -451,9 +451,57 @@ namespace ninx.Tests.Services
             _vendaRepository.Setup(x => x.GetByIdParaPagamentoFiadoAsync(1)).ReturnsAsync(venda);
             var service = CriarService();
 
-            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 10m, (int)FormaPagamento.Dinheiro);
+            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 1, 10m, (int)FormaPagamento.Dinheiro);
 
             await act.Should().ThrowAsync<BadRequestException>();
+        }
+
+        [Theory]
+        [InlineData(StatusVenda.Estornada)]
+        [InlineData(StatusVenda.Cancelada)]
+        public async Task ReceberPagamentoFiadoAsync_VendaEstornadaOuCancelada_DeveLancarBadRequest(StatusVenda status)
+        {
+            var venda = Builders.NovaVenda(tipoVenda: TipoVenda.Fiado, status: status, clienteId: 1, total: 100m);
+            _vendaRepository.Setup(x => x.GetByIdParaPagamentoFiadoAsync(1)).ReturnsAsync(venda);
+
+            var act = async () => await CriarService().ReceberPagamentoFiadoAsync(1, 1, 1, 10m, (int)FormaPagamento.Dinheiro);
+
+            await act.Should().ThrowAsync<BadRequestException>();
+            _pagamentoVendaRepository.Verify(x => x.AddAsync(It.IsAny<PagamentoVenda>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CriarAsync_VendaFiado_ComprasAguardandoAssinaturaReservamLimite()
+        {
+            var request = RequestVendaNormalValida();
+            request.TipoVenda = (int)TipoVenda.Fiado;
+            request.ClienteID = 1;
+            request.Pagamentos = new List<PagamentoVendaRequest>();
+            request.ItensVenda[0].Quantidade = 30; // 30 * 10 = 300
+
+            // Limite 500 e nenhuma dívida assinada, mas já há 250 aguardando assinatura
+            // (300 menos a entrada pendente de 50): 250 + 300 passa do limite.
+            var cliente = Builders.NovoCliente(1, 1, limiteCredito: 500m);
+            var pendente = Builders.NovaVenda(id: 9, tipoVenda: TipoVenda.Fiado, status: StatusVenda.Aguardando, clienteId: 1, total: 300m);
+
+            _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
+            _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
+            _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
+                .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1, precoVenda: 10m) });
+            _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
+                .ReturnsAsync(new List<Estoque> { Builders.NovoEstoque(1, 1, quantidade: 500) });
+            _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(cliente);
+            _vendaRepository.Setup(x => x.GetVendasFiadoByClienteIDAsync(1)).ReturnsAsync(new List<Venda> { pendente });
+            _pagamentoVendaRepository.Setup(x => x.GetByClienteId(1)).ReturnsAsync(new List<PagamentoVenda>
+            {
+                new() { VendaID = 9, Valor = 50m, Status = StatusPagamento.Pendente }
+            });
+
+            var act = async () => await CriarService().CriarAsync(request);
+
+            (await act.Should().ThrowAsync<BadRequestException>())
+                .WithMessage("*em compras aguardando assinatura*");
         }
 
         [Fact]
@@ -465,7 +513,7 @@ namespace ninx.Tests.Services
 
             var service = CriarService();
 
-            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 10m, (int)FormaPagamento.Dinheiro);
+            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 1, 10m, (int)FormaPagamento.Dinheiro);
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -476,11 +524,11 @@ namespace ninx.Tests.Services
             var venda = Builders.NovaVenda(tipoVenda: TipoVenda.Fiado, status: StatusVenda.Aberta, clienteId: 1, total: 100m);
             _vendaRepository.Setup(x => x.GetByIdParaPagamentoFiadoAsync(1)).ReturnsAsync(venda);
             _assinaturaEletronicaRepository.Setup(x => x.ExisteAssinaturaPendenteAsync(1)).ReturnsAsync(false);
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, venda.ComercioID)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, venda.ComercioID)).ReturnsAsync(true);
 
             var service = CriarService();
 
-            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 150m, (int)FormaPagamento.Dinheiro);
+            var act = async () => await service.ReceberPagamentoFiadoAsync(1, 1, 1, 150m, (int)FormaPagamento.Dinheiro);
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -491,13 +539,13 @@ namespace ninx.Tests.Services
             var venda = Builders.NovaVenda(tipoVenda: TipoVenda.Fiado, status: StatusVenda.Aberta, clienteId: 1, total: 100m);
             _vendaRepository.Setup(x => x.GetByIdParaPagamentoFiadoAsync(1)).ReturnsAsync(venda);
             _assinaturaEletronicaRepository.Setup(x => x.ExisteAssinaturaPendenteAsync(1)).ReturnsAsync(false);
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, venda.ComercioID)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, venda.ComercioID)).ReturnsAsync(true);
             _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCliente(1, venda.ComercioID));
             _comercioRepository.Setup(x => x.GetByIdAsync(venda.ComercioID)).ReturnsAsync(Builders.NovoComercio(venda.ComercioID));
             PrepararRenderizacaoDocumento();
 
             var service = CriarService();
-            var guid = await service.ReceberPagamentoFiadoAsync(1, 1, 50m, (int)FormaPagamento.Pix);
+            var guid = await service.ReceberPagamentoFiadoAsync(1, 1, 1, 50m, (int)FormaPagamento.Pix);
 
             guid.Should().NotBe(Guid.Empty);
             _pagamentoVendaRepository.Verify(x => x.AddAsync(It.Is<PagamentoVenda>(p => p.Valor == 50m)), Times.Once);
@@ -512,7 +560,7 @@ namespace ninx.Tests.Services
             _vendaRepository.Setup(x => x.GetVendasFiadoAtivasPorClienteAsync(1)).ReturnsAsync(new List<Venda>());
             var service = CriarService();
 
-            var act = async () => await service.ReceberPagamentoGeralFiadoAsync(1, 1, 100m, (int)FormaPagamento.Dinheiro);
+            var act = async () => await service.ReceberPagamentoGeralFiadoAsync(1, 1, 1, 100m, (int)FormaPagamento.Dinheiro);
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
@@ -522,11 +570,11 @@ namespace ninx.Tests.Services
         {
             var venda = Builders.NovaVenda(tipoVenda: TipoVenda.Fiado, status: StatusVenda.Aberta, clienteId: 1, total: 100m);
             _vendaRepository.Setup(x => x.GetVendasFiadoAtivasPorClienteAsync(1)).ReturnsAsync(new List<Venda> { venda });
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, venda.ComercioID)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, venda.ComercioID)).ReturnsAsync(true);
 
             var service = CriarService();
 
-            var act = async () => await service.ReceberPagamentoGeralFiadoAsync(1, 1, 200m, (int)FormaPagamento.Dinheiro);
+            var act = async () => await service.ReceberPagamentoGeralFiadoAsync(1, 1, 1, 200m, (int)FormaPagamento.Dinheiro);
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -537,17 +585,55 @@ namespace ninx.Tests.Services
             var venda1 = Builders.NovaVenda(id: 1, tipoVenda: TipoVenda.Fiado, status: StatusVenda.Aberta, clienteId: 1, total: 60m);
             var venda2 = Builders.NovaVenda(id: 2, tipoVenda: TipoVenda.Fiado, status: StatusVenda.Aberta, clienteId: 1, total: 40m);
             _vendaRepository.Setup(x => x.GetVendasFiadoAtivasPorClienteAsync(1)).ReturnsAsync(new List<Venda> { venda1, venda2 });
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, venda1.ComercioID)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, venda1.ComercioID)).ReturnsAsync(true);
             _clienteRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoCliente(1, venda1.ComercioID));
             _comercioRepository.Setup(x => x.GetByIdAsync(venda1.ComercioID)).ReturnsAsync(Builders.NovoComercio(venda1.ComercioID));
             PrepararRenderizacaoDocumento();
 
             var service = CriarService();
-            var guid = await service.ReceberPagamentoGeralFiadoAsync(1, 1, 100m, (int)FormaPagamento.Dinheiro);
+            var guid = await service.ReceberPagamentoGeralFiadoAsync(1, 1, 1, 100m, (int)FormaPagamento.Dinheiro);
 
             guid.Should().NotBe(Guid.Empty);
             _pagamentoVendaRepository.Verify(x => x.AddAsync(It.IsAny<PagamentoVenda>()), Times.Exactly(2));
             _assinaturaEletronicaRepository.Verify(x => x.AddAsync(It.IsAny<AssinaturaEletronica>()), Times.Exactly(2));
+        }
+
+        // ---------- Isolamento entre comércios ----------
+
+        [Fact]
+        public async Task EstornarAsync_VendaDeOutroComercio_DeveLancarNotFound()
+        {
+            var venda = Builders.NovaVenda(comercioId: 5, status: StatusVenda.Finalizada);
+            _vendaRepository.Setup(x => x.GetByIdParaEstornoAsync(1)).ReturnsAsync(venda);
+
+            var act = async () => await CriarService().EstornarAsync(1, 1, comercioId: 1);
+
+            await act.Should().ThrowAsync<NotFoundException>();
+            _vendaRepository.Verify(x => x.UpdateAsync(It.IsAny<Venda>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ReceberPagamentoFiadoAsync_VendaDeOutroComercio_DeveLancarNotFound()
+        {
+            var venda = Builders.NovaVenda(comercioId: 5, tipoVenda: TipoVenda.Fiado, status: StatusVenda.Aberta, clienteId: 1, total: 100m);
+            _vendaRepository.Setup(x => x.GetByIdParaPagamentoFiadoAsync(1)).ReturnsAsync(venda);
+
+            var act = async () => await CriarService().ReceberPagamentoFiadoAsync(1, 1, 1, 10m, (int)FormaPagamento.Dinheiro);
+
+            await act.Should().ThrowAsync<NotFoundException>();
+            _pagamentoVendaRepository.Verify(x => x.AddAsync(It.IsAny<PagamentoVenda>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ReceberPagamentoGeralFiadoAsync_ClienteDeOutroComercio_DeveLancarNotFound()
+        {
+            var venda = Builders.NovaVenda(comercioId: 5, tipoVenda: TipoVenda.Fiado, status: StatusVenda.Aberta, clienteId: 1, total: 100m);
+            _vendaRepository.Setup(x => x.GetVendasFiadoAtivasPorClienteAsync(1)).ReturnsAsync(new List<Venda> { venda });
+
+            var act = async () => await CriarService().ReceberPagamentoGeralFiadoAsync(1, 1, 1, 50m, (int)FormaPagamento.Dinheiro);
+
+            await act.Should().ThrowAsync<NotFoundException>();
+            _pagamentoVendaRepository.Verify(x => x.AddAsync(It.IsAny<PagamentoVenda>()), Times.Never);
         }
 
         // ---------- GetByVendaIdAsync ----------
@@ -644,9 +730,9 @@ namespace ninx.Tests.Services
             var entrada = new PagamentoVenda { PagamentoID = 5, VendaID = venda.VendaID, Valor = 10m, Status = StatusPagamento.Pendente };
             venda.PagamentosVenda.Add(entrada);
             _vendaRepository.Setup(x => x.GetByIdParaEstornoAsync(venda.VendaID)).ReturnsAsync(venda);
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, venda.ComercioID)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, venda.ComercioID)).ReturnsAsync(true);
 
-            await CriarService().EstornarAsync(venda.VendaID, 1);
+            await CriarService().EstornarAsync(venda.VendaID, 1, venda.ComercioID);
 
             venda.Status.Should().Be(StatusVenda.Estornada);
             entrada.Status.Should().Be(StatusPagamento.Cancelado);
@@ -665,7 +751,7 @@ namespace ninx.Tests.Services
 
             _usuarioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoUsuario(1));
             _comercioRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(Builders.NovoComercio(1));
-            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAsync(1, 1)).ReturnsAsync(true);
+            _usuarioComercioRepository.Setup(x => x.ExisteVinculoAtivoAsync(1, 1)).ReturnsAsync(true);
             _produtoRepository.Setup(x => x.GetProdutosById(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(new List<Produto> { Builders.NovoProduto(1, 1, precoVenda: precoProduto) });
             _estoqueRepository.Setup(x => x.GetByProdutosIdsAsync(It.IsAny<IEnumerable<int>>(), 1))
